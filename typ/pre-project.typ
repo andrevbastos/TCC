@@ -34,17 +34,18 @@
   align(center)[
     #text(weight: "bold", upper(instituicao)) \
     #text(weight: "bold", upper(curso))
-    
-    #v(1fr)
-    #text(weight: "bold", upper(autor))
-    #v(1fr)
+
+    #v(2fr)
     
     #text(weight: "bold", size: 14pt, upper(titulo))
     #if subtitulo != "" [
       #text(weight: "bold", size: 14pt)[: #subtitulo]
     ]
-    
-    #v(2fr)
+        
+    #v(1fr)
+    #text(weight: "bold", upper(autor))
+    #v(1fr)
+
     #text(weight: "bold", local) \
     #text(weight: "bold", ano)
   ]
@@ -184,7 +185,7 @@
 // ==========================================
 
 #show: pre_projeto_abnt.with(
-  titulo: "Análise Visual e Comparativa de Algoritmos de Pathfinding de Malhas3D em Tempo Real",
+  titulo: "Análise Visual e Comparativa de Algoritmos de Pathfinding de Malhas 3D em Tempo Real",
   autor: "André Vitor Bastos de Macêdo",
   orientador: "Prof. Paulo César Rodacki Gomes",
   instituicao: "Instituto Federal Catarinense - IFC",
@@ -199,9 +200,11 @@
 
 = INTRODUÇÃO 
 
-== Tema e Problema de Pesquisa
+= PROBLEMA DE PESQUISA
 
-== Justificativa
+= HIPÓTESE(S)
+
+= JUSTIFICATIVA
 
 = OBJETIVOS
 
@@ -209,7 +212,7 @@
 
 == Objetivos Específicos
 
-= FUNDAMENTAÇÃO TEÓRICA
+= REVISÃO TEÓRICA
 
 = METODOLOGIA
 
@@ -220,27 +223,32 @@
   supplement: "Tabela",
 )[
   #table(
-    columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr),
+    columns: (auto, 1fr),
     stroke: none,
-    align: (left, center, center, center, center, center, center),
+    align: (left, center),
     table.hline(y: 0, stroke: 1pt),
     table.hline(y: 1, stroke: 0.5pt),
-    [*Atividade*], [*Jan*], [*Fev*], [*Mar*], [*Abr*], [*Mai*], [*Jun*],
-    [Revisão Bibliográfica e Fundamentação], 
-    [], [X], [X], [], [], [],
-    [Infraestrutura e Geração de Malhas], 
-    [], [], [X], [], [], [],
-    [Implementação dos Algoritmos], 
-    [], [], [X], [X], [], [],
-    [Coleta de Métricas e Casos de Teste], 
-    [], [], [], [X], [X], [],
-    [Otimização, Concorrência e Análise Visual], 
-    [], [], [], [X], [X], [],
-    [Redação Final], 
-    [], [], [], [], [X], [X],
-    [Defesa], 
-    [], [], [], [], [], [X],
-    table.hline(y: 8, stroke: 1pt)
+    [*ETAPAS*], [*PERÍODOS*],
+    [Revisão de Bibliografia], [Jan/2026 a Fev/2026],
+    [Heurísticas e Buscas Avançadas], [Fev/2026 a Mar/2026],
+    [Pathfinding e NavMesh], [Mar/2026 a Abr/2026],
+    [Casos de teste e Métricas], [Abr/2026],
+    [Arquitetura e Preparação do Ambiente em C++], [Fev/2026 a Mai/2026],
+    [Redação do Pré-Projeto], [Mai/2026],
+    [Revisão do Pré-Projeto], [Jun/2026],
+    [Defesa do Pré-Projeto], [Jun/2026],
+    [Desenvolvimento de Malhas e Grafos], [Jul/2026 a Ago/2026],
+    [Implementação dos Algoritmos], [Jul/2026 a Ago/2026],
+    [Otimização], [Ago/2026],
+    [Concorrência], [Ago/2026],
+    [Recolha de Dados], [Set/2026 a Out/2026],
+    [Comparação de Dados], [Set/2026 a Out/2026],
+    [Análise Visual], [Set/2026 a Out/2026],
+    [Tratamento de Dados], [Nov/2026],
+    [Redação Final], [Nov/2026],
+    [Revisão], [Dez/2026],
+    [Defesa], [Dez/2026],
+    table.hline(y: 20, stroke: 1pt)
   )
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]
