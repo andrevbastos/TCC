@@ -1,4 +1,4 @@
-= Destrinchando o tema
+# Destrinchando o tema
 A ideia do tema é “Análise Visual e Comparativa de Algoritmos de Pathfinding
 de Malhas3D em Tempo Real”, mas o que isso significa? Sobre o que esse TCC
 vai abordar?
@@ -12,7 +12,7 @@ vai abordar?
 * Estudo de caso EM TEMPO REAL com diferentes algoritmos
     * Comparação técnica e visual
 * Aplicação dos conceitos
-Nas minhas palavras...
+## Nas minhas palavras...
 A ideia deste TCC é fazer um estudo empírico do uso de grafos em ambientes
 3D para a busca de caminhos em tempo real. Neste projeto, pretendo falar sobre:
 * o funcionamento de grafos e algoritmos de busca
@@ -21,14 +21,14 @@ A ideia deste TCC é fazer um estudo empírico do uso de grafos em ambientes
 * utilização dos algoritmos nas malhas 3D
 * comparação de algoritmos
 * otimização de buscas para alto desempenho
-Talvez
+## Talvez
 * Concorrência
     * Múltiplas buscas concorrentes, movimentação de uma gera novos
 obstáculos para as demais
 * Falar sobre alto desempenho em C++
 * Explicação das bibliotecas Graph e IFCG (merchant)
 
-= Métricas
+# Métricas
 Como vamos fazer um comparativo de algoritmos, temos que definir o que
 comparar.
 * Pico de consumo de Memória
@@ -40,7 +40,7 @@ comparar.
 * Número de Nós Visitados
 * Comprimento/Custo do Caminho Gerado
 
-= Bibliografia
+# Bibliografia
 * Grafos, Paulo Rodacki
 * Algoritmos, Thomas Cormen
 * Inteligência Artificial, Stuart Russel
