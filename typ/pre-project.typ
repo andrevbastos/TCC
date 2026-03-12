@@ -198,7 +198,7 @@
   lista_tabelas: false,
 )
 
-= INTRODUÇÃO 
+= INTRODUÇÃO
 
 = PROBLEMA DE PESQUISA
 
@@ -217,6 +217,7 @@
 = METODOLOGIA
 
 = CRONOGRAMA
+
 
 #figure(
   caption: [Cronograma de execução das atividades],
@@ -253,6 +254,16 @@
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]
 ]
+
+@rodacki_grafos \
+@cormen_algoritmos \
+@russel_ia \
+@a_star_multithreaded \
+@navigation_mesh \
+@a_star_modification \
+@jps_3d \
+@pathfinding_game_dev \
+@breaking_sorting_barrier
 
 // =======================================================
 // ELEMENTOS PÓS-TEXTUAIS
