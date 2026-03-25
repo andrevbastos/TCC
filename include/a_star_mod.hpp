@@ -44,9 +44,9 @@ std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId
                 common::Node* P2 = VL[i];
                 common::Node* P3 = VL[i+1];
 
-                auto [x1, y1] = std::any_cast<std::tuple<int, int>>(P1->getData());
-                auto [x2, y2] = std::any_cast<std::tuple<int, int>>(P2->getData());
-                auto [x3, y3] = std::any_cast<std::tuple<int, int>>(P3->getData());
+                auto [x1, y1, z1] = std::any_cast<std::tuple<int, int, int>>(P1->getData());
+                auto [x2, y2, z2] = std::any_cast<std::tuple<int, int, int>>(P2->getData());
+                auto [x3, y3, z3] = std::any_cast<std::tuple<int, int, int>>(P3->getData());
 
                 long long crossProduct = 1LL * (x2 - x1) * (y3 - y2) - 1LL * (y2 - y1) * (x3 - x2);
                 bool isCollinear = (crossProduct == 0);
@@ -67,8 +67,8 @@ std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId
             if (CM.find(neighbor) == CM.end() || VC < CM[neighbor]) {
                 CM[neighbor] = VC;
                 
-                auto [ax, ay] = std::any_cast<std::tuple<int, int>>(AV->getData());
-                auto [nx, ny] = std::any_cast<std::tuple<int, int>>(neighbor->getData());
+                auto [ax, ay, az] = std::any_cast<std::tuple<int, int, int>>(AV->getData());
+                auto [nx, ny, nz] = std::any_cast<std::tuple<int, int, int>>(neighbor->getData());
                 bool isDiagonal = (ax != nx) && (ay != ny);
                 
                 double M = isDiagonal ? std::sqrt(2.0) : 1.0; 

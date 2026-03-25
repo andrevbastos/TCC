@@ -17,7 +17,7 @@ bool areNodesConnected(common::Graph* maze, int idA, int idB) {
     return false;
 };
 
-common::Graph* createMazeGraph(int height, int width)
+common::Graph* createMazeGraph2D(int height, int width)
 {
     auto* g = new undirected::Graph();
 
@@ -52,6 +52,106 @@ common::Graph* createMazeGraph(int height, int width)
             if (x - 1 >= 0 && y + 1 < height) {
                 int diagLeftId = (y + 1) * width + (x - 1);
                 g->newEdge(currentNode, g->getVertex(diagLeftId), rand() % 100 + 1);
+            }
+        }
+    }
+
+    auto openPath = util::Kruskal::getMST(g);
+    
+    for (auto* edge : openPath) {
+        result->newEdge(edge->getFirstNode()->getId(), edge->getSecondNode()->getId());
+    }
+
+    delete g;
+    return result;
+};
+
+
+common::Graph* createMazeGraph3D(int height, int width, int depth)
+{
+    auto* g = new undirected::Graph();
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            for (int z = 0; z < depth; ++z) {
+                g->newVertex(std::make_tuple(x, y, z));
+            }
+        }
+    }
+
+    auto result = g->clone();
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            for (int z = 0; z < depth; ++z) {
+                int currentId = x + y * width + z * width * height;
+                common::Node* currentNode = g->getVertex(currentId);
+
+                // Right
+                if (x + 1 < width) {
+                    int rightId = (y * width + (x + 1)) + z * width * height;
+                    g->newEdge(currentNode, g->getVertex(rightId), rand() % 100 + 1);
+                }
+                // Bottom
+                if (y + 1 < height) {
+                    int bottomId = (y + 1) * width + x + z * width * height;
+                    g->newEdge(currentNode, g->getVertex(bottomId), rand() % 100 + 1);
+                }
+                // Front
+                if (z + 1 < depth) {
+                    int frontId = x + y * width + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(frontId), rand() % 100 + 1);
+                }
+                // Bottom Right
+                if (x + 1 < width && y + 1 < height) {
+                    int diagRightId = ((y + 1) * width + (x + 1)) + z * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagRightId), rand() % 100 + 1);
+                }
+                // Bottom Left
+                if (x - 1 >= 0 && y + 1 < height) {
+                    int diagLeftId = ((y + 1) * width + (x - 1)) + z * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagLeftId), rand() % 100 + 1);
+                }
+                // Front Right
+                if (x + 1 < width && z + 1 < depth) {
+                    int diagFrontRightId = (y * width + (x + 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontRightId), rand() % 100 + 1);
+                }
+                // Front Left
+                if (x - 1 >= 0 && z + 1 < depth) {
+                    int diagFrontLeftId = (y * width + (x - 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontLeftId), rand() % 100 + 1);
+                }
+                // Front Bottom
+                if (y + 1 < height && z + 1 < depth) {
+                    int diagFrontBottomId = ((y + 1) * width + x) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontBottomId), rand() % 100 + 1);
+                }
+                // Front Top
+                if (y - 1 >= 0 && z + 1 < depth) {
+                    int diagFrontTopId = ((y - 1) * width + x) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontTopId), rand() % 100 + 1);
+                }
+                // Front Bottom Right
+                if (x + 1 < width && y + 1 < height && z + 1 < depth) {
+                    int diagFrontBottomRightId = ((y + 1) * width + (x + 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontBottomRightId), rand() % 100 + 1);
+                }
+                // Front Bottom Left
+                if (x - 1 >= 0 && y + 1 < height && z + 1 < depth) {
+                    int diagFrontBottomLeftId = ((y + 1) * width + (x - 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontBottomLeftId), rand() % 100 + 1);
+                }
+                // Front Top Right
+                if (x + 1 < width && y - 1 >= 0 && z + 1 < depth) {
+                    int diagFrontTopRightId = ((y - 1) * width + (x + 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontTopRightId), rand() % 100 + 1);
+                }
+                // Front Top Left
+                if (x - 1 >= 0 && y - 1 >= 0 && z + 1 < depth) {
+                    int diagFrontTopLeftId = ((y - 1) * width + (x - 1)) + (z + 1) * width * height;
+                    g->newEdge(currentNode, g->getVertex(diagFrontTopLeftId), rand() % 100 + 1);
+                }
             }
         }
     }
