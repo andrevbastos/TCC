@@ -6,6 +6,7 @@ build_*/
 bin/
 lib/
 out/
+results/
 *.o
 *.obj
 *.a
