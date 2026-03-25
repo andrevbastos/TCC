@@ -26,13 +26,17 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         outputFile = argv[1];
     }
+    std::string graphsDir = "./graphs/";
+    if (argc > 2) {
+        graphsDir = argv[2];
+    }
 
     warmUp();
     
     Statistics stats(iterations);
     for (int i = 0; i < iterations; ++i) {
         auto* g = createMazeGraph(h, w);
-        exportMazeToTxt(g, w, h, outputFile + "maze_" + std::to_string(i) + ".txt");
+        exportMazeToTxt(g, w, h, graphsDir + "maze_" + std::to_string(i+1) + ".txt");
 
         auto start = std::chrono::steady_clock::now();
         auto a_start = util::AStar::getPath(g, startId, endId, util::AStar::euclideanHeuristic2D);
