@@ -71,9 +71,9 @@ common::Graph* createMazeGraph3D(int height, int width, int depth)
 {
     auto* g = new undirected::Graph();
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            for (int z = 0; z < depth; ++z) {
+    for (int z = 0; z < depth; ++z) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
                 g->newVertex(std::make_tuple(x, y, z));
             }
         }
@@ -81,9 +81,9 @@ common::Graph* createMazeGraph3D(int height, int width, int depth)
 
     auto result = g->clone();
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            for (int z = 0; z < depth; ++z) {
+    for (int z = 0; z < depth; ++z) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
                 int currentId = x + y * width + z * width * height;
                 common::Node* currentNode = g->getVertex(currentId);
 
@@ -164,6 +164,95 @@ common::Graph* createMazeGraph3D(int height, int width, int depth)
 
     delete g;
     return result;
+};
+
+common::Graph* createGridMap(int h, int w, int d) {
+    auto* grid = new undirected::Graph();
+
+    for (int z = 0; z < d; ++z) {
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                grid->newVertex(std::make_tuple(x, y, z));
+            }
+        }
+    }
+
+    for (int z = 0; z < d; ++z) {
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                int currentId = x + y * w + z * w * h;
+                common::Node* currentNode = grid->getVertex(currentId);
+
+                // Right
+                if (x + 1 < w) {
+                    int rightId = (y * w + (x + 1)) + z * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(rightId), rand() % 100 + 1);
+                }
+                // Bottom
+                if (y + 1 < h) {
+                    int bottomId = (y + 1) * w + x + z * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(bottomId), rand() % 100 + 1);
+                }
+                // Front
+                if (z + 1 < d) {
+                    int frontId = x + y * w + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(frontId), rand() % 100 + 1);
+                }
+                // Bottom Right
+                if (x + 1 < w && y + 1 < h) {
+                    int diagRightId = ((y + 1) * w + (x + 1)) + z * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagRightId), rand() % 100 + 1);
+                }
+                // Bottom Left
+                if (x - 1 >= 0 && y + 1 < h) {
+                    int diagLeftId = ((y + 1) * w + (x - 1)) + z * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagLeftId), rand() % 100 + 1);
+                }
+                // Front Right
+                if (x + 1 < w && z + 1 < d) {
+                    int diagFrontRightId = (y * w + (x + 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontRightId), rand() % 100 + 1);
+                }
+                // Front Left
+                if (x - 1 >= 0 && z + 1 < d) {
+                    int diagFrontLeftId = (y * w + (x - 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontLeftId), rand() % 100 + 1);
+                }
+                // Front Bottom
+                if (y + 1 < h && z + 1 < d) {
+                    int diagFrontBottomId = ((y + 1) * w + x) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid ->getVertex(diagFrontBottomId), rand() % 100 + 1);
+                }
+                // Front Top
+                if (y - 1 >= 0 && z + 1 < d) {
+                    int diagFrontTopId = ((y - 1) * w + x) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontTopId), rand() % 100 + 1);
+                }
+                // Front Bottom Right
+                if (x + 1 < w && y + 1 < h && z + 1 < d) {
+                    int diagFrontBottomRightId = ((y + 1) * w + (x + 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontBottomRightId), rand() % 100 + 1);
+                }
+                // Front Bottom Left
+                if (x - 1 >= 0 && y + 1 < h && z + 1 < d) {
+                    int diagFrontBottomLeftId = ((y + 1) * w + (x - 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontBottomLeftId), rand() % 100 + 1);
+                }
+                // Front Top Right
+                if (x + 1 < w && y - 1 >= 0 && z + 1 < d) {
+                    int diagFrontTopRightId = ((y - 1) * w + (x + 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontTopRightId), rand() % 100 + 1);
+                }
+                // Front Top Left
+                if (x - 1 >= 0 && y - 1 >= 0 && z + 1 < d) {
+                    int diagFrontTopLeftId = ((y - 1) * w + (x - 1)) + (z + 1) * w * h;
+                    grid->newEdge(currentNode, grid->getVertex(diagFrontTopLeftId), rand() % 100 + 1);
+                }
+            }
+        }
+    }
+
+    return grid;
 };
 
 void exportMazeToTxt(common::Graph* maze, int width, int height, const std::string& filename) {
