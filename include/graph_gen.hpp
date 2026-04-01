@@ -195,9 +195,6 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
     return graph;
 };
 
-#include <tuple> // (já deve estar incluído)
-
-// Modificamos a assinatura para retornar o Grafo, o ID de início e o ID de fim
 std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath, int startX, int startY, int endX, int endY) {
     auto* graph = new undirected::Graph();
     int startId = -1;
@@ -234,22 +231,22 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
             // Right
             if (x + 1 < width) {
                 int rightId = y * width + (x + 1);
-                graph->newEdge(currentNode, graph->getVertex(rightId), rand() % 100 + 1);
+                graph->newEdge(currentNode, graph->getVertex(rightId), 1);
             }
             // Bottom
             if (y + 1 < height) {
                 int bottomId = (y + 1) * width + x;
-                graph->newEdge(currentNode, graph->getVertex(bottomId), rand() % 100 + 1);
+                graph->newEdge(currentNode, graph->getVertex(bottomId), 1);
             }
             // Bottom Right
             if (x + 1 < width && y + 1 < height) {
                 int diagRightId = ((y + 1) * width + (x + 1));
-                graph->newEdge(currentNode, graph->getVertex(diagRightId), rand() % 100 + 1);
+                graph->newEdge(currentNode, graph->getVertex(diagRightId), sqrt(2));
             }
             // Bottom Left
             if (x - 1 >= 0 && y + 1 < height) {
                 int diagLeftId = ((y + 1) * width + (x - 1));
-                graph->newEdge(currentNode, graph->getVertex(diagLeftId), rand() % 100 + 1);
+                graph->newEdge(currentNode, graph->getVertex(diagLeftId), sqrt(2));
             }
         }
     }

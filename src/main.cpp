@@ -47,16 +47,31 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto a_star_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    for (auto* node : a_star_path) {
+        auto [x, y, z] = std::any_cast<std::tuple<int, int, int>>(node->getData());
+        std::cout << "(" << x << ", " << y << ", " << z << ")\n";
+    }
 
-    auto* graph = createMeshFromGraph(g, 0.0f, 1.0f, 1.0f, 1.0f, shader);
-    graph->scale(-imageSize / 2.0f, -imageSize / 2.0f, 1.0f);
-    renderer->addMesh(graph);
+    auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
+    
+    auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
+    outline->translate(0.0f, 0.0f, -0.15f);
 
     auto* path = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
-    path->translate(0.0f, 0.0f, 0.05f);
-    path->scale(-imageSize / 2.0f, -imageSize / 2.0f, 1.0f);
-    renderer->addMesh(path);
+    path->translate(0.0f, 0.0f, -0.3f);
+
+    auto* scene = new MeshTree();
+    scene->addChild(floor);
+    scene->addChild(outline);
+    scene->addChild(path);
+
+    scene->rotate(3.14159f / 2, 1.0f, 0.0f, 0.0f);
+
+    renderer->addMesh(scene);
+
+    auto* camera = renderer->getCamera();
+    camera->setPos(glm::vec3(16.0f, 16.0f, 50.0f));
 
     // Statistics stats(iterations);
     // for (int i = 0; i < iterations; ++i) {
