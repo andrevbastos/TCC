@@ -227,27 +227,27 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
         for (int x = 0; x < width; ++x) {
             int currentId = y * width + x;
             common::Node* currentNode = graph->getVertex(currentId);
+            
+            auto [cx, cy, cz] = std::any_cast<std::tuple<int, int, int>>(currentNode->getData());
+
+            auto addEdgeWithCost = [&](int targetX, int targetY) {
+                int targetId = targetY * width + targetX;
+                common::Node* targetNode = graph->getVertex(targetId);
+                auto [tx, ty, tz] = std::any_cast<std::tuple<int, int, int>>(targetNode->getData());
+                if (tz == 0) return;
+
+                double cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));
+                graph->newEdge(currentNode, targetNode, cost);
+            };
 
             // Right
-            if (x + 1 < width) {
-                int rightId = y * width + (x + 1);
-                graph->newEdge(currentNode, graph->getVertex(rightId), 1);
-            }
+            if (x + 1 < width && cz != 0) addEdgeWithCost(x + 1, y);
             // Bottom
-            if (y + 1 < height) {
-                int bottomId = (y + 1) * width + x;
-                graph->newEdge(currentNode, graph->getVertex(bottomId), 1);
-            }
+            if (y + 1 < height && cz != 0) addEdgeWithCost(x, y + 1);
             // Bottom Right
-            if (x + 1 < width && y + 1 < height) {
-                int diagRightId = ((y + 1) * width + (x + 1));
-                graph->newEdge(currentNode, graph->getVertex(diagRightId), sqrt(2));
-            }
+            if (x + 1 < width && y + 1 < height && cz != 0) addEdgeWithCost(x + 1, y + 1);
             // Bottom Left
-            if (x - 1 >= 0 && y + 1 < height) {
-                int diagLeftId = ((y + 1) * width + (x - 1));
-                graph->newEdge(currentNode, graph->getVertex(diagLeftId), sqrt(2));
-            }
+            if (x - 1 >= 0 && y + 1 < height && cz != 0) addEdgeWithCost(x - 1, y + 1);
         }
     }
 
