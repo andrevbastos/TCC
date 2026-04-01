@@ -210,7 +210,7 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            int z = (data[y * width + x] / 255.0f) * 10; 
+            int z = (data[y * width + x] / 255.0f * 25); 
             graph->newVertex(std::make_tuple(x, y, z));
             
             int currentId = y * width + x;

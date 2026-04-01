@@ -17,18 +17,6 @@ const int imageSize = 32;
 
 void warmUp();
 
-double euclidean3D(common::Node* a, common::Node* b) 
-{
-    try {
-        auto [xA, yA, zA] = std::any_cast<std::tuple<int, int, int>>(a->getData());
-        auto [xB, yB, zB] = std::any_cast<std::tuple<int, int, int>>(b->getData());
-        return std::sqrt(std::pow(xA - xB, 2) + std::pow(yA - yB, 2) + std::pow(zA - zB, 2));
-    } catch (const std::bad_any_cast& e) {
-        std::cerr << "Erro ao calcular a heurística: " << e.what() << std::endl;
-        return 0.0;
-    }
-};
-
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(NULL)));
 
@@ -59,21 +47,25 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto a_star_path = util::AStar::getPath(g, startId, endId, euclidean3D);
-    // auto a_star_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    auto a_star_mod_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
 
     auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
     
     auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
     outline->translate(0.0f, 0.0f, 0.6f);
 
-    auto* path = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
-    path->translate(0.0f, 0.0f, 1.5f);
+    auto* path1 = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
+    path1->translate(0.0f, 0.0f, 1.5f);
+
+    auto* path2 = createMeshFromPath(a_star_mod_path, 0.0f, 1.0f, 0.0f, 1.0f, shader);
+    path2->translate(0.0f, 0.0f, 2.5f);
 
     auto* scene = new MeshTree();
     scene->addChild(floor);
     scene->addChild(outline);
-    scene->addChild(path);
+    scene->addChild(path1);
+    scene->addChild(path2);
 
     scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
