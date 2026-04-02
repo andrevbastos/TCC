@@ -18,7 +18,10 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
     auto graphNodes = graph->getVertices();
     for (int i = 0; i < graphNodes.size(); ++i) {
         auto* node = graphNodes[i];
-        auto [x, y, z] = std::any_cast<std::tuple<float, float, float>>(node->getData());
+
+        auto [valid, coords] = util::AStar::getCoords3D(node);
+        if (!valid) continue;
+        auto [x, y, z] = coords;
         
         Vertex vertex(x, y, z, r, g, b, a);
         vertices.push_back(vertex);
@@ -69,7 +72,10 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
     std::vector<GLuint> indices;
 
     for (int i = 0; i < path.size(); ++i) {
-        auto [x, y, z] = std::any_cast<std::tuple<float, float, float>>(path[i]->getData());
+        auto [valid, coords] = util::AStar::getCoords3D(path[i]);
+        if (!valid) continue;
+        auto [x, y, z] = coords;
+        
         Vertex vertex(x, y, z, r, g, b, a);
         vertices.push_back(vertex);
         
@@ -103,8 +109,13 @@ common::Graph* createGraphFromMesh(Mesh* mesh) {
         auto* n1 = graph->getVertex(v1_idx);
         auto* n2 = graph->getVertex(v2_idx);
         
-        auto [x1, y1, z1] = std::any_cast<std::tuple<float, float, float>>(n1->getData());
-        auto [x2, y2, z2] = std::any_cast<std::tuple<float, float, float>>(n2->getData());
+        auto [valid1, coords1] = util::AStar::getCoords3D(n1);
+        auto [valid2, coords2] = util::AStar::getCoords3D(n2);
+
+        if (!valid1 || !valid2) return;
+
+        auto [x1, y1, z1] = coords1;
+        auto [x2, y2, z2] = coords2;
         
         double cost = std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2) + std::pow(z1 - z2, 2));
         

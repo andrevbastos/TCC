@@ -44,12 +44,18 @@ std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId
                 common::Node* P2 = VL[i];
                 common::Node* P3 = VL[i+1];
 
-                auto [x1, y1, z1] = std::any_cast<std::tuple<int, int, int>>(P1->getData());
-                auto [x2, y2, z2] = std::any_cast<std::tuple<int, int, int>>(P2->getData());
-                auto [x3, y3, z3] = std::any_cast<std::tuple<int, int, int>>(P3->getData());
+                auto [valid1, coords1] = util::AStar::getCoords3D(P1);
+                auto [valid2, coords2] = util::AStar::getCoords3D(P2);
+                auto [valid3, coords3] = util::AStar::getCoords3D(P3);
 
-                long long crossProduct = 1LL * (x2 - x1) * (y3 - y2) - 1LL * (y2 - y1) * (x3 - x2);
-                bool isCollinear = (crossProduct == 0);
+                if (!valid1 || !valid2 || !valid3) return {};
+
+                auto [x1, y1, z1] = coords1;
+                auto [x2, y2, z2] = coords2;
+                auto [x3, y3, z3] = coords3;
+
+                float crossProduct = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2);
+                bool isCollinear = std::abs(crossProduct) < 0.001f;
 
                 if (!isCollinear) {
                     PL.push_back(P2);
@@ -67,8 +73,14 @@ std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId
             if (CM.find(neighbor) == CM.end() || VC < CM[neighbor]) {
                 CM[neighbor] = VC;
                 
-                auto [ax, ay, az] = std::any_cast<std::tuple<int, int, int>>(AV->getData());
-                auto [nx, ny, nz] = std::any_cast<std::tuple<int, int, int>>(neighbor->getData());
+                auto [validAV, coordsAV] = util::AStar::getCoords3D(neighbor);
+                auto [validNeighbor, coordsNeighbor] = util::AStar::getCoords3D(neighbor);
+
+                if (!validAV || !validNeighbor) continue;
+
+                auto [ax, ay, az] = coordsAV;
+                auto [nx, ny, nz] = coordsNeighbor;
+
                 bool isDiagonal = (ax != nx) && (ay != ny);
                 
                 double M = isDiagonal ? std::sqrt(2.0) : 1.0; 

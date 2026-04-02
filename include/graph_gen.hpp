@@ -211,7 +211,8 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             float z = (data[y * width + x] / 255.0f * 25); 
-            graph->newVertex(std::make_tuple(static_cast<float>(x), static_cast<float>(y), z));
+
+            graph->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)));
             
             int currentId = y * width + x;
             if (x == startX && y == startY) {
@@ -228,12 +229,18 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
             int currentId = y * width + x;
             common::Node* currentNode = graph->getVertex(currentId);
             
-            auto [cx, cy, cz] = std::any_cast<std::tuple<float, float, float>>(currentNode->getData());
+            auto [validCurrent, coordsCurrent] = util::AStar::getCoords3D(currentNode);
+            if (!validCurrent) continue;
+            auto [cx, cy, cz] = coordsCurrent;
 
             auto addEdgeWithCost = [&](int targetX, int targetY) {
                 int targetId = targetY * width + targetX;
                 common::Node* targetNode = graph->getVertex(targetId);
-                auto [tx, ty, tz] = std::any_cast<std::tuple<float, float, float>>(targetNode->getData());
+
+                auto [validTarget, coordsTarget] = util::AStar::getCoords3D(targetNode);
+                if (!validTarget) return;
+                auto [tx, ty, tz] = coordsTarget;
+                
                 if (tz == 0) return;
 
                 double cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));

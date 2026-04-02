@@ -39,60 +39,40 @@ int main(int argc, char* argv[]) {
     auto* renderer = IFCG::getRenderer();
     GLuint shader = renderer->getShaderID();
 
-    // auto [g, startId, endId] = createGrayscaleGraph(imagePath, 0, 0, imageSize - 1, imageSize - 1);
+    auto [g, startId, endId] = createGrayscaleGraph(imagePath, 0, 0, imageSize - 1, imageSize - 1);
 
-    // if (startId == -1 || endId == -1) {
-    //     std::cerr << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
-    //     return 1;
-    // }
+    if (startId == -1 || endId == -1) {
+        std::cerr << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
+        return 1;
+    }
 
-    // auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
-    // auto a_star_mod_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    auto a_star_mod_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
 
-    // auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
+    auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
     
-    // auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
-    // outline->translate(0.0f, 0.0f, 0.6f);
+    auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
+    outline->translate(0.0f, 0.0f, 0.6f);
 
-    // auto* path1 = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
-    // path1->translate(0.0f, 0.0f, 1.5f);
+    auto* path1 = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
+    path1->translate(0.0f, 0.0f, 1.5f);
 
-    // auto* path2 = createMeshFromPath(a_star_mod_path, 0.0f, 1.0f, 0.0f, 1.0f, shader);
-    // path2->translate(0.0f, 0.0f, 2.5f);
+    auto* path2 = createMeshFromPath(a_star_mod_path, 0.0f, 1.0f, 0.0f, 1.0f, shader);
+    path2->translate(0.0f, 0.0f, 2.5f);
 
-    // auto* scene = new MeshTree();
-    // scene->addChild(floor);
-    // scene->addChild(outline);
-    // scene->addChild(path1);
-    // scene->addChild(path2);
+    auto* scene = new MeshTree();
+    scene->addChild(floor);
+    scene->addChild(outline);
+    scene->addChild(path1);
+    scene->addChild(path2);
 
-    // scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
+    scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
-    // renderer->addMesh(scene);
-
-    auto sphere = new Sphere(20, shader);
-    sphere->setDrawMode(GL_LINES);
-    
-    int vertexCount = sphere->getVertices().size();
-    int targetVertex = (rand() % (vertexCount / 2)) + (vertexCount / 2);
-    auto spherePath = util::AStar::getPath(
-        createGraphFromMesh(sphere),
-        0, targetVertex,
-        util::AStar::euclideanHeuristic3D
-    );
-
-    auto spherePathMesh = createMeshFromPath(spherePath, 0.0f, 0.0f, 1.0f, 1.0f, shader);
-    spherePathMesh->scale(1.05f, 1.05f, 1.05f);
-
-    auto sphereScene = new MeshTree();
-    sphereScene->addChild(sphere);
-    sphereScene->addChild(spherePathMesh);
-
-    renderer->addMesh(sphereScene);
+    renderer->addMesh(scene);
 
     auto* camera = renderer->getCamera();
-    // camera->setPos(glm::vec3(0.0f, 30.0f, 0.0f));
-    // camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+    camera->setPos(glm::vec3(0.0f, 30.0f, 0.0f));
+    camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
 
     input->addKeyCallback(GLFW_KEY_LEFT_SHIFT, [camera, input]() {
         if (input->isKeyHeld(GLFW_KEY_LEFT_SHIFT)){
