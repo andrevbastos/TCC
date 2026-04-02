@@ -18,7 +18,7 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
     auto graphNodes = graph->getVertices();
     for (int i = 0; i < graphNodes.size(); ++i) {
         auto* node = graphNodes[i];
-        auto [x, y, z] = std::any_cast<std::tuple<int, int, int>>(node->getData());
+        auto [x, y, z] = std::any_cast<std::tuple<float, float, float>>(node->getData());
         
         Vertex vertex(x, y, z, r, g, b, a);
         vertices.push_back(vertex);
@@ -27,7 +27,7 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
     }
 
     if (drawMode == GL_TRIANGLES) {
-        std::set<std::tuple<int, int, int>> uniqueTriangles;
+        std::set<std::tuple<float, float, float>> uniqueTriangles;
 
         for (auto* node : graphNodes) {
             auto adjNodes = node->adj();
@@ -69,7 +69,7 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
     std::vector<GLuint> indices;
 
     for (int i = 0; i < path.size(); ++i) {
-        auto [x, y, z] = std::any_cast<std::tuple<int, int, int>>(path[i]->getData());
+        auto [x, y, z] = std::any_cast<std::tuple<float, float, float>>(path[i]->getData());
         Vertex vertex(x, y, z, r, g, b, a);
         vertices.push_back(vertex);
         
@@ -87,4 +87,39 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
     );
 
     return mesh;
+};
+
+common::Graph* createGraphFromMesh(Mesh* mesh) {
+    auto* graph = new undirected::Graph();
+
+    auto vertices = mesh->getVertices();
+    auto indices = mesh->getIndices();
+
+    for (int i = 0; i < vertices.size(); i++) {
+        graph->newVertex(std::make_tuple(vertices[i].x, vertices[i].y, vertices[i].z));
+    }
+
+    auto addEdgeWithCost = [&](int v1_idx, int v2_idx) {
+        auto* n1 = graph->getVertex(v1_idx);
+        auto* n2 = graph->getVertex(v2_idx);
+        
+        auto [x1, y1, z1] = std::any_cast<std::tuple<float, float, float>>(n1->getData());
+        auto [x2, y2, z2] = std::any_cast<std::tuple<float, float, float>>(n2->getData());
+        
+        double cost = std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2) + std::pow(z1 - z2, 2));
+        
+        graph->newEdge(n1, n2, cost);
+    };
+
+    for (int i = 0; i < indices.size(); i += 3) {
+        int v1 = indices[i];
+        int v2 = indices[i + 1];
+        int v3 = indices[i + 2];
+        
+        addEdgeWithCost(v1, v2);
+        addEdgeWithCost(v2, v3);
+        addEdgeWithCost(v3, v1);
+    }
+
+    return graph;
 };

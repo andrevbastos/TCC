@@ -210,8 +210,8 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            int z = (data[y * width + x] / 255.0f * 25); 
-            graph->newVertex(std::make_tuple(x, y, z));
+            float z = (data[y * width + x] / 255.0f * 25); 
+            graph->newVertex(std::make_tuple(static_cast<float>(x), static_cast<float>(y), z));
             
             int currentId = y * width + x;
             if (x == startX && y == startY) {
@@ -228,12 +228,12 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
             int currentId = y * width + x;
             common::Node* currentNode = graph->getVertex(currentId);
             
-            auto [cx, cy, cz] = std::any_cast<std::tuple<int, int, int>>(currentNode->getData());
+            auto [cx, cy, cz] = std::any_cast<std::tuple<float, float, float>>(currentNode->getData());
 
             auto addEdgeWithCost = [&](int targetX, int targetY) {
                 int targetId = targetY * width + targetX;
                 common::Node* targetNode = graph->getVertex(targetId);
-                auto [tx, ty, tz] = std::any_cast<std::tuple<int, int, int>>(targetNode->getData());
+                auto [tx, ty, tz] = std::any_cast<std::tuple<float, float, float>>(targetNode->getData());
                 if (tz == 0) return;
 
                 double cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));
@@ -251,7 +251,6 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
         }
     }
 
-    stbi_image_free(data);
-    
+    stbi_image_free(data);  
     return {graph, startId, endId};
 };
