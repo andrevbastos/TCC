@@ -324,79 +324,87 @@
   keywords: ("Typst", "ABNT", "Thesis", "TCC")
 )
 
+// #figure(
+//   caption: [Diagrama do fluxo de compilação],
+//   supplement: "Figura",
+// )[
+//   #rect(width: 80%, height: 4cm, fill: luma(230), stroke: 1pt)[
+//     #align(center + horizon)[*IMAGEM DA METODOLOGIA*]
+//   ]
+//   #v(0.5em)
+//   #text(size: 10pt)[Fonte: Elaborado pelo autor (2024).]
+// ]
+
+// #figure(
+//   caption: [Comparativo de tempos de compilação],
+//   supplement: "Tabela",
+// )[
+//   #table(
+//     columns: (auto, auto, auto),
+//     stroke: none,
+//     table.hline(y: 0, stroke: 1pt),
+//     table.hline(y: 1, stroke: 0.5pt),
+//     [*Ferramenta*], [*Complexidade*], [*Tempo Médio*],
+//     [LaTeX], [Alta], [3.2 s],
+//     [Typst], [Baixa], [0.1 s],
+//     table.hline(y: 3, stroke: 1pt)
+//   )
+//   #v(0.5em)
+//   #text(size: 10pt)[Fonte: Dados da pesquisa (2024).]
+// ]
 
 = INTRODUÇÃO
 
-Este é o primeiro capítulo do trabalho. Se olhar para o canto superior direito, verá que a numeração da página está correta (ex: página 12), levando em conta as 11 páginas de capa, listas e sumário que ficaram para trás ocultas!
-
 = ANTECEDENTES
-
-Respondendo à sua dúvida: os "Antecedentes" nada mais são do que uma seção normal do seu texto. Basta você criar o capítulo e escrever. 
-
-A ABNT não exige formatações diferentes para capítulos de referencial teórico, história ou antecedentes.
 
 = METODOLOGIA
 
-Neste capítulo metodológico, detalhamos como a formatação foi implementada.
+Nesta seção, detalharemos os métodos e procedimentos utilizados para conduzir a pesquisa. Visando que, este estudo será uma pesquisa aplicada, com abordagem quantitativa e experimental, onde serão implementados diversos algoritmos de pathfinding em malhas 3D, e coletados dados de desempenho para análise comparativa. Propõe-se analisar o desempenho de soluções de forma empírica, medindo métricas exatas.
+ 
+Primeiro será apresentado o ambiente de testes e as ferramentas utilizadas, onde será discutido o hardware, linguagens de programação, bibliotecas e frameworks empregados. Em seguida, será descrito o processo de coleta de dados, incluindo os cenários de testes e como eles foram gerados. A implementação dos algoritmos e malhas 3D será detalhada, explicando as escolhas de design e otimizações realizadas. Por fim, serão apresentadas as métricas de avaliação utilizadas para comparar o desempenho dos algoritmos, bem como a análise estatística aplicada para interpretar os resultados obtidos.
 
-#figure(
-  caption: [Diagrama do fluxo de compilação],
-  supplement: "Figura",
-)[
-  #rect(width: 80%, height: 4cm, fill: luma(230), stroke: 1pt)[
-    #align(center + horizon)[*IMAGEM DA METODOLOGIA*]
-  ]
-  #v(0.5em)
-  #text(size: 10pt)[Fonte: Elaborado pelo autor (2024).]
-]
+== Ambiente de Testes e Ferramentas
+Nos experimentos, será utilizada a linguagem *C++20* devido à sua eficiência e controle sobre recursos de baixo nível. A compilação será realizada pela ferramenta de gerenciamento de compilação (_build system generator_) *CMake*, que prepara o código-fonte para ser compilado pelo *GCC*.
+
+Todo os testes serão realizados em um ambiente controlado no sistema operacional *Arch*, com kernel *Linux 6.17.8*, utilizando um computador com as seguintes especificações:
+- Processador: Intel Core i5-1235U
+- Memória RAM: 16 GB
+- Placa de Vídeo: Intel Iris Xe Graphics
+
+=== Biblioteca de renderização
+// [PLACEHOLDER]
+Para a renderização de malhas 3D, foi implementada uma biblioteca personalizada, utilizando *OpenGL* para a renderização gráfica. A biblioteca oferece funcionalidades para criar, manipular e renderizar malhas 3D simples, sem texturas ou iluminação. Além de oferecer suporte para atalhos de teclado e limitação de _frame rate_. \
+_Mais detalhes no Anexo A._
+
+=== Biblioteca de algoritmos de grafos
+// [PLACEHOLDER]
+Desenvolveu-se também uma biblioteca de algoritmos de grafos, implementando diversos algoritmos de pathfinding, como *A\**, *Jump Point Search*, *Bellman-Ford*, entre outros. Essa biblioteca é projetada para ser modular e extensível, permitindo a fácil adição de novos algoritmos ou variações dos existentes. \
+_Mais detalhes no Anexo B._
+
+== Coleta de Dados
+
+
+== Implementação
+
+== Métricas de Avaliação
+
+== Análise Estatística
 
 = RESULTADOS E DISCUSSÃO
 
-Assim como os antecedentes, os resultados são apenas mais um capítulo no fluxo normal do documento. Aqui você pode inserir tabelas que irão automaticamente para a Lista de Tabelas que ativamos lá em cima.
-
-#figure(
-  caption: [Comparativo de tempos de compilação],
-  supplement: "Tabela",
-)[
-  #table(
-    columns: (auto, auto, auto),
-    stroke: none,
-    table.hline(y: 0, stroke: 1pt),
-    table.hline(y: 1, stroke: 0.5pt),
-    [*Ferramenta*], [*Complexidade*], [*Tempo Médio*],
-    [LaTeX], [Alta], [3.2 s],
-    [Typst], [Baixa], [0.1 s],
-    table.hline(y: 3, stroke: 1pt)
-  )
-  #v(0.5em)
-  #text(size: 10pt)[Fonte: Dados da pesquisa (2024).]
-]
-
 = CONCLUSÃO
-
-A conclusão finaliza os elementos textuais.
 
 // =======================================================
 // ELEMENTOS PÓS-TEXTUAIS (REFERÊNCIAS, APÊNDICES E ANEXOS)
 // =======================================================
 
-// 1. Referências (Obrigatório)
-// #pagebreak()
 #bibliography("referencias.bib", style: "associacao-brasileira-de-normas-tecnicas.csl", title: "REFERÊNCIAS")
-
-// 2. Apêndices (Opcional - Documentos gerados por você)
-// Como a ABNT pede que Apêndices e Anexos sejam numerados por letras (A, B, C...) e não números (1, 2, 3), 
-// nós removemos a numeração automática padrão dos títulos a partir daqui:
 
 #set heading(numbering: none)
 #pagebreak()
 
-= APÊNDICE A -- QUESTIONÁRIO APLICADO
-
-Aqui você coloca o conteúdo do seu apêndice. Lembre-se que o Apêndice é um documento ou texto elaborado pelo *próprio autor* do TCC para complementar a argumentação.
+= APÊNDICE A -- Nome do Apêndice
 
 #pagebreak()
 
-= ANEXO A -- MANUAL DO USUÁRIO DO SISTEMA X
-
-Aqui entra o conteúdo do anexo. Diferente do Apêndice, o Anexo é um documento ou texto elaborado por *outra pessoa/instituição* que serve de fundamentação, comprovação ou ilustração.
+= ANEXO A -- Nome do Anexo
