@@ -1,6 +1,7 @@
 #include <iostream>
 #include <graph/undirected/graph.hpp>
 #include <graph/util/a_star.hpp>
+#include <graph/util/dijkstra.hpp>
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
@@ -20,17 +21,17 @@ void warmUp();
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(NULL)));
 
-    char* imagePath = nullptr;
-    int imageSize = 32;
+    char* imagePath;
+    int intensity;
     if (argc > 2) {
         imagePath = argv[1];
-        imageSize = std::stoi(argv[2]);
+        intensity = std::stoi(argv[2]);
     } else {
-        std::cerr << "Uso: " << argv[0] << " <caminho_da_imagem.png> <tamanho_da_imagem>" << std::endl;
+        std::cerr << "Uso: " << argv[0] << " <caminho_da_imagem.png> <intensidade_dos_valores_cinzas>" << std::endl;
         return 1;
     }
 
-    warmUp();
+    // warmUp();
 
     IFCG::init(1200, 800, "TCC");
     IFCG::setup3D();
@@ -39,39 +40,43 @@ int main(int argc, char* argv[]) {
     auto* renderer = IFCG::getRenderer();
     GLuint shader = renderer->getShaderID();
 
-    auto [g, startId, endId] = createGrayscaleGraph(imagePath, 0, 0, imageSize - 1, imageSize - 1);
+    auto g = createGrayscaleGraph(imagePath, intensity);
 
-    if (startId == -1 || endId == -1) {
-        std::cerr << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
-        return 1;
-    }
+    // int width = 32, height = 32;
+    // auto g = createRandomMazeGraph2D(width, height);
+    // int startId = 0, endId = width * height - 1;
 
-    auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
-    auto a_star_mod_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    // if (startId == -1 || endId == -1) {
+    //     std::cerr << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
+    //     return 1;
+    // }
+
+    // auto dijkstra_path = util::Dijkstra::getPathTo(g, g->getVertex(startId), g->getVertex(endId));
+    // auto a_star_path = util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+    // auto a_star_mod_path = aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D);
 
     auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
     
     auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
     outline->translate(0.0f, 0.0f, 0.6f);
 
-    auto* path1 = createMeshFromPath(a_star_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
-    path1->translate(0.0f, 0.0f, 1.5f);
-
-    auto* path2 = createMeshFromPath(a_star_mod_path, 0.0f, 1.0f, 0.0f, 1.0f, shader);
-    path2->translate(0.0f, 0.0f, 2.5f);
+    // auto* path1 = createMeshFromPath(dijkstra_path, 1.0f, 0.0f, 0.0f, 1.0f, shader);
+    // path1->translate(0.0f, 0.0f, 1.5f);
+    // auto* path2 = createMeshFromPath(a_star_mod_path, 0.0f, 1.0f, 0.0f, 1.0f, shader);
+    // path2->translate(0.0f, 0.0f, 2.5f);
 
     auto* scene = new MeshTree();
     scene->addChild(floor);
     scene->addChild(outline);
-    scene->addChild(path1);
-    scene->addChild(path2);
+    // scene->addChild(path1);
+    // scene->addChild(path2);
 
     scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
     renderer->addMesh(scene);
 
     auto* camera = renderer->getCamera();
-    camera->setPos(glm::vec3(0.0f, 30.0f, 0.0f));
+    camera->setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
     camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
 
     input->addKeyCallback(GLFW_KEY_LEFT_SHIFT, [camera, input]() {

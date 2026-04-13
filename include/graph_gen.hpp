@@ -23,7 +23,7 @@ common::Graph* createGridMap2D(int h, int w) {
 
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
-            grid->newVertex(std::make_tuple(x, y));
+            grid->newVertex(std::make_pair(x, y));
         }
     }
 
@@ -147,10 +147,10 @@ common::Graph* createGridMap3D(int h, int w, int d) {
     return grid;
 };
 
-common::Graph* createMazeGraph2D(int height, int width)
+common::Graph* createOneWayMazeGraph2D(int height, int width)
 {
     auto g = createGridMap2D(height, width);
-    auto result = g->clone();
+    auto* result = g->clone();
 
     auto openPath = util::Kruskal::getMST(g);
     
@@ -162,7 +162,7 @@ common::Graph* createMazeGraph2D(int height, int width)
     return result;
 };
 
-common::Graph* createMazeGraph3D(int height, int width, int depth)
+common::Graph* createOneWayMazeGraph3D(int height, int width, int depth)
 {
     auto g = createGridMap3D(height, width, depth);
     auto result = g->clone();
@@ -176,6 +176,60 @@ common::Graph* createMazeGraph3D(int height, int width, int depth)
     delete g;
     return result;
 };
+
+common::Graph* createRandomMazeGraph2D(int height, int width)
+{
+    // Cria o Grid2D
+    auto g = createGridMap2D(height, width);
+    // Resultado
+    auto result = new undirected::Graph();
+
+    // Adiciona os vértices ao resultado, mantendo os IDs
+    for (int i = 0; i < g->getOrder(); i++) {
+        auto current = g->getVertex(i);
+        auto [valid, coord] = util::AStar::getCoords2D(current);
+
+        if (!valid) continue;
+
+        auto [x, y] = coord;
+
+        result->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), 25.0));
+    }
+
+    // Itera 3 vezes
+    for (int i = 0; i < 1; i++) {
+        // Pega o caminho atual possível
+        auto openPath = util::Kruskal::getMST(g);
+    
+        // Para cara aresta (DO G) no MST
+        for (auto* edge : openPath) {
+            // Pega os IDs dos nós conectados por essa aresta
+            auto firstNodeId = edge->getFirstNode()->getId();
+            auto secondNodeId = edge->getSecondNode()->getId();
+
+            // Pega as coordenadas 3D dos vértices do result com base no ID
+            auto [valid1, coord1] = util::AStar::getCoords3D(result->getVertex(firstNodeId));
+            auto [valid2, coord2] = util::AStar::getCoords3D(result->getVertex(secondNodeId));
+
+            if (!valid1 || !valid2) continue;
+
+            auto [x1, y1, z1] = coord1;
+            auto [x2, y2, z2] = coord2;
+
+            // Altera o Z do vértice do result para 1
+            if (z1 != 5.0) result->getVertex(firstNodeId)->setData(std::make_tuple(static_cast<double>(x1), static_cast<double>(y1), 5.0));
+            if (z2 != 5.0) result->getVertex(secondNodeId)->setData(std::make_tuple(static_cast<double>(x2), static_cast<double>(y2), 5.0));
+
+            // Faz a aresta
+            result->newEdge(firstNodeId, secondNodeId);
+            // Remove a aresta do g para permitir outra busca
+            g->removeEdge(edge);
+        }
+    }
+
+    delete g;
+    return result;
+}
 
 common::Graph* createRandomGraph(int numVertices, int numEdges) {
     auto* graph = new undirected::Graph();
@@ -195,32 +249,24 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
     return graph;
 };
 
-std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath, int startX, int startY, int endX, int endY) {
+common::Graph* createGrayscaleGraph(const char* imagePath, int intensity) {
     auto* graph = new undirected::Graph();
-    int startId = -1;
-    int endId = -1;
 
     int width, height, channels;
     unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
     
     if (!data) {
         std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
-        return {graph, startId, endId};
+        return {graph};
     }
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            float z = (data[y * width + x] / 255.0f * 25); 
+            float z = (data[y * width + x] / 255.0f * intensity); 
 
             graph->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)));
             
             int currentId = y * width + x;
-            if (x == startX && y == startY) {
-                startId = currentId;
-            }
-            if (x == endX && y == endY) {
-                endId = currentId;
-            }
         }
     }
 
@@ -259,5 +305,6 @@ std::tuple<common::Graph*, int, int> createGrayscaleGraph(const char* imagePath,
     }
 
     stbi_image_free(data);  
-    return {graph, startId, endId};
+    return graph;
 };
+

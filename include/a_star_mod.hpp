@@ -1,9 +1,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include <chrono>
 #include <tuple>
-#include <cmath>
 #include <any>
 #include <graph/util/a_star.hpp>
 #include <graph/undirected/graph.hpp>
@@ -73,7 +71,7 @@ std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId
             if (CM.find(neighbor) == CM.end() || VC < CM[neighbor]) {
                 CM[neighbor] = VC;
                 
-                auto [validAV, coordsAV] = util::AStar::getCoords3D(neighbor);
+                auto [validAV, coordsAV] = util::AStar::getCoords3D(AV);
                 auto [validNeighbor, coordsNeighbor] = util::AStar::getCoords3D(neighbor);
 
                 if (!validAV || !validNeighbor) continue;

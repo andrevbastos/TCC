@@ -185,7 +185,7 @@
 // ==========================================
 
 #show: pre_projeto_abnt.with(
-  titulo: "Análise Visual e Comparativa de Algoritmos de Pathfinding de Malhas 3D em Tempo Real",
+  titulo: "Análise Estatística e Comparativa de Algoritmos de Pathfinding em Malhas 3D",
   autor: "André Vitor Bastos de Macêdo",
   orientador: "Prof. Paulo César Rodacki Gomes",
   instituicao: "Instituto Federal Catarinense - IFC",
@@ -197,6 +197,34 @@
   lista_ilustracoes: false,
   lista_tabelas: false,
 )
+
+= Ideias iniciais
+
+== Modo de pesquisa proposto
+O modo de pesquisa será experimental, serão implementadas diversas malhas 3D e algoritmos de pathfinding, a partir deles serão coletadas amostras de dados e, por fim, serão realizadas análises estatísticas para comparar o desempenho dos algoritmos.
+
+== Metas e objetivos
+Para esse estudo, as metas incluem coletar dados substanciais sobre o desempenho dos algoritmos de pathfinding em malhas 3D. Visando comparar não apenas o tempo de execução, mas se aprofundar em situações reais de uso, onde haverá overheads de otimização, concorrência, etc. O objetivo é fornecer uma análise detalhada do desempenho desses algoritmos em ambientes 3D, detectando padrões e tendências.
+=== Objetivos
+- Implementar uma estrutura de dados eficiente para representar grafos.
+- Desenvolver um ambiente de renderização de malhas 3D para simular os cenários de teste.
+- Implementar os algoritmos de pathfinding (A\*, JPS, Tetha\*, etc.).
+- Coletar dados de desempenho (tempo de execução, uso de memória, qualidade do caminho, etc.) para cada algoritmo em diferentes cenários.
+- Analisar os dados coletados utilizando técnicas estatísticas para comparar o desempenho dos algoritmos.
+- Apresentar os resultados de forma clara e compreensível, utilizando gráficos e tabelas.
+
+== Sinopse
+A ideia principal é desenvolver um estudo comparativo estatístico entre algoritmos de pathfinding em malhas 3D. Focando em algoritmos como A\*, JPS, Tetha\*, entre outros. Para parâmetro de comparação serão empregadas métricas quantitativas como tempo de execução, uso de memória, qualidade/tamanho do caminho encontrado, overheads de otimização e assim vai. Serão testados em cenários diversos, desde ambientes simples até complexos (com diferentes densidades de obstáculos e topologias), e circunstâncias diferentes, como ambientes dinâmicos, concorrências, etc. 
+
+== Antecedentes
+O estudo de algoritmos de busca vem evoluindo significativamente, porém há uma lacuna na literatura. Muitos algoritmos são vistos em suas respectivas bolhas, em ambientes perfeitos para que sejão eficientes, raramente considerando as complexidades dos ambientes reais. Esta proposta visa trazer uma análise estatística detalhada do desempenho de algoritmos de pathfinding em malhas 3D. Trazendo um comparativo entre grandes algoritmos como A\*, JPS, Tetha\*, entre outros, em cenários diversos e circunstâncias diferentes. Optando por uma visão aprofundada individual entre cada um e suas particularidades, ao invés de uma visão superficial e generalizada.
+
+== Contribuições
+São esperadas contribuições significativas quanto à compreensão e poder de escolha de algoritmos de pathfinding em malhas 3D. Como a distinção entre os pontos fortes e fracos de cada algoritmo e em quais cenários eles se destacam ou apresentam dificuldades. Além disso, a implementação de uma estrutura de dados eficiente para representar grafos e um ambiente de renderização de malhas 3D pode ser útil para outros pesquisadores e desenvolvedores que trabalham com algoritmos de pathfinding.
+Espero sair desde estudo com uma bagagem sólida e aprofundada sobre grafos e renderização 3D.
+
+== Metodologia
+O estudo será conduzido em partes, tanto à renderização de malhas 3D e implementação de algoritmos de grafos, quanto à coleta e análise de dados. O estudo empregará duas bibliotecas desenvolvidas por mim, uma para renderização de malhas 3D e outra para implementação de algoritmos de grafos. O desenvolvimento das bibliotecas será feito paralelamente aos estudos, conforme a coleta de dados ou a implementação de novos algoritmos requerir ajustes ou otimizações. A coleta de dados será feita por meio de testes controlados, onde cada algoritmo será executado em um conjunto de cenários pré-definidos, e as métricas serão registradas. A análise dos dados será feita utilizando técnicas estatísticas para comparar o desempenho dos algoritmos, e a apresentação dos resultados incluirá gráficos e tabelas para facilitar a compreensão.
 
 = INTRODUÇÃO
 
@@ -217,7 +245,6 @@
 = METODOLOGIA
 
 = CRONOGRAMA
-
 
 #figure(
   caption: [Cronograma de execução das atividades],
