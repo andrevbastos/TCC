@@ -6,7 +6,7 @@
 #include <graph/util/a_star.hpp>
 #include <graph/undirected/graph.hpp>
 
-std::vector<common::Node*> aStarMod(common::Graph *graph, int startId, int endId, util::AStar::HeuristicFunc heuristic)
+std::vector<common::Node*> aStarMod(common::Graph* graph, int startId, int endId, util::AStar::HeuristicFunc heuristic)
 {
     auto* SV = graph->getVertex(startId);
     auto* EV = graph->getVertex(endId);

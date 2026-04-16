@@ -249,15 +249,16 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
     return graph;
 };
 
-common::Graph* createGrayscaleGraph(const char* imagePath, int intensity) {
+std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* imagePath, int intensity) {
     auto* graph = new undirected::Graph();
+    int startId = -1, endId = -1;
 
     int width, height, channels;
     unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
     
     if (!data) {
         std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
-        return {graph};
+        return {graph, {0, 0}};
     }
 
     for (int y = 0; y < height; ++y) {
@@ -277,6 +278,7 @@ common::Graph* createGrayscaleGraph(const char* imagePath, int intensity) {
             
             auto [validCurrent, coordsCurrent] = util::AStar::getCoords3D(currentNode);
             if (!validCurrent) continue;
+
             auto [cx, cy, cz] = coordsCurrent;
 
             auto addEdgeWithCost = [&](int targetX, int targetY) {
@@ -301,10 +303,13 @@ common::Graph* createGrayscaleGraph(const char* imagePath, int intensity) {
             if (x + 1 < width && y + 1 < height && cz != 0) addEdgeWithCost(x + 1, y + 1);
             // Bottom Left
             if (x - 1 >= 0 && y + 1 < height && cz != 0) addEdgeWithCost(x - 1, y + 1);
+
+            if (startId == -1 && cz != 0) startId = currentId;
+            if (cz != 0) endId = currentId;
         }
     }
 
     stbi_image_free(data);  
-    return graph;
+    return {graph, {startId, endId}};
 };
 
