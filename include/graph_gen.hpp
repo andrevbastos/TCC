@@ -2,8 +2,12 @@
 #include <vector>
 #include <tuple>
 #include <fstream>
+#include <cmath>
 #include <graph/undirected/graph.hpp>
+#include <graph/undirected/lw_graph.hpp>
 #include <graph/util/kruskal.hpp>
+
+#include "util.hpp"
 
 bool areNodesConnected(common::Graph* maze, int idA, int idB) {
     common::Node* nodeA = maze->getVertex(idA);
@@ -16,7 +20,6 @@ bool areNodesConnected(common::Graph* maze, int idA, int idB) {
     }
     return false;
 };
-
 
 common::Graph* createGridMap2D(int h, int w) {
     auto* grid = new undirected::Graph();
@@ -187,7 +190,7 @@ common::Graph* createRandomMazeGraph2D(int height, int width)
     // Adiciona os vértices ao resultado, mantendo os IDs
     for (int i = 0; i < g->getOrder(); i++) {
         auto current = g->getVertex(i);
-        auto [valid, coord] = util::AStar::getCoords2D(current);
+        auto [valid, coord] = util::getCoords2D(current);
 
         if (!valid) continue;
 
@@ -208,8 +211,8 @@ common::Graph* createRandomMazeGraph2D(int height, int width)
             auto secondNodeId = edge->getSecondNode()->getId();
 
             // Pega as coordenadas 3D dos vértices do result com base no ID
-            auto [valid1, coord1] = util::AStar::getCoords3D(result->getVertex(firstNodeId));
-            auto [valid2, coord2] = util::AStar::getCoords3D(result->getVertex(secondNodeId));
+            auto [valid1, coord1] = util::getCoords3D(result->getVertex(firstNodeId));
+            auto [valid2, coord2] = util::getCoords3D(result->getVertex(secondNodeId));
 
             if (!valid1 || !valid2) continue;
 
@@ -249,13 +252,12 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
     return graph;
 };
 
-std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* imagePath, int intensity) {
+ std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* imagePath, int intensity) {
     auto* graph = new undirected::Graph();
-    int startId = -1, endId = -1;
 
+    int startId = -1, endId = -1;
     int width, height, channels;
     unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
-    
     if (!data) {
         std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
         return {graph, {0, 0}};
@@ -263,10 +265,9 @@ std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* 
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            float z = (data[y * width + x] / 255.0f * intensity); 
-
+            float z = (data[y * width + x] / 255.0f * intensity);
             graph->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)));
-            
+
             int currentId = y * width + x;
         }
     }
@@ -275,23 +276,22 @@ std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* 
         for (int x = 0; x < width; ++x) {
             int currentId = y * width + x;
             common::Node* currentNode = graph->getVertex(currentId);
-            
-            auto [validCurrent, coordsCurrent] = util::AStar::getCoords3D(currentNode);
-            if (!validCurrent) continue;
 
+            auto [validCurrent, coordsCurrent] = util::getCoords3D(currentNode);
+            if (!validCurrent) continue;
             auto [cx, cy, cz] = coordsCurrent;
 
             auto addEdgeWithCost = [&](int targetX, int targetY) {
                 int targetId = targetY * width + targetX;
+
                 common::Node* targetNode = graph->getVertex(targetId);
 
-                auto [validTarget, coordsTarget] = util::AStar::getCoords3D(targetNode);
+                auto [validTarget, coordsTarget] = util::getCoords3D(targetNode);
                 if (!validTarget) return;
                 auto [tx, ty, tz] = coordsTarget;
-                
                 if (tz == 0) return;
-
                 double cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));
+
                 graph->newEdge(currentNode, targetNode, cost);
             };
 
@@ -305,11 +305,72 @@ std::pair<common::Graph*, std::pair<int, int>> createGrayscaleGraph(const char* 
             if (x - 1 >= 0 && y + 1 < height && cz != 0) addEdgeWithCost(x - 1, y + 1);
 
             if (startId == -1 && cz != 0) startId = currentId;
-            if (cz != 0) endId = currentId;
+            endId = currentId;
+        }
+    }
+
+    stbi_image_free(data);  
+
+    return {graph, {startId, endId}};
+}; 
+
+std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGrayscaleGraphLW(const char* imagePath, int intensity) {
+    int startId = -1, endId = -1;
+
+    int width, height, channels;
+    unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
+    
+    if (!data) {
+        std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
+        return {nullptr, {0, 0}};
+    }
+
+    int numVertices = width * height;
+    
+    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float z = (data[y * width + x] / 255.0f * intensity); 
+            int currentId = y * width + x;
+
+            graph->setVertex(currentId, {
+                static_cast<double>(x), 
+                static_cast<double>(y), 
+                static_cast<double>(z)
+            });
+        }
+    }
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int currentId = y * width + x;
+            
+            const auto& currentData = graph->getVertexData(currentId);
+            
+            if (currentData.z == 0.0) continue;
+
+            auto addEdgeWithCost = [&](int targetX, int targetY) {
+                int targetId = targetY * width + targetX;
+                const auto& targetData = graph->getVertexData(targetId);
+                
+                if (targetData.z == 0.0) return;
+
+                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                
+                graph->addEdge(currentId, targetId, cost);
+            };
+
+            if (x + 1 < width) addEdgeWithCost(x + 1, y);
+            if (y + 1 < height) addEdgeWithCost(x, y + 1);
+            if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
+            if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
+
+            if (startId == -1) startId = currentId;
+            endId = currentId;
         }
     }
 
     stbi_image_free(data);  
     return {graph, {startId, endId}};
-};
-
+}

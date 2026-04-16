@@ -10,8 +10,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "a_star_mod.hpp"
-#include "jps.hpp"
+
 #include "statistics.hpp"
 #include "graph_gen.hpp"
 #include "util.hpp"
@@ -24,6 +23,7 @@ void getStatistics();
 void renderScene(char* imagePath, int intensity);
 void warmUp();
 double calculatePathCost(const std::vector<common::Node*>& path, common::Graph* graph);
+double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main(int argc, char* argv[]) {
     if (argc > 2) {
@@ -44,45 +44,63 @@ void getStatistics()
     int intensity = 50;
     Statistics stats(iterations);
     std::string path = "../resources/grayscales";
-    std::unordered_map<std::string, std::function<std::vector<common::Node*>(common::Graph*, int, int, util::AStar::HeuristicFunc)>> algorithms = {
-        {"Jump Point Search", jumpPointSearch},
-        {"A Star", util::AStar::getPath},
-        {"A Star Modified", aStarMod}
+    
+    using HeuristicFuncLW = std::function<double(const Vertex3D&, const Vertex3D&)>;
+    using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
+
+    std::unordered_map<std::string, AlgFunc> algorithms = {
+        {"A Star", util::lwAStar<Vertex3D>},
+        {"A Star Modified", util::lwAStarMod<Vertex3D>}
     };
+
+    int nosAvaliados = 0;
+    auto trackingHeuristic = [&](const auto& a, const auto& b) -> double {
+        nosAvaliados++;
+        return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+    };
+
     for (const auto& entry : fs::directory_iterator(path)) {
         if (entry.path().extension() != ".png") continue;
 
         std::cout << entry.path().filename().string() << std::flush;
         
-        auto [g, ids] = createGrayscaleGraph(entry.path().c_str(), intensity);
+        auto [g, ids] = createGrayscaleGraphLW(entry.path().c_str(), intensity);
         auto [startId, endId] = ids;
         
         if (startId == -1 || endId == -1) {
-            std::cout << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
+            std::cout << " Erro: Fora dos limites!" << std::endl;
+            delete g;
             continue;
         }
         
         std::cout << ":" << std::endl;
         
         for (const auto& alg : algorithms) {
+            nosAvaliados = 0;
+
             std::cout << "\t" << alg.first << "..." << std::flush;
 
             auto startTime = std::chrono::high_resolution_clock::now();
-            auto path = alg.second(g, startId, endId, util::AStar::chebyshevHeuristic3D);
+            
+            auto path = alg.second(*g, startId, endId, trackingHeuristic);
+            
             auto endTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = endTime - startTime;
 
             stats.addEntry(alg.first, "Tempo de Execução", elapsed.count());
-            stats.addEntry(alg.first, "Custo do Caminho", calculatePathCost(path, g));
-            stats.addEntry(alg.first, "Número de Nós Expandidos", path.size());
+            stats.addEntry(alg.first, "Custo do Caminho", calculatePathCostLW(path, *g));
+            stats.addEntry(alg.first, "Número de Nós Expandidos", nosAvaliados);
 
             std::cout << " concluído!" << std::endl;
+            std::cout << "\tTempo de Execução: " << elapsed.count() << " segundos" << std::endl;
+            std::cout << "\tCusto do Caminho: " << calculatePathCostLW(path, *g) << std::endl;
+            std::cout << "\tNúmero de Nós Expandidos: " << nosAvaliados << "\n" << std::endl;
         }
         delete g;
     }
 
-    stats.makeCSV("./results/statistics.csv");
-};
+    stats.makeCSV("../results/statistics");
+}
 
 void renderScene(char* imagePath, int intensity)
 {
@@ -117,17 +135,17 @@ void renderScene(char* imagePath, int intensity)
 
     std::vector<std::vector<common::Node*>> paths;
 
-    paths.push_back(util::AStar::getPath(g, startId, endId, util::AStar::chebyshevHeuristic3D));
-    paths.push_back(aStarMod(g, startId, endId, util::AStar::chebyshevHeuristic3D));
-    paths.push_back(jumpPointSearch(g, startId, endId, util::AStar::chebyshevHeuristic3D));
+    paths.push_back(util::AStar(g, startId, endId, util::heuristics::chebyshevHeuristic3D));
+    paths.push_back(util::AStarMod(g, startId, endId, util::heuristics::chebyshevHeuristic3D));
 
     std::cout << "AStar = Vermelho\nAStarMod = Verde\nJump Point Search = Azul" << std::endl;
     for (int i = 0; i < paths.size(); ++i) {
-        float r = (i == 0) ? 1.0f : 0.0f;
-        float g = (i == 1) ? 1.0f : 0.0f;
-        float b = (i == 2) ? 1.0f : 0.0f;
+        int r = (i >> 2) & 1;
+        int g = (i >> 1) & 1;
+        int b = (i >> 0) & 1;
+        int colorIntensity = (int)i/6.0f;
 
-        auto* pathMesh = createMeshFromPath(paths[i], r, g, b, 1.0f, shader);
+        auto* pathMesh = createMeshFromPath(paths[i], r * colorIntensity, g * colorIntensity, b * colorIntensity, 1.0f, shader);
         pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
         scene->addChild(pathMesh);
     }
@@ -161,8 +179,8 @@ void warmUp()
     }
 
     for (int w_i = 0; w_i < 5; ++w_i) {
-        util::AStar::getPath(&warmUpGraph, 0, 9, util::AStar::euclideanHeuristic3D);
-        aStarMod(&warmUpGraph, 0, 9, util::AStar::chebyshevHeuristic3D);
+        util::AStar(&warmUpGraph, 0, 9, util::heuristics::euclideanHeuristic3D);
+        util::AStarMod(&warmUpGraph, 0, 9, util::heuristics::chebyshevHeuristic3D);
     }
 };
 
@@ -174,6 +192,24 @@ double calculatePathCost(const std::vector<common::Node*>& path, common::Graph* 
         common::Edge* edge = current->getEdgeTo(next);
         if (edge) {
             totalCost += graph->getWeights().at(edge);
+        }
+    }
+    return totalCost;
+}
+
+double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
+    if (path.size() < 2) return 0.0; 
+    
+    double totalCost = 0.0;
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        int currentId = path[i];
+        int nextId = path[i + 1];
+        
+        for (const auto& edge : graph.adj(currentId)) {
+            if (edge.target == nextId) {
+                totalCost += edge.weight;
+                break;
+            }
         }
     }
     return totalCost;

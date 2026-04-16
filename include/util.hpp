@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <set>
 #include <tuple>
@@ -9,6 +11,10 @@
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
 
+struct Vertex3D {
+    double x, y, z;
+};
+
 Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float a, GLuint shader, GLenum drawMode = GL_LINES) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
@@ -19,7 +25,7 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
     for (int i = 0; i < graphNodes.size(); ++i) {
         auto* node = graphNodes[i];
 
-        auto [valid, coords] = util::AStar::getCoords3D(node);
+        auto [valid, coords] = util::getCoords3D(node);
         if (!valid) continue;
         auto [x, y, z] = coords;
         
@@ -72,7 +78,7 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
     std::vector<GLuint> indices;
 
     for (int i = 0; i < path.size(); ++i) {
-        auto [valid, coords] = util::AStar::getCoords3D(path[i]);
+        auto [valid, coords] = util::getCoords3D(path[i]);
         if (!valid) continue;
         auto [x, y, z] = coords;
         
@@ -109,8 +115,8 @@ common::Graph* createGraphFromMesh(Mesh* mesh) {
         auto* n1 = graph->getVertex(v1_idx);
         auto* n2 = graph->getVertex(v2_idx);
         
-        auto [valid1, coords1] = util::AStar::getCoords3D(n1);
-        auto [valid2, coords2] = util::AStar::getCoords3D(n2);
+        auto [valid1, coords1] = util::getCoords3D(n1);
+        auto [valid2, coords2] = util::getCoords3D(n2);
 
         if (!valid1 || !valid2) return;
 
