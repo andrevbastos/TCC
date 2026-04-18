@@ -20,18 +20,22 @@ namespace fs = std::filesystem;
 const int iterations = 10;
 
 void getStatistics();
-void renderScene(char* imagePath, int intensity);
+void renderScene(char* imagePath, int intensity, double heightLimit);
 void warmUp();
 double calculatePathCost(const std::vector<common::Node*>& path, common::Graph* graph);
 double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main(int argc, char* argv[]) {
-    if (argc > 2) {
+    if (argc > 3) {
         char* imagePath = argv[1];
         int intensity = std::stoi(argv[2]);
-        renderScene(imagePath, intensity);
-    } else {
+        double heightLimit = std::stod(argv[3]);
+        renderScene(imagePath, intensity, heightLimit);
+    } else if (argc == 0) {
         getStatistics();
+    } else {
+        std::cerr << "Usage: " << argv[0] << " <imagePath> <intensity> <heightLimit>" << std::endl;
+        std::cerr << "Or run without arguments to get statistics." << std::endl;
     }
 
     return 0;
@@ -64,7 +68,7 @@ void getStatistics()
 
         std::cout << entry.path().filename().string() << std::flush;
         
-        auto [g, ids] = createGrayscaleGraphLW(entry.path().c_str(), intensity);
+        auto [g, ids] = createLwGraphFromHeightmap(entry.path().c_str(), intensity, intensity / 10.0);
         auto [startId, endId] = ids;
         
         if (startId == -1 || endId == -1) {
@@ -102,29 +106,23 @@ void getStatistics()
     stats.makeCSV("../results/statistics");
 }
 
-void renderScene(char* imagePath, int intensity)
+void renderScene(char* imagePath, int intensity, double heightLimit)
 {
     srand(static_cast<unsigned>(time(NULL)));
 
     IFCG::init(1200, 800, "TCC");
     IFCG::setup3D();
 
-    auto* input = IFCG::getInputHandler();
-    auto* renderer = IFCG::getRenderer();
-    GLuint shader = renderer->getShaderID();
+    auto input {IFCG::getInputHandler()};
+    auto renderer {IFCG::getRenderer()};
+    GLuint shader {renderer->getShaderID()};
 
-    auto [g, ids] = createGrayscaleGraph(imagePath, intensity);
+    auto floor {createMeshFromHeightmap(imagePath, intensity, shader, 0.5f, 0.5f, 0.5f, 1.0f)};
+
+    auto [graph, ids] = createLwGraphFromHeightmap(imagePath, intensity, heightLimit);
     auto [startId, endId] = ids;
 
-    if (startId == -1 || endId == -1) {
-        std::cerr << "Erro: Coordenadas de início ou fim estão fora dos limites da imagem!" << std::endl;
-        IFCG::terminate();
-        return;
-    }
-
-    auto* floor = createMeshFromGraph(g, 0.5f, 0.5f, 0.5f, 1.0f, shader, GL_TRIANGLES);
-    
-    auto* outline = createMeshFromGraph(g, 0.8f, 0.8f, 0.8f, 1.0f, shader, GL_LINES);
+    auto outline {createMeshFromLwGraph(graph, 0.8f, 0.8f, 0.8f, 0.8f, shader, GL_LINES)};
     outline->translate(0.0f, 0.0f, 0.6f);
 
     auto* scene = new MeshTree();
@@ -133,26 +131,30 @@ void renderScene(char* imagePath, int intensity)
 
     scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
-    std::vector<std::vector<common::Node*>> paths;
+    std::vector<std::vector<int>> paths;
 
-    paths.push_back(util::AStar(g, startId, endId, util::heuristics::chebyshevHeuristic3D));
-    paths.push_back(util::AStarMod(g, startId, endId, util::heuristics::chebyshevHeuristic3D));
+    auto chebyshevHeuristic {
+        [&](const auto& a, const auto& b) -> double {
+            return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+        }
+    };
 
-    std::cout << "AStar = Vermelho\nAStarMod = Verde\nJump Point Search = Azul" << std::endl;
+    paths.push_back(util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic));
+    paths.push_back(util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic));
+
     for (int i = 0; i < paths.size(); ++i) {
-        int r = (i >> 2) & 1;
-        int g = (i >> 1) & 1;
-        int b = (i >> 0) & 1;
-        int colorIntensity = (int)i/6.0f;
+        int r = ((i + 1) >> 2) & 1;
+        int g = ((i + 1) >> 1) & 1;
+        int b = ((i + 1) >> 0) & 1;
 
-        auto* pathMesh = createMeshFromPath(paths[i], r * colorIntensity, g * colorIntensity, b * colorIntensity, 1.0f, shader);
+        auto* pathMesh = createMeshFromLwPath(*graph, paths[i], r, g, b, 1.0f, shader);
         pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
         scene->addChild(pathMesh);
     }
 
     renderer->addMesh(scene);
 
-    auto* camera = renderer->getCamera();
+    auto camera {renderer->getCamera()};
     camera->setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
     camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
 
@@ -166,7 +168,7 @@ void renderScene(char* imagePath, int intensity)
 
     IFCG::loop([&]() {});
     IFCG::terminate();
-};
+}
 
 void warmUp() 
 {
