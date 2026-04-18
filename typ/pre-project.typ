@@ -179,7 +179,6 @@
   v(1em)
 }
 
-
 // ==========================================
 // APLICAÇÃO DO TEMPLATE (CONTEÚDO DO PROJETO)
 // ==========================================
@@ -194,8 +193,8 @@
   ano: "2026",
   natureza_trabalho: "",
   
-  lista_ilustracoes: false,
-  lista_tabelas: false,
+  lista_ilustracoes: true,
+  lista_tabelas: true,
 )
 
 /* Nada dissa vai para a versão final, é apenas um rascunho para organizar as ideias e estruturar o pré-projeto.
@@ -228,14 +227,99 @@ O estudo será conduzido em partes, tanto à renderização de malhas 3D e imple
 */ 
 
 = INTRODUÇÃO
+/*
+Introduza a evolução da inteligência artificial aplicada à busca de caminhos (pathfinding). Utilize Russell e Norvig (2013) para definir algoritmos de busca clássicos e emende com Pardede et al. (2022) para contextualizar o avanço e a aplicação crítica dessas técnicas no desenvolvimento de ambientes interativos e jogos.
+*/
+*1º Parágrafo (Contextualização e Fundamentação).*
 
-== Objetivo Geral
+/*
+Disserte sobre o salto de complexidade ao migrar do 2D para o 3D. Apresente a "lacuna" onde algoritmos costumam ser testados em ambientes isolados. Apoie-se em Gurung (2019) para falar sobre malhas de navegação (NavMeshes) e em Smołka et al. (2019) para explicar as instabilidades e necessidades de adaptação (como as falhas matemáticas e funções de smoothing) em engines 3D reais.
+*/
+*2º Parágrafo (O Problema e a Complexidade).*
 
-== Objetivos Específicos
+/*
+Declare o objetivo central do estudo: uma análise estatística e comparativa focada em métricas quantitativas (como tempo de execução, uso de memória e overheads), desenvolvendo uma solução construída do zero.
+*/
+*3º Parágrafo (A Proposta).*
 
-= REVISÃO TEÓRICA
+/*
+Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite Madushanka e Madushanka (2026) para introduzir a relevância do processamento multithread em ambientes dinâmicos, e Nobes et al. (2022) para demonstrar que a expansão do Jump Point Search (JPS) para três dimensões é um tópico de pesquisa ativo e de alto interesse.
+*/
+*4º Parágrafo (Estado da Arte e Fronteira).*
+
+= JUSTIFICATIVA
+/*
+Explique o valor de se ter um comparativo estatístico claro sob condições adversas. Destaque como novas otimizações matemáticas, como as exploradas por Duan et al. (2025) ao quebrar barreiras de ordenação em grafos direcionados, provam que ainda há espaço para ganho de performance, justificando análises mais profundas.
+*/
+*1º Parágrafo (Impacto Teórico).*
+
+/*
+Reforce a fuga da visão generalizada. Justifique a necessidade de investigar o comportamento de algoritmos (como o A* e o JPS) expostos a concorrência computacional e arquiteturas complexas.
+*/
+*2º Parágrafo (Diferencial da Abordagem).*
+
+/*
+Apresente o desenvolvimento autoral da IFCG e da biblioteca de grafos. Disserte que construir o sistema from scratch garante controle sobre anomalias de hardware. Cite Gomes (2022) e Cormen et al. (2012) para validar que a correta aplicação teórica e estrutural da base de grafos é fundamental antes de qualquer análise empírica.
+*/
+*3º Parágrafo (Subprodutos Técnicos e Infraestrutura).*
+
+= OBJETIVOS
+== Geral
+/*
+Coletar dados substanciais e realizar uma análise estatística do desempenho de algoritmos de pathfinding em malhas 3D (A*, JPS, Theta*), avaliando overhead e comportamento em cenários complexos.
+*/
+== Específicos
+/*
+Tópico 1: Implementar grafos eficientes (lightweight), guiando-se pelas bases teóricas de Cormen et al. (2012) e Gomes (2022).
+
+Tópico 2: Desenvolver a infraestrutura 3D (IFCG) para gerenciar componentes, câmeras e buffers com isolamento de contexto de renderização.
+
+Tópico 3: Implementar e adaptar os algoritmos heurísticos. Referenciar Smołka et al. (2019) na implementação do A* (smoothing) e Nobes et al. (2022) na estruturação tridimensional do JPS.
+
+Tópico 4: Adaptar a arquitetura lógica para testes de estresse e multithreading, inspirado nos conceitos de ganho de escala de Madushanka e Madushanka (2026).
+
+Tópico 5: Desenvolver geradores de malhas topológicas complexas (labirintos) para avaliação empírica, utilizando adaptações estruturais como a de Buck (2011) com o algoritmo de Kruskal.
+
+Tópico 6: Coletar e tratar dados focando na identificação de outliers.
+
+Tópico 7: Apresentar análises visuais e estatísticas comparativas.
+*/
 
 = METODOLOGIA
+/*
+Defina o projeto como uma pesquisa experimental de caráter quantitativo, com a construção da engine correndo em paralelo à coleta.
+*/
+*1º Parágrafo (Caracterização da Pesquisa).*
+
+/*
+Detalhe o uso da IFCG. Discuta a arquitetura de loop lambda e a separação estrita entre a thread de renderização (OpenGL/Graphics) e a lógica de busca para evitar travamentos.
+*/
+== *1º Subtópico (Infraestrutura Gráfica).*
+
+/*
+Descreva a arquitetura base. Mencione a distinção entre grafos comuns e direcionados, embasando a escolha das estruturas de dados e otimização de memória na literatura de Cormen et al. (2012) e Gomes (2022). Se aplicável, mencione como o trabalho de Duan et al. (2025) inspira o tratamento de filas de prioridade e ordenação nos grafos direcionados.
+*/
+== *2º Subtópico (Estrutura de Grafos).*
+
+/*
+Explique como as malhas serão geradas para simular estresse. Disserte sobre o uso do Algoritmo de Kruskal, citando Buck (2011), para criar labirintos perfeitos e topologias densas que forcem o desvio de obstáculos e exijam cálculos exaustivos de caminho.
+*/
+== *3º Subtópico (Geração de Cenários de Teste).*
+
+/*
+Disserte sobre a lógica dos três concorrentes. O A* com suas modificações e suavização (baseado em Smołka et al., 2019), a extensão complexa do Jump Point Search no eixo Z (apoiado em Nobes et al., 2022) e as particularidades do Theta*.
+*/
+== *4º Subtópico (Implementação dos Algoritmos).*
+
+/*
+Detalhe a orquestração dos testes. Como os algoritmos rodarão concorrentemente. Aqui, ancore-se em Madushanka e Madushanka (2026) para justificar a necessidade de isolar e mensurar o impacto do paralelismo real no tempo de execução da navegação.
+*/
+== *5º Subtópico (Multithread).*
+
+/*
+Defina as variáveis dependentes (tempo de processamento de CPU, picos de memória) e como você planeja projetar os caminhos resultantes visualmente (ex: plotar a visão de cima) para certificar a qualidade do trajeto além de apenas sua velocidade.
+*/
+== *6º Subtópico (Processo de Coleta e Tratamento de Dados).*
 
 = CRONOGRAMA
 
@@ -274,16 +358,6 @@ O estudo será conduzido em partes, tanto à renderização de malhas 3D e imple
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]
 ]
-
-@rodacki_grafos \
-@cormen_algoritmos \
-@russel_ia \
-@a_star_multithreaded \
-@navigation_mesh \
-@a_star_modification \
-@jps_3d \
-@pathfinding_game_dev \
-@breaking_sorting_barrier
 
 // =======================================================
 // ELEMENTOS PÓS-TEXTUAIS
