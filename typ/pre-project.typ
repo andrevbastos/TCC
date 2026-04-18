@@ -179,6 +179,15 @@
   v(1em)
 }
 
+#let contador_topicos = counter("topico_obj")
+
+#let topico(titulo, texto) = {
+  contador_topicos.step()
+  
+  context contador_topicos.display("1.")
+  [ *#titulo:* #texto]
+}
+
 // ==========================================
 // APLICAÇÃO DO TEMPLATE (CONTEÚDO DO PROJETO)
 // ==========================================
@@ -248,6 +257,8 @@ Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite
 *4º Parágrafo (Estado da Arte e Fronteira).*
 
 = JUSTIFICATIVA
+Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
+
 /*
 Explique o valor de se ter um comparativo estatístico claro sob condições adversas. Destaque como novas otimizações matemáticas, como as exploradas por Duan et al. (2025) ao quebrar barreiras de ordenação em grafos direcionados, provam que ainda há espaço para ganho de performance, justificando análises mais profundas.
 */
@@ -264,32 +275,45 @@ Apresente o desenvolvimento autoral da IFCG e da biblioteca de grafos. Disserte 
 *3º Parágrafo (Subprodutos Técnicos e Infraestrutura).*
 
 = OBJETIVOS
+Neste capítulo serão apresentados os objetivos gerais e específicos do estudo, detalhando o que se pretende alcançar com a pesquisa. As metas girarão em torno da implementação de algoritmos de pathfinding, desenvolvimento de uma infraestrutura gráfica para testes, coleta e análise de dados, e apresentação dos resultados.
+
 == Geral
-/*
-Coletar dados substanciais e realizar uma análise estatística do desempenho de algoritmos de pathfinding em malhas 3D (A*, JPS, Theta*), avaliando overhead e comportamento em cenários complexos.
-*/
+Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, onde a navegação eficiente é crucial, este estudo visa fornecer insights valiosos sobre o desempenho de algoritmos de pathfinding em malhas 3D. Através da implementação de uma infraestrutura gráfica e da coleta de dados detalhados, pretende-se comparar algoritmos como A\*, JPS e Theta\* sob condições adversas, incluindo concorrência e otimizações. O objetivo é não apenas medir o tempo de execução, mas também entender as nuances do comportamento desses algoritmos em ambientes complexos, contribuindo para a escolha informada de técnicas de navegação em projetos futuros.
+
 == Específicos
-/*
-Tópico 1: Implementar grafos eficientes (lightweight), guiando-se pelas bases teóricas de Cormen et al. (2012) e Gomes (2022).
+#topico("Implementar grafos", [
+  Desenvolver uma estrutura de dados leve e eficiente para representar grafos, considerando as particularidades de grafos direcionados e não direcionados. A implementação deve ser baseada nas teorias e práticas recomendadas por #cite(<cormen_algoritmos>, form: "prose") e #cite(<rodacki_grafos>, form: "prose"), garantindo que a estrutura seja otimizada para uso em algoritmos de pathfinding.
+])
 
-Tópico 2: Desenvolver a infraestrutura 3D (IFCG) para gerenciar componentes, câmeras e buffers com isolamento de contexto de renderização.
+#topico("Desenvolver a infraestrutura 3D", [
+  Criar um ambiente para renderização de malhas 3D, com foco na separação de responsabilidades entre renderização gráfica e as demais aplicações. A infraestrutura deve ser capaz de gerenciar componentes, câmeras e buffers, garantindo que a renderização ocorra de forma fluida e sem travamentos, mesmo durante a execução dos algoritmos de pathfinding.
+])
 
-Tópico 3: Implementar e adaptar os algoritmos heurísticos. Referenciar Smołka et al. (2019) na implementação do A* (smoothing) e Nobes et al. (2022) na estruturação tridimensional do JPS.
+#topico("Implementar e adaptar os algoritmos heurísticos", [
+  Implementar os algoritmos de pathfinding A\*, JPS e Theta\*, adaptando-os para ambientes 3D. Otimizando-os com técnicas de alto desempenho e multithreading.
+])
 
-Tópico 4: Adaptar a arquitetura lógica para testes de estresse e multithreading, inspirado nos conceitos de ganho de escala de Madushanka e Madushanka (2026).
+#topico("Adaptar a arquitetura lógica para testes de estresse e multithreading", [
+  Modificar a arquitetura do sistema para permitir a execução concorrente dos algoritmos de pathfinding, garantindo que os testes de estresse possam ser realizados sem interferências ou travamentos. A implementação deve ser baseada em práticas recomendadas para multithreading, garantindo a integridade dos dados e a eficiência do processamento.
+])
 
-Tópico 5: Desenvolver geradores de malhas topológicas complexas (labirintos) para avaliação empírica, utilizando adaptações estruturais como a de Buck (2011) com o algoritmo de Kruskal.
+#topico("Desenvolver geradores de malhas topológicas complexas", [
+  Criar geradores de malhas que possam simular diferentes cenários de teste, incluindo labirintos e topologias densas. 
+])
 
-Tópico 6: Coletar e tratar dados focando na identificação de outliers.
+#topico("Coletar e tratar dados", [
+  Coletar dados de desempenho dos algoritmos de pathfinding, incluindo tempo de execução, uso de memória e qualidade do caminho encontrado. O tratamento dos dados deve incluir a identificação e análise de outliers, garantindo que as conclusões sejam baseadas em dados confiáveis e representativos.
+])
 
-Tópico 7: Apresentar análises visuais e estatísticas comparativas.
-*/
+#topico("Apresentar análises visuais e estatísticas comparativas", [
+  Desenvolver gráficos e tabelas para apresentar os resultados da análise estatística de forma clara e compreensível. As análises devem destacar as diferenças de desempenho entre os algoritmos de pathfinding, considerando as métricas coletadas e as condições dos testes.
+])
 
 = METODOLOGIA
 /*
 Defina o projeto como uma pesquisa experimental de caráter quantitativo, com a construção da engine correndo em paralelo à coleta.
 */
-*1º Parágrafo (Caracterização da Pesquisa).*
+Aqui, o foco é detalhar a metodologia de pesquisa, explicando como a infraestrutura gráfica e os algoritmos de pathfinding serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 /*
 Detalhe o uso da IFCG. Discuta a arquitetura de loop lambda e a separação estrita entre a thread de renderização (OpenGL/Graphics) e a lógica de busca para evitar travamentos.
