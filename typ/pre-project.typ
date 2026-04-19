@@ -259,30 +259,23 @@ Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite
 = JUSTIFICATIVA
 Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
 
-/*
-Explique o valor de se ter um comparativo estatístico claro sob condições adversas. Destaque como novas otimizações matemáticas, como as exploradas por Duan et al. (2025) ao quebrar barreiras de ordenação em grafos direcionados, provam que ainda há espaço para ganho de performance, justificando análises mais profundas.
-*/
-*1º Parágrafo (Impacto Teórico).*
+Na área de algoritmos de pathfinding, a maioria dos estudos se concentra em topologias 2D ou não geométricas e em cenários ideais, onde as condições são controladas e otimizadas para destacar as vantagens de cada algoritmo. No entanto, a transição para ambientes 3D introduz uma série de desafios adicionais, como a complexidade da geometria, a necessidade de lidar com obstáculos tridimensionais e a gestão de recursos computacionais. A falta de análises estatísticas detalhadas sob condições adversas limita a compreensão real do desempenho desses algoritmos em situações práticas, onde otimizações matemáticas e técnicas avançadas podem ter um impacto significativo.
 
-/*
-Reforce a fuga da visão generalizada. Justifique a necessidade de investigar o comportamento de algoritmos (como o A* e o JPS) expostos a concorrência computacional e arquiteturas complexas.
-*/
-*2º Parágrafo (Diferencial da Abordagem).*
+Este estudo se diferencia por adotar uma abordagem aprofundada e detalhada, focando em métricas quantitativas e condições adversas que refletem os desafios do mundo real. Ao invés de uma visão superficial e generalizada, a pesquisa se propõe a investigar o comportamento de algoritmos de busca quando expostos a concorrência computacional e arquiteturas complexas.
 
-/*
-Apresente o desenvolvimento autoral da IFCG e da biblioteca de grafos. Disserte que construir o sistema from scratch garante controle sobre anomalias de hardware. Cite Gomes (2022) e Cormen et al. (2012) para validar que a correta aplicação teórica e estrutural da base de grafos é fundamental antes de qualquer análise empírica.
-*/
-*3º Parágrafo (Subprodutos Técnicos e Infraestrutura).*
+Também, a construção de uma infraestrutura gráfica e de uma biblioteca de grafos do zero não apenas proporciona um ambiente de teste personalizado, mas também garante um controle total sobre as variáveis e anomalias de hardware que podem afetar os resultados. A correta aplicação teórica e estrutural da base de grafos é fundamental para garantir a validade dos testes empíricos, conforme destacado por #cite(<rodacki_grafos>, form: "prose") e #cite(<cormen_algoritmos>, form: "prose").
+
+Com isso, viu-se a necessidade de um estudo que vá além dos testes em ambientes ideais, oferecendo uma análise estatística robusta e detalhada do desempenho dos algoritmos de pathfinding em malhas 3D, contribuindo para a escolha informada de técnicas de navegação em projetos futuros.
 
 = OBJETIVOS
 Neste capítulo serão apresentados os objetivos gerais e específicos do estudo, detalhando o que se pretende alcançar com a pesquisa. As metas girarão em torno da implementação de algoritmos de pathfinding, desenvolvimento de uma infraestrutura gráfica para testes, coleta e análise de dados, e apresentação dos resultados.
 
 == Geral
-Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, onde a navegação eficiente é crucial, este estudo visa fornecer insights valiosos sobre o desempenho de algoritmos de pathfinding em malhas 3D. Através da implementação de uma infraestrutura gráfica e da coleta de dados detalhados, pretende-se comparar algoritmos como A\*, JPS e Theta\* sob condições adversas, incluindo concorrência e otimizações. O objetivo é não apenas medir o tempo de execução, mas também entender as nuances do comportamento desses algoritmos em ambientes complexos, contribuindo para a escolha informada de técnicas de navegação em projetos futuros.
+Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, onde a navegação eficiente é crucial, este estudo visa fornecer insights valiosos sobre o desempenho de algoritmos de pathfinding em malhas 3D. Através da implementação de uma infraestrutura gráfica e da coleta de dados detalhados, pretende-se comparar algoritmos como A\*, JPS e Theta\* sob condições adversas, incluindo concorrência e otimizações. O objetivo é não apenas medir o tempo de execução, mas também entender as nuances do comportamento desses algoritmos em ambientes complexos.
 
 == Específicos
 #topico("Implementar grafos", [
-  Desenvolver uma estrutura de dados leve e eficiente para representar grafos, considerando as particularidades de grafos direcionados e não direcionados. A implementação deve ser baseada nas teorias e práticas recomendadas por #cite(<cormen_algoritmos>, form: "prose") e #cite(<rodacki_grafos>, form: "prose"), garantindo que a estrutura seja otimizada para uso em algoritmos de pathfinding.
+  Desenvolver uma estrutura de dados leve e eficiente para representar grafos, considerando as particularidades de grafos direcionados e não direcionados. A implementação deve ser baseada em teorias e práticas recomendadas, garantindo que a estrutura seja otimizada para uso em algoritmos de pathfinding.
 ])
 
 #topico("Desenvolver a infraestrutura 3D", [
@@ -310,40 +303,68 @@ Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, on
 ])
 
 = METODOLOGIA
-/*
-Defina o projeto como uma pesquisa experimental de caráter quantitativo, com a construção da engine correndo em paralelo à coleta.
-*/
 Aqui, o foco é detalhar a metodologia de pesquisa, explicando como a infraestrutura gráfica e os algoritmos de pathfinding serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 /*
 Detalhe o uso da IFCG. Discuta a arquitetura de loop lambda e a separação estrita entre a thread de renderização (OpenGL/Graphics) e a lógica de busca para evitar travamentos.
 */
-== *1º Subtópico (Infraestrutura Gráfica).*
+== Infraestrutura Gráfica
 
 /*
 Descreva a arquitetura base. Mencione a distinção entre grafos comuns e direcionados, embasando a escolha das estruturas de dados e otimização de memória na literatura de Cormen et al. (2012) e Gomes (2022). Se aplicável, mencione como o trabalho de Duan et al. (2025) inspira o tratamento de filas de prioridade e ordenação nos grafos direcionados.
 */
-== *2º Subtópico (Estrutura de Grafos).*
+== Estrutura de Grafos
 
 /*
 Explique como as malhas serão geradas para simular estresse. Disserte sobre o uso do Algoritmo de Kruskal, citando Buck (2011), para criar labirintos perfeitos e topologias densas que forcem o desvio de obstáculos e exijam cálculos exaustivos de caminho.
 */
-== *3º Subtópico (Geração de Cenários de Teste).*
+== Geração de Cenários de Teste
+Durante a fase de desenvolvimento, foram criados diversos cenários de teste para avaliar o desempenho dos algoritmos de pathfinding. É importante retificar como estes cenários foram gerados e o que eles representam em termos de desafios para os algoritmos. A seguir, serão detalhados os tipos de cenários utilizados:
+
+=== Labirintos
+Como testes iniciais, foram gerados labirintos utilizando o Algoritmo de Kruskal, que é um método eficiente para criar labirintos. Este tipo de teste é ótimo para avaliar a capacidade dos algoritmos de pathfinding em encontrar caminhos em ambientes complexos e com muitos obstáculos, forçando-os a realizar cálculos exaustivos para encontrar a rota mais eficiente.
+
+Para criar um labirinto, segundo #cite(<buck2011kruskal>, form: "prose"), se cria um grafo em grid com valores de peso aleatórios entre os vértices e seus vizinhos (considerando os 8 vizinhos para permitir movimento diagonal). Em seguida, é aplicado o Algoritmo de Kruskal para gerar um labirinto perfeito, uma vez que ele gera uma Árvore Geradora Mínima (MST), e criar um novo grafo a partir dessa árvore. Isso garante que para qualquer par de vértices, existe exatamente um caminho entre eles, o que é ideal para testar a eficiência dos algoritmos de pathfinding.
+
+Consequentemente, é possível retirar ou adicionar arestas para criar variações de labirintos, aumentando a complexidade e a densidade de obstáculos, o que permitirá uma análise mais robusta do desempenho dos algoritmos em diferentes cenários.
+
+Embora os labirintos sejam um excelente teste para avaliar a capacidade de desvio de obstáculos, eles foram utilizados apenas como um ponto de partida para a geração de cenários de teste. Uma vez que a ideia desta pesquisa é comparar algoritmos de pathfindings em grafos criados a partir de malhas 3D. Gerar um grafo abstrato e independente seria redundante a esse estudo, o que levou ao descarte deste meio de geração de cenários.
+
+=== Mapas de Altura
+Um heightmap (ou mapa de altura) é uma imagem que utiliza apenas tons de cinza para representar a elevação de uma superfície. A intensidade de cada pixel indica a altura de um determinado ponto no terreno, onde tons mais claros representam áreas mais elevadas e tons mais escuros indicam áreas mais baixas. 
+
+#figure(
+  caption: [Exemplo de Heightmap],
+  supplement: "Figura",
+)[
+  #image("/typ/images/heightmap.png", width: 50%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: #cite(<imperial_library_solstheim>, form: "prose").]
+] \
+
+Determinando o valor mínimo e máximo de altura, é possível criar uma maha 3D a partir do heightmap, onde cada pixel é convertido em um vértice com coordenadas (x, y, z), sendo x e y as coordenadas do pixel e z o valor do pixel. Como trabalhamos com valores cinza, os valores RGB serão iguais, alternando apenas na intensidade entre 0 e 255. A partir disso, é possível criar uma malha 3D que representa o terreno que desejamos simular.
+
+Com o uso dos heightmaps, é possível gerar tanto malhas 3D quanto grafos a partir de um mesmo cenário, simplificando o processo de geração de cenários. Esta versatilidade se provará útil futuramente quando falarmos de NavMeshes.
+
+Agora, considerando que certas diferenças de altura podem ser intransponíveis para um agente navegando, foi separada a geração de malhas e grafos. Enquanto as malhas são geradas indiscriminadamente, os grafos verificam as diferenças de altura entre os vértices e, caso a diferença seja maior que um determinado limiar, a aresta entre esses vértices não é adicionada. Isso simula a realidade de que certos terrenos podem ser intransponíveis para um agente, forçando os algoritmos de pathfinding a encontrar rotas alternativas.
+
+=== NavMeshes
+NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.
 
 /*
 Disserte sobre a lógica dos três concorrentes. O A* com suas modificações e suavização (baseado em Smołka et al., 2019), a extensão complexa do Jump Point Search no eixo Z (apoiado em Nobes et al., 2022) e as particularidades do Theta*.
 */
-== *4º Subtópico (Implementação dos Algoritmos).*
+== Implementação dos Algoritmos
 
 /*
 Detalhe a orquestração dos testes. Como os algoritmos rodarão concorrentemente. Aqui, ancore-se em Madushanka e Madushanka (2026) para justificar a necessidade de isolar e mensurar o impacto do paralelismo real no tempo de execução da navegação.
 */
-== *5º Subtópico (Multithread).*
+== Multithread
 
 /*
 Defina as variáveis dependentes (tempo de processamento de CPU, picos de memória) e como você planeja projetar os caminhos resultantes visualmente (ex: plotar a visão de cima) para certificar a qualidade do trajeto além de apenas sua velocidade.
 */
-== *6º Subtópico (Processo de Coleta e Tratamento de Dados).*
+== Processo de Coleta e Tratamento de Dados
 
 = CRONOGRAMA
 
