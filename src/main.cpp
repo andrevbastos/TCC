@@ -117,19 +117,8 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
     auto renderer {IFCG::getRenderer()};
     GLuint shader {renderer->getShaderID()};
 
-    auto floor {createMeshFromHeightmap(imagePath, intensity, shader, 0.5f, 0.5f, 0.5f, 1.0f)};
-
-    auto [graph, ids] = createLwGraphFromHeightmap(imagePath, intensity, heightLimit);
+    auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader);
     auto [startId, endId] = ids;
-
-    auto outline {createMeshFromLwGraph(graph, 0.8f, 0.8f, 0.8f, 0.8f, shader, GL_LINES)};
-    outline->translate(0.0f, 0.0f, 0.6f);
-
-    auto* scene = new MeshTree();
-    scene->addChild(floor);
-    scene->addChild(outline);
-
-    scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
     std::vector<std::vector<int>> paths;
 
@@ -147,7 +136,7 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
         int g = ((i + 1) >> 1) & 1;
         int b = ((i + 1) >> 0) & 1;
 
-        auto* pathMesh = createMeshFromLwPath(*graph, paths[i], r, g, b, 1.0f, shader);
+        auto* pathMesh = createMeshFromLwPath(*graph, paths[i], shader, {(float)r, (float)g, (float)b, 1.0f});
         pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
         scene->addChild(pathMesh);
     }
@@ -157,6 +146,7 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
     auto camera {renderer->getCamera()};
     camera->setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
     camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+    renderer->setFarPlane(1000.0f);
 
     input->addKeyCallback(GLFW_KEY_LEFT_SHIFT, [camera, input]() {
         if (input->isKeyHeld(GLFW_KEY_LEFT_SHIFT)){

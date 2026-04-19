@@ -16,10 +16,126 @@ struct Vertex3D {
     double x, y, z;
 };
 
-Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, float r, float g, float b, float a, GLenum drawMode = GL_TRIANGLES) {
+struct Color {
+    float r, g, b, a;
+};
+
+std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSceneFromHeightmap(
+    const char* imagePath,
+    int intensity,
+    double heightLimit, 
+    GLuint shader, 
+    Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f}, 
+    Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
+);
+Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_TRIANGLES);
+Mesh* createMeshFromGraph(common::Graph* graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_LINES);
+Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.5f}, GLenum drawMode = GL_LINES);
+Mesh* createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
+Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
+
+std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGraphFromMesh(Mesh* mesh, double heightLimit);
+std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit);
+
+std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSceneFromHeightmap(
+    const char* imagePath,
+    int intensity,
+    double heightLimit, 
+    GLuint shader, 
+    Color floorColor, 
+    Color outlineColor
+) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
+    int startId = -1, endId = -1;
+
+    int width, height, channels;
+    unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
+    if (!data) {
+        std::cerr << "Failed to load heightmap image: " << imagePath << std::endl;
+        return {nullptr, nullptr, {0, 0}};
+    }
+
+    int numVertices = width * height;
+
+    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float z = (data[y * width + x] / 255.0f * intensity); 
+            
+            int currentId = y * width + x;
+            
+            vertices.emplace_back(x, y, z, floorColor.r, floorColor.g, floorColor.b, floorColor.a);
+            
+            graph->setVertex(currentId, {
+                static_cast<double>(x), 
+                static_cast<double>(y), 
+                static_cast<double>(z)
+            });
+        }
+    }
+
+    for (int y = 0; y < height - 1; ++y) {
+        for (int x = 0; x < width - 1; ++x) {
+            int topLeft = y * width + x;
+            int topRight = y * width + (x + 1);
+            int bottomLeft = (y + 1) * width + x;
+            int bottomRight = (y + 1) * width + (x + 1);
+
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+
+            int currentId = y * width + x;
+            const auto& currentData = graph->getVertexData(currentId);
+            
+            if (currentData.z == 0.0) continue;
+
+            auto addEdgeWithCost = [&](int targetX, int targetY) {
+                int targetId = targetY * width + targetX;
+                const auto& targetData = graph->getVertexData(targetId);
+                
+                if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
+
+                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                
+                graph->addEdge(currentId, targetId, cost);
+            };
+
+            if (x + 1 < width) addEdgeWithCost(x + 1, y);
+            if (y + 1 < height) addEdgeWithCost(x, y + 1);
+            if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
+            if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
+
+            if (startId == -1) startId = currentId;
+            endId = currentId;
+        }
+    }
+
+    stbi_image_free(data);
+
+    auto* floor = new Mesh(vertices, indices, shader);
+    auto* outline = createMeshFromLwGraph(graph, shader, outlineColor, GL_LINES);
+    outline->translate(0.0f, 0.0f, 0.6f);
+    auto* scene = new MeshTree();
+    scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
+
+    scene->addChild(floor);
+    scene->addChild(outline);
+
+    return {scene, graph, {startId, endId}};
+};
+
+Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color, GLenum drawMode) {
+    std::vector<Vertex> vertices;
+    std::vector<GLuint> indices;
+    
     int width, height, channels;
     unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
     if (!data) {
@@ -30,7 +146,7 @@ Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shade
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             float z = (data[y * width + x] / 255.0f * intensity); 
-            vertices.emplace_back(x, y, z, r, g, b, a);
+            vertices.emplace_back(x, y, z, color.r, color.g, color.b, color.a);
         }
     }
 
@@ -57,68 +173,7 @@ Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shade
     return mesh;
 }
 
-std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit) {
-    int startId = -1, endId = -1;
-
-    int width, height, channels;
-    unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
-    
-    if (!data) {
-        std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
-        return {nullptr, {0, 0}};
-    }
-
-    int numVertices = width * height;
-    
-    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            float z = (data[y * width + x] / 255.0f * intensity); 
-            int currentId = y * width + x;
-
-            graph->setVertex(currentId, {
-                static_cast<double>(x), 
-                static_cast<double>(y), 
-                static_cast<double>(z)
-            });
-        }
-    }
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int currentId = y * width + x;
-            
-            const auto& currentData = graph->getVertexData(currentId);
-            
-            if (currentData.z == 0.0) continue;
-
-            auto addEdgeWithCost = [&](int targetX, int targetY) {
-                int targetId = targetY * width + targetX;
-                const auto& targetData = graph->getVertexData(targetId);
-                
-                if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
-
-                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
-                
-                graph->addEdge(currentId, targetId, cost);
-            };
-
-            if (x + 1 < width) addEdgeWithCost(x + 1, y);
-            if (y + 1 < height) addEdgeWithCost(x, y + 1);
-            if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
-            if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
-
-            if (startId == -1) startId = currentId;
-            endId = currentId;
-        }
-    }
-
-    stbi_image_free(data);  
-    return {graph, {startId, endId}};
-}
-
-Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float a, GLuint shader, GLenum drawMode = GL_LINES) {
+Mesh* createMeshFromGraph(common::Graph* graph, GLuint shader, Color color, GLenum drawMode) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
     
@@ -132,7 +187,7 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
         if (!valid) continue;
         auto [x, y, z] = coords;
         
-        Vertex vertex(x, y, z, r, g, b, a);
+        Vertex vertex(x, y, z, color.r, color.g, color.b, color.a);
         vertices.push_back(vertex);
         
         idToIndex[node->getId()] = i; 
@@ -175,7 +230,7 @@ Mesh* createMeshFromGraph(common::Graph* graph, float r, float g, float b, float
     return mesh;
 };
 
-Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, float r, float g, float b, float a, GLuint shader, GLenum drawMode = GL_LINES) {
+Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Color color, GLenum drawMode) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -184,7 +239,7 @@ Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, float r, float g, 
     for (int i = 0; i < numVertices; ++i) {
         const auto& data = graph->getVertexData(i);
         
-        vertices.emplace_back(data.x, data.y, data.z, r, g, b, a);
+        vertices.emplace_back(data.x, data.y, data.z, color.r, color.g, color.b, color.a);
     }
 
     if (drawMode == GL_TRIANGLES) {
@@ -228,8 +283,7 @@ Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, float r, float g, 
     return mesh;
 }
 
-Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, float b, float a, GLuint shader)
-{
+Mesh* createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -238,7 +292,7 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
         if (!valid) continue;
         auto [x, y, z] = coords;
         
-        Vertex vertex(x, y, z, r, g, b, a);
+        Vertex vertex(x, y, z, color.r, color.g, color.b, color.a);
         vertices.push_back(vertex);
         
         if (i < path.size() - 1) {
@@ -257,7 +311,7 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, float r, float g, floa
     return mesh;
 };
 
-Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, float r, float g, float b, float a, GLuint shader) {
+Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -266,7 +320,7 @@ Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::ve
         
         const auto& data = graph.getVertexData(nodeId);
         
-        vertices.emplace_back(data.x, data.y, data.z, r, g, b, a);
+        vertices.emplace_back(data.x, data.y, data.z, color.r, color.g, color.b, color.a);
         
         if (i < path.size() - 1) {
             indices.push_back(i);
@@ -323,3 +377,63 @@ std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGraphFromMesh(M
 
     return std::make_pair(graph, std::make_pair(startId, endId));
 };
+
+std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit) {
+    int startId = -1, endId = -1;
+
+    int width, height, channels;
+    unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
+    if (!data) {
+        std::cerr << "Erro ao carregar a imagem: " << imagePath << std::endl;
+        return {nullptr, {0, 0}};
+    }
+
+    int numVertices = width * height;
+    
+    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float z = (data[y * width + x] / 255.0f * intensity); 
+            int currentId = y * width + x;
+
+            graph->setVertex(currentId, {
+                static_cast<double>(x), 
+                static_cast<double>(y), 
+                static_cast<double>(z)
+            });
+        }
+    }
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int currentId = y * width + x;
+            
+            const auto& currentData = graph->getVertexData(currentId);
+            
+            if (currentData.z == 0.0) continue;
+
+            auto addEdgeWithCost = [&](int targetX, int targetY) {
+                int targetId = targetY * width + targetX;
+                const auto& targetData = graph->getVertexData(targetId);
+                
+                if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
+
+                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                
+                graph->addEdge(currentId, targetId, cost);
+            };
+
+            if (x + 1 < width) addEdgeWithCost(x + 1, y);
+            if (y + 1 < height) addEdgeWithCost(x, y + 1);
+            if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
+            if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
+
+            if (startId == -1) startId = currentId;
+            endId = currentId;
+        }
+    }
+
+    stbi_image_free(data);  
+    return {graph, {startId, endId}};
+}
