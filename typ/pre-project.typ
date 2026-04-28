@@ -24,7 +24,7 @@
     numbering: none // Numeração invisível nos pré-textuais
   )
   
-  set text(font: ("Times New Roman"), size: 12pt, lang: "pt", region: "br")
+  set text(font: ("Arial"), size: 12pt, lang: "pt", region: "br")
 
   // ==========================================
   // ELEMENTOS PRÉ-TEXTUAIS
@@ -202,8 +202,8 @@
   ano: "2026",
   natureza_trabalho: "",
   
-  lista_ilustracoes: true,
-  lista_tabelas: true,
+  lista_ilustracoes: false,
+  lista_tabelas: false,
 )
 
 /* Nada dissa vai para a versão final, é apenas um rascunho para organizar as ideias e estruturar o pré-projeto.
@@ -237,24 +237,24 @@ O estudo será conduzido em partes, tanto à renderização de malhas 3D e imple
 
 = INTRODUÇÃO
 /*
+*1º Parágrafo (Contextualização e Fundamentação).*
 Introduza a evolução da inteligência artificial aplicada à busca de caminhos (pathfinding). Utilize Russell e Norvig (2013) para definir algoritmos de busca clássicos e emende com Pardede et al. (2022) para contextualizar o avanço e a aplicação crítica dessas técnicas no desenvolvimento de ambientes interativos e jogos.
 */
-*1º Parágrafo (Contextualização e Fundamentação).*
 
 /*
+*2º Parágrafo (O Problema e a Complexidade).*
 Disserte sobre o salto de complexidade ao migrar do 2D para o 3D. Apresente a "lacuna" onde algoritmos costumam ser testados em ambientes isolados. Apoie-se em Gurung (2019) para falar sobre malhas de navegação (NavMeshes) e em Smołka et al. (2019) para explicar as instabilidades e necessidades de adaptação (como as falhas matemáticas e funções de smoothing) em engines 3D reais.
 */
-*2º Parágrafo (O Problema e a Complexidade).*
 
 /*
+*3º Parágrafo (A Proposta).*
 Declare o objetivo central do estudo: uma análise estatística e comparativa focada em métricas quantitativas (como tempo de execução, uso de memória e overheads), desenvolvendo uma solução construída do zero.
 */
-*3º Parágrafo (A Proposta).*
 
 /*
+*4º Parágrafo (Estado da Arte e Fronteira).*
 Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite Madushanka e Madushanka (2026) para introduzir a relevância do processamento multithread em ambientes dinâmicos, e Nobes et al. (2022) para demonstrar que a expansão do Jump Point Search (JPS) para três dimensões é um tópico de pesquisa ativo e de alto interesse.
 */
-*4º Parágrafo (Estado da Arte e Fronteira).*
 
 = JUSTIFICATIVA
 Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
@@ -315,9 +315,6 @@ Descreva a arquitetura base. Mencione a distinção entre grafos comuns e direci
 */
 == Estrutura de Grafos
 
-/*
-Explique como as malhas serão geradas para simular estresse. Disserte sobre o uso do Algoritmo de Kruskal, citando Buck (2011), para criar labirintos perfeitos e topologias densas que forcem o desvio de obstáculos e exijam cálculos exaustivos de caminho.
-*/
 == Geração de Cenários de Teste
 Durante a fase de desenvolvimento, foram criados diversos cenários de teste para avaliar o desempenho dos algoritmos de pathfinding. É importante retificar como estes cenários foram gerados e o que eles representam em termos de desafios para os algoritmos. A seguir, serão detalhados os tipos de cenários utilizados:
 
