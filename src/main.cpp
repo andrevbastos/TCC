@@ -111,10 +111,6 @@ void getStatistics()
     stats.makeCSV("../results/statistics");
 }
 
-#include <atomic>
-#include <mutex>
-#include <thread>
-
 void renderScene(char* imagePath, int intensity, double heightLimit)
 {
     srand(static_cast<unsigned>(time(NULL)));
