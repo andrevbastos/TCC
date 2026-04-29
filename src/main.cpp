@@ -204,7 +204,7 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
 
     while (IFCG::isRunning()) {
         IFCG::pollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     loopThread->request_stop();
