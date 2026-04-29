@@ -20,7 +20,7 @@ struct Color {
     float r, g, b, a;
 };
 
-std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSceneFromHeightmap(
+std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
     int intensity,
     double heightLimit, 
@@ -28,16 +28,16 @@ std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSce
     Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f}, 
     Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
 );
-Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_TRIANGLES);
-Mesh* createMeshFromGraph(common::Graph* graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_LINES);
-Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.5f}, GLenum drawMode = GL_LINES);
-Mesh* createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
-Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
+std::shared_ptr<Mesh> createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_TRIANGLES);
+std::shared_ptr<Mesh> createMeshFromGraph(std::shared_ptr<common::Graph> graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.0f}, GLenum drawMode = GL_LINES);
+std::shared_ptr<Mesh> createMeshFromLwGraph(const common::lwGraph<Vertex3D>& graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.5f}, GLenum drawMode = GL_LINES);
+std::shared_ptr<Mesh> createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
+std::shared_ptr<Mesh> createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color = {0.8f, 0.8f, 0.8f, 1.0f});
 
-std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGraphFromMesh(Mesh* mesh, double heightLimit);
-std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit);
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createGraphFromMesh(std::shared_ptr<Mesh> mesh, double heightLimit);
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit);
 
-std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSceneFromHeightmap(
+std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
     int intensity,
     double heightLimit, 
@@ -59,7 +59,7 @@ std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSce
 
     int numVertices = width * height;
 
-    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
+    auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(numVertices);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -120,10 +120,10 @@ std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSce
 
     stbi_image_free(data);
 
-    auto* floor = new Mesh(vertices, indices, shader);
-    auto* outline = createMeshFromLwGraph(graph, shader, outlineColor, GL_LINES);
+    auto floor = std::make_shared<Mesh>(vertices, indices, shader);
+    auto outline = createMeshFromLwGraph(*graph, shader, outlineColor, GL_LINES);
     outline->translate(0.0f, 0.0f, 0.6f);
-    auto* scene = new MeshTree();
+    auto scene = std::make_shared<MeshTree>();
     scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
 
     scene->addChild(floor);
@@ -132,7 +132,7 @@ std::tuple<MeshTree*, common::lwGraph<Vertex3D>*, std::pair<int, int>> createSce
     return {scene, graph, {startId, endId}};
 };
 
-Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color, GLenum drawMode) {
+std::shared_ptr<Mesh> createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shader, Color color, GLenum drawMode) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
     
@@ -169,11 +169,11 @@ Mesh* createMeshFromHeightmap(const char* imagePath, int intensity, GLuint shade
 
     stbi_image_free(data);
 
-    auto* mesh = new Mesh(vertices, indices, shader, drawMode);
+    auto mesh = std::make_shared<Mesh>(vertices, indices, shader, drawMode);
     return mesh;
 }
 
-Mesh* createMeshFromGraph(common::Graph* graph, GLuint shader, Color color, GLenum drawMode) {
+std::shared_ptr<Mesh> createMeshFromGraph(common::Graph* graph, GLuint shader, Color color, GLenum drawMode) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
     
@@ -226,18 +226,18 @@ Mesh* createMeshFromGraph(common::Graph* graph, GLuint shader, Color color, GLen
         }
     }
 
-    auto* mesh = new Mesh(vertices, indices, shader, drawMode);
+    auto mesh = std::make_shared<Mesh>(vertices, indices, shader, drawMode);
     return mesh;
 };
 
-Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Color color, GLenum drawMode) {
+std::shared_ptr<Mesh> createMeshFromLwGraph(const common::lwGraph<Vertex3D>& graph, GLuint shader, Color color, GLenum drawMode) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    int numVertices = graph->getOrder(); 
+    int numVertices = graph.getOrder(); 
 
     for (int i = 0; i < numVertices; ++i) {
-        const auto& data = graph->getVertexData(i);
+        const auto& data = graph.getVertexData(i);
         
         vertices.emplace_back(data.x, data.y, data.z, color.r, color.g, color.b, color.a);
     }
@@ -246,7 +246,7 @@ Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Col
         std::set<std::tuple<int, int, int>> uniqueTriangles;
 
         for (int i = 0; i < numVertices; ++i) {
-            auto adjNodes = graph->adj(i); 
+            auto adjNodes = graph.adj(i); 
             
             for (size_t j = 0; j < adjNodes.size(); ++j) {
                 for (size_t k = j + 1; k < adjNodes.size(); ++k) {
@@ -268,7 +268,7 @@ Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Col
         }
     } else {
         for (int i = 0; i < numVertices; ++i) {
-            auto adjNodes = graph->adj(i);
+            auto adjNodes = graph.adj(i);
             
             for (common::lwEdge neighbor : adjNodes) {
                 if (i < neighbor.target) {
@@ -279,11 +279,11 @@ Mesh* createMeshFromLwGraph(common::lwGraph<Vertex3D>* graph, GLuint shader, Col
         }
     }
 
-    auto* mesh = new Mesh(vertices, indices, shader, drawMode);
+    auto mesh = std::make_shared<Mesh>(vertices, indices, shader, drawMode);
     return mesh;
 }
 
-Mesh* createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color) {
+std::shared_ptr<Mesh> createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -301,17 +301,11 @@ Mesh* createMeshFromPath(std::vector<common::Node*> path, GLuint shader, Color c
         }
     }
 
-    auto* mesh = new Mesh(
-        vertices, 
-        indices,
-        shader,
-        GL_LINES
-    );
-
+    auto mesh = std::make_shared<Mesh>(vertices, indices, shader, GL_LINES);
     return mesh;
 };
 
-Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color) {
+std::shared_ptr<Mesh> createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, GLuint shader, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -328,16 +322,15 @@ Mesh* createMeshFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::ve
         }
     }
 
-    auto* mesh = new Mesh(vertices, indices, shader, GL_LINES);
-
+    auto mesh = std::make_shared<Mesh>(vertices, indices, shader, GL_LINES);
     return mesh;
 }
 
-std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGraphFromMesh(Mesh* mesh, double heightLimit) {
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createGraphFromMesh(std::shared_ptr<Mesh> mesh, double heightLimit) {
     auto vertices = mesh->getVertices();
     auto indices = mesh->getIndices();
 
-    auto* graph = new undirected::lwGraph<Vertex3D>(vertices.size());
+    auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(vertices.size());
     int startId = -1, endId = -1;
 
     for (int i = 0; i < vertices.size(); i++) {
@@ -378,7 +371,7 @@ std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createGraphFromMesh(M
     return std::make_pair(graph, std::make_pair(startId, endId));
 };
 
-std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit) {
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit) {
     int startId = -1, endId = -1;
 
     int width, height, channels;
@@ -390,7 +383,7 @@ std::pair<common::lwGraph<Vertex3D>*, std::pair<int, int>> createLwGraphFromHeig
 
     int numVertices = width * height;
     
-    common::lwGraph<Vertex3D>* graph = new undirected::lwGraph<Vertex3D>(numVertices);
+    auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(numVertices);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {

@@ -1,8 +1,12 @@
 #include <iostream>
+#include <filesystem>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <mutex>
 #include <graph/undirected/graph.hpp>
 #include <graph/util/a_star.hpp>
 #include <graph/util/dijkstra.hpp>
-#include <filesystem>
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
@@ -73,7 +77,7 @@ void getStatistics()
         
         if (startId == -1 || endId == -1) {
             std::cout << " Erro: Fora dos limites!" << std::endl;
-            delete g;
+            g.reset();
             continue;
         }
         
@@ -100,11 +104,16 @@ void getStatistics()
             std::cout << "\tCusto do Caminho: " << calculatePathCostLW(path, *g) << std::endl;
             std::cout << "\tNúmero de Nós Expandidos: " << nosAvaliados << "\n" << std::endl;
         }
-        delete g;
+
+        g.reset();
     }
 
     stats.makeCSV("../results/statistics");
 }
+
+#include <atomic>
+#include <mutex>
+#include <thread>
 
 void renderScene(char* imagePath, int intensity, double heightLimit)
 {
@@ -113,14 +122,30 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
     IFCG::init(1200, 800, "TCC");
     IFCG::setup3D();
 
-    auto input {IFCG::getInputHandler()};
-    auto renderer {IFCG::getRenderer()};
-    GLuint shader {renderer->getShaderID()};
+    auto& input {IFCG::getInputHandler()};
+    auto& renderer {IFCG::getRenderer()};
+    GLuint shader {renderer.getShaderID()};
 
     auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader);
     auto [startId, endId] = ids;
 
-    std::vector<std::vector<int>> paths;
+    renderer.addMesh(scene);
+
+    auto& camera {renderer.getCamera()};
+    camera.setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
+    camera.rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+    renderer.setFarPlane(1000.0f);
+
+    input.addKeyCallback(GLFW_KEY_LEFT_SHIFT, [&camera, &input]() {
+        if (input.isKeyHeld(GLFW_KEY_LEFT_SHIFT)){
+            camera.setSpeed(0.5f);
+        } else {
+            camera.setSpeed(0.1f);
+        }
+    });
+
+    std::queue<std::pair<int, std::vector<int>>> readyPathsQueue;
+    std::mutex pathsMutex;
 
     auto chebyshevHeuristic {
         [&](const auto& a, const auto& b) -> double {
@@ -128,35 +153,50 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
         }
     };
 
-    paths.push_back(util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic));
-    paths.push_back(util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic));
+    std::jthread aStarThread([&]() {
+        auto path = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
+        
+        std::lock_guard<std::mutex> lock(pathsMutex);
+        readyPathsQueue.push({0, std::move(path)}); 
+    });
 
-    for (int i = 0; i < paths.size(); ++i) {
-        int r = ((i + 1) >> 2) & 1;
-        int g = ((i + 1) >> 1) & 1;
-        int b = ((i + 1) >> 0) & 1;
+    std::jthread aStarModThread([&]() {
+        auto path = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
+        
+        std::lock_guard<std::mutex> lock(pathsMutex);
+        readyPathsQueue.push({1, std::move(path)});
+    });
 
-        auto* pathMesh = createMeshFromLwPath(*graph, paths[i], shader, {(float)r, (float)g, (float)b, 1.0f});
-        pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
-        scene->addChild(pathMesh);
-    }
+    IFCG::loop({
+        .loopBody = [&]() {
+            std::pair<int, std::vector<int>> newPath;
+            bool hasNewPath = false;
 
-    renderer->addMesh(scene);
+            {
+                std::lock_guard<std::mutex> lock(pathsMutex);
+                if (!readyPathsQueue.empty()) {
+                    newPath = std::move(readyPathsQueue.front());
+                    readyPathsQueue.pop();
+                    hasNewPath = true;
+                }
+            }
 
-    auto camera {renderer->getCamera()};
-    camera->setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
-    camera->rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-    renderer->setFarPlane(1000.0f);
+            if (hasNewPath) {
+                int i = newPath.first;
+                const auto& pathNodes = newPath.second;
+                
+                int r = ((i + 1) >> 2) & 1;
+                int g = ((i + 1) >> 1) & 1;
+                int b = ((i + 1) >> 0) & 1;
 
-    input->addKeyCallback(GLFW_KEY_LEFT_SHIFT, [camera, input]() {
-        if (input->isKeyHeld(GLFW_KEY_LEFT_SHIFT)){
-            camera->setSpeed(0.5f);
-        } else {
-            camera->setSpeed(0.1f);
+                auto pathMesh = createMeshFromLwPath(*graph, pathNodes, shader, {(float)r, (float)g, (float)b, 1.0f});
+                
+                pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
+                scene->addChild(pathMesh);
+            }
         }
     });
 
-    IFCG::loop([&]() {});
     IFCG::terminate();
 }
 
