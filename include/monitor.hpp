@@ -9,26 +9,30 @@
 
 class Monitor {
 public:
-    Monitor(std::function<void()> mainContextFunction) {
-        mainContextThread = std::jthread(mainContextFunction);
+    Monitor(std::shared_ptr<std::jthread> mainContextThread)
+        : mainContextThread(mainContextThread) 
+    {
         processingUnits = std::thread::hardware_concurrency() - 1;
         workerThreadCount = 0;
     }
 
     ~Monitor() {
         cv.notify_all();
+        if (mainContextThread && mainContextThread->joinable()) {
+            mainContextThread->join();
+        }
     }
 
     void addTask(std::function<void()> task) {
         if (workerThreadCount < processingUnits) {
-            std::thread([this, task]() {
+            std::jthread([this, task]() {
                 task();
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     workerThreadCount--;
                 }
                 cv.notify_one();
-            }).detach();
+            });
             {
                 std::lock_guard<std::mutex> lock(mtx);
                 workerThreadCount++;
@@ -41,7 +45,7 @@ public:
     }
 
 private:
-    std::jthread mainContextThread;
+    std::shared_ptr<std::jthread> mainContextThread;
     unsigned int processingUnits;
     unsigned int workerThreadCount;
 

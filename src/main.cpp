@@ -17,6 +17,7 @@
 
 #include "statistics.hpp"
 #include "graph_gen.hpp"
+#include "monitor.hpp"
 #include "util.hpp"
 
 namespace fs = std::filesystem;
@@ -149,21 +150,21 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
         }
     };
 
-    std::jthread aStarThread([&]() {
+    std::function<void()> aStarFunc = [&]() {
         auto path = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
         
         std::lock_guard<std::mutex> lock(pathsMutex);
         readyPathsQueue.push({0, std::move(path)}); 
-    });
+    };
 
-    std::jthread aStarModThread([&]() {
+    std::function<void()> aStarModFunc = [&]() {
         auto path = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
         
         std::lock_guard<std::mutex> lock(pathsMutex);
         readyPathsQueue.push({1, std::move(path)});
-    });
+    };
 
-    IFCG::loop({
+    LoopConfig config {
         .loopBody = [&]() {
             std::pair<int, std::vector<int>> newPath;
             bool hasNewPath = false;
@@ -191,7 +192,23 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
                 scene->addChild(pathMesh);
             }
         }
-    });
+    };
+
+    IFCG::releaseContext();
+
+    auto loopThread = std::make_shared<std::jthread>(IFCG::loopP, config);
+
+    Monitor monitor(loopThread);
+    monitor.addTask(aStarFunc);
+    monitor.addTask(aStarModFunc);
+
+    while (IFCG::isRunning()) {
+        IFCG::pollEvents();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    loopThread->request_stop();
+    loopThread->join();
 
     IFCG::terminate();
 }
