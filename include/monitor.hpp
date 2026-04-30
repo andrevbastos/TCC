@@ -6,61 +6,67 @@
 #include <vector>
 #include <queue>
 #include <condition_variable>
+#include <array>
+
+enum class Priority {
+    High = 0,
+    Medium = 1,
+    Low = 2
+};
 
 class Monitor {
 public:
-    // mainContextThread é a thread principal que executa o loop de renderização
-    Monitor(std::shared_ptr<std::jthread> mainContextThread)
-        : mainContextThread(mainContextThread) 
-    {
-        // Pega a quantidade de cores disponíveis e reserva uma para a thread principal
-        processingUnits = std::thread::hardware_concurrency() - 1;
-        // Inicialmente, não há threads de trabalho ativas
-        workerThreadCount = 0;
-    }
+    Monitor() {
+        unsigned int processingUnits = std::thread::hardware_concurrency();
+        if (processingUnits > 1) processingUnits--;
 
-    // O destruidor garante que todas as threads sejam notificadas para encerrar quando o Monitor for destruído
-    ~Monitor() {
-        cv.notify_all();
-    }
+        for (unsigned int i = 0; i < processingUnits; ++i) {
+            workers.emplace_back([this](std::stop_token st) {
+                while (!st.stop_requested()) {
+                    std::function<void()> task;
+                    {
+                        std::unique_lock<std::mutex> lock(mtx);
 
-    // Adiciona uma tarefa para ser executada por uma thread de trabalho
-    void addTask(std::function<void()> task) {
-        // Lock para proteger o acesso ao contador de threads ativas e à fila de tarefas
-        std::unique_lock<std::mutex> lock(mtx);
+                        std::function<bool()> stopCon = [this] {
+                            return !taskQueues[0].empty() || 
+                                   !taskQueues[1].empty() || 
+                                   !taskQueues[2].empty();
+                        };
 
-        // Se ainda há capacidade para criar uma nova thread de trabalho
-        if (workerThreadCount < processingUnits) {
-            // Incrementa o contador de threads ativas
-            workerThreadCount++;
+                        if (!cv.wait(lock, st, stopCon)) {
+                            return;
+                        }
 
-            // Cria uma nova thread de trabalho que executa a tarefa e, 
-            // ao finalizar, decrementa o contador de threads ativas e 
-            // notifica uma possível thread esperando
-            workers.emplace_back([this, task]() {
-                task();
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    workerThreadCount--;
+                        for (int i = 0; i < 3; ++i) {
+                            if (!taskQueues[i].empty()) {
+                                task = std::move(taskQueues[i].front());
+                                taskQueues[i].pop();
+                                break;
+                            }
+                        }
+                    }
+                    if (task) {
+                        task();
+                    }
                 }
-                cv.notify_one();
             });
-
-        } else {
-            // Se o número máximo de threads de trabalho já está ativo, 
-            // espera até que uma thread termine para adicionar a nova tarefa
-            cv.wait(lock, [this]() { return workerThreadCount < processingUnits; });
-            lock.unlock(); // Libera o lock antes da chamada recursiva
-            addTask(task);
         }
     }
 
+    ~Monitor() = default;
+
+    void addTask(std::function<void()> task, Priority p = Priority::Medium) {
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            taskQueues[static_cast<size_t>(p)].push(std::move(task));
+        }
+        cv.notify_one();
+    }
+
 private:
-    std::shared_ptr<std::jthread> mainContextThread;
     std::vector<std::jthread> workers;
-    unsigned int processingUnits;
-    unsigned int workerThreadCount;
+    std::array<std::queue<std::function<void()>>, 3> taskQueues;
 
     std::mutex mtx;
-    std::condition_variable cv;
+    std::condition_variable_any cv;
 };

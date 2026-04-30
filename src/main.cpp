@@ -46,8 +46,7 @@ int main(int argc, char* argv[]) {
     return 0;
 };
 
-void getStatistics()
-{
+void getStatistics() {
     warmUp();
 
     int intensity = 50;
@@ -112,8 +111,7 @@ void getStatistics()
     stats.makeCSV("../results/statistics");
 }
 
-void renderScene(char* imagePath, int intensity, double heightLimit)
-{
+void renderScene(char* imagePath, int intensity, double heightLimit) {
     srand(static_cast<unsigned>(time(NULL)));
 
     IFCG::init(1200, 800, "TCC");
@@ -144,22 +142,50 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
     std::queue<std::pair<int, std::vector<int>>> readyPathsQueue;
     std::mutex pathsMutex;
 
-    auto chebyshevHeuristic {
-        [&](const auto& a, const auto& b) -> double {
-            return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
-        }
-    };
-
+    Statistics stats(1);
+    
     std::function<void()> aStarFunc = [&]() {
+        int visitedNodes = 0;
+
+        auto chebyshevHeuristic {
+            [&](const auto& a, const auto& b) -> double {
+                visitedNodes++;
+                return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+            }
+        };
+        
+        auto startTime = std::chrono::high_resolution_clock::now();
         auto path = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
+        auto endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = endTime - startTime;
+        
+        stats.addEntry("A Star", "Tempo de Execução", elapsed.count());
+        stats.addEntry("A Star", "Custo do Caminho", calculatePathCostLW(path, *graph));
+        stats.addEntry("A Star", "Número de Nós Expandidos", visitedNodes);
         
         std::lock_guard<std::mutex> lock(pathsMutex);
         readyPathsQueue.push({0, std::move(path)}); 
     };
 
     std::function<void()> aStarModFunc = [&]() {
+        int visitedNodes = 0;
+
+        auto chebyshevHeuristic {
+            [&](const auto& a, const auto& b) -> double {
+                visitedNodes++;
+                return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+            }
+        };
+
+        auto startTime = std::chrono::high_resolution_clock::now();
         auto path = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
-        
+        auto endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = endTime - startTime;
+
+        stats.addEntry("A Star Modified", "Tempo de Execução", elapsed.count());
+        stats.addEntry("A Star Modified", "Custo do Caminho", calculatePathCostLW(path, *graph));
+        stats.addEntry("A Star Modified", "Número de Nós Expandidos", visitedNodes);
+
         std::lock_guard<std::mutex> lock(pathsMutex);
         readyPathsQueue.push({1, std::move(path)});
     };
@@ -190,31 +216,21 @@ void renderScene(char* imagePath, int intensity, double heightLimit)
                 
                 pathMesh->translate(0.0f, 0.0f, 1.5f + i * 0.5f);
                 scene->addChild(pathMesh);
+                stats.makeCSV("../results/statistics");
             }
         }
     };
 
-    IFCG::releaseContext();
-
-    auto loopThread = std::make_shared<std::jthread>(IFCG::loopP, config);
-
-    Monitor monitor(loopThread);
-    monitor.addTask(aStarFunc);
-    monitor.addTask(aStarModFunc);
-
-    while (IFCG::isRunning()) {
-        IFCG::pollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    loopThread->request_stop();
-    loopThread->join();
+    Monitor monitor;
+    monitor.addTask(aStarFunc, Priority::Medium);
+    monitor.addTask(aStarModFunc, Priority::Medium);
+    
+    IFCG::loop(config);
 
     IFCG::terminate();
 }
 
-void warmUp() 
-{
+void warmUp() {
     undirected::Graph warmUpGraph;
     for (int i = 0; i < 10; ++i) {
         warmUpGraph.newVertex(std::make_tuple(i, 0, 0));

@@ -57,6 +57,7 @@ Session.vim
 Thumbs.db
 .cache/
 .history/
+GEMINI.md
 
 # ----------------------------------------------------------------------
 # Nomai Specifics

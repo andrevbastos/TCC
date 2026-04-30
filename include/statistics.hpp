@@ -3,19 +3,24 @@
 #include <vector>
 #include <iomanip>
 #include <fstream>
+#include <mutex>
 
 class Statistics {
 public:
-    Statistics(int max_entries) : max_entries(max_entries) {}
+    Statistics(int max_entries = 1)  
+        : max_entries(max_entries) {};
+
     ~Statistics() = default;
 
     void addEntry(const std::string& group, const std::string& metric, double value) {
-        if (data[group].size() < max_entries) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (data[group][metric].size() < max_entries) {
             data[group][metric].push_back(value);
         }
     }
 
     void printStatistics() const {
+        std::lock_guard<std::mutex> lock(mtx);
         const int columnWidth = 20;
 
         for (const auto& group : data) {
@@ -47,16 +52,17 @@ public:
     }
 
     void makeCSV(const std::string& filepath) const {
+        std::lock_guard<std::mutex> lock(mtx);
         for (const auto& group : data) {
             std::ofstream file(filepath + "/" + group.first + ".csv");
-
+            
             if (!file.is_open()) {
                 return;
             }
-
+            
             const auto& metrics = group.second;
             if (metrics.empty()) continue;
-
+            
             bool first = true;
             for (const auto& m : metrics) {
                 if (!first) file << ",";
@@ -64,13 +70,13 @@ public:
                 first = false;
             }
             file << std::endl;
-
+            
             size_t numRows = metrics.begin()->second.size();
             for (size_t i = 0; i < numRows; ++i) {
                 first = true;
                 for (const auto& m : metrics) {
                     if (!first) file << ",";
-                    file << m.second[i];
+                    file << std::fixed << std::setprecision(0) << m.second[i]; 
                     first = false;
                 }
                 file << std::endl;
@@ -82,5 +88,7 @@ public:
 
 private:
     std::map<std::string, std::map<std::string, std::vector<double>>> data;
-    int max_entries = -1;
+    int max_entries;
+
+    mutable std::mutex mtx;
 };
