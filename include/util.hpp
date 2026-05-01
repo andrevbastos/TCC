@@ -12,6 +12,8 @@
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
 
+using namespace ifcg;
+
 struct Vertex3D {
     double x, y, z;
 };

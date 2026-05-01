@@ -193,7 +193,8 @@
 // ==========================================
 
 #show: pre_projeto_abnt.with(
-  titulo: "Análise Estatística e Comparativa de Algoritmos de Pathfinding em Malhas 3D",
+  titulo: "Pathfinding em Malhas 3D",
+  subtitulo: "Análise estatística e comparativa",
   autor: "André Vitor Bastos de Macêdo",
   orientador: "Prof. Paulo César Rodacki Gomes",
   instituicao: "Instituto Federal Catarinense - IFC",
@@ -302,18 +303,33 @@ Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, on
   Desenvolver gráficos e tabelas para apresentar os resultados da análise estatística de forma clara e compreensível. As análises devem destacar as diferenças de desempenho entre os algoritmos de pathfinding, considerando as métricas coletadas e as condições dos testes.
 ])
 
+= REFERENCIAL TEÓRICO
+== Grafos e Topologias 3D
+== Algoritmos de Busca Heurística
+== Malhas de Navegação (NavMeshes)
+== Concorrência e Paralelismo em Sistemas de Tempo Real
+
 = METODOLOGIA
 Aqui, o foco é detalhar a metodologia de pesquisa, explicando como a infraestrutura gráfica e os algoritmos de pathfinding serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
+== Infraestrutura Gráfica
 /*
 Detalhe o uso da IFCG. Discuta a arquitetura de loop lambda e a separação estrita entre a thread de renderização (OpenGL/Graphics) e a lógica de busca para evitar travamentos.
 */
-== Infraestrutura Gráfica
+=== Abstração de Primitivas e Malhas 3D
+=== Gerenciamento de Recursos de Renderização
+=== Modelo de Execução Lambda
+=== Arquitetura de Desacoplamento
+=== Sistema de Callbacks e Loop de Eventos
 
+== Estrutura de Grafos
 /*
 Descreva a arquitetura base. Mencione a distinção entre grafos comuns e direcionados, embasando a escolha das estruturas de dados e otimização de memória na literatura de Cormen et al. (2012) e Gomes (2022). Se aplicável, mencione como o trabalho de Duan et al. (2025) inspira o tratamento de filas de prioridade e ordenação nos grafos direcionados.
 */
-== Estrutura de Grafos
+=== Abstração de Grafos e Topologias
+=== Representação de Grafos Direcionados e Não-Direcionados
+=== Otimização de Memória com lwGraph
+=== Algoritmos de Árvore Geradora Mínima (MST) e Labirintos
 
 == Geração de Cenários de Teste
 Durante a fase de desenvolvimento, foram criados diversos cenários de teste para avaliar o desempenho dos algoritmos de pathfinding. É importante retificar como estes cenários foram gerados e o que eles representam em termos de desafios para os algoritmos. A seguir, serão detalhados os tipos de cenários utilizados:
@@ -348,20 +364,29 @@ Agora, considerando que certas diferenças de altura podem ser intransponíveis 
 === NavMeshes
 NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.
 
+== Algoritmos de Busca Heurística
 /*
 Disserte sobre a lógica dos três concorrentes. O A* com suas modificações e suavização (baseado em Smołka et al., 2019), a extensão complexa do Jump Point Search no eixo Z (apoiado em Nobes et al., 2022) e as particularidades do Theta*.
 */
-== Implementação dos Algoritmos
+=== Algoritmo de Dijkstra
+=== Funções Heurísticas e Estimativas de Custo
+=== A-Star (A\*)
+=== Jump Point Search (JPS)
+=== Theta-Star (Theta\*)
 
+== Multithread
 /*
 Detalhe a orquestração dos testes. Como os algoritmos rodarão concorrentemente. Aqui, ancore-se em Madushanka e Madushanka (2026) para justificar a necessidade de isolar e mensurar o impacto do paralelismo real no tempo de execução da navegação.
 */
-== Multithread
+=== Gerenciamento de Tarefas com Monitor
+=== Escalonamento e Priorização
 
+== Processo de Coleta e Tratamento de Dados
 /*
 Defina as variáveis dependentes (tempo de processamento de CPU, picos de memória) e como você planeja projetar os caminhos resultantes visualmente (ex: plotar a visão de cima) para certificar a qualidade do trajeto além de apenas sua velocidade.
 */
-== Processo de Coleta e Tratamento de Dados
+=== Definição de Variáveis e Métricas
+=== Pipeline de Exportação e Análise
 
 = CRONOGRAMA
 
@@ -377,25 +402,22 @@ Defina as variáveis dependentes (tempo de processamento de CPU, picos de memór
     table.hline(y: 1, stroke: 0.5pt),
     [*ETAPAS*], [*PERÍODOS*],
     [Revisão de Bibliografia], [Jan/2026 a Fev/2026],
-    [Heurísticas e Buscas Avançadas], [Fev/2026 a Mar/2026],
-    [Pathfinding e NavMesh], [Mar/2026 a Abr/2026],
-    [Casos de teste e Métricas], [Abr/2026],
-    [Arquitetura e Preparação do Ambiente em C++], [Fev/2026 a Mai/2026],
-    [Redação do Pré-Projeto], [Mai/2026],
-    [Revisão do Pré-Projeto], [Jun/2026],
+    [Arquitetura Base (IFCG) e Estrutura de Grafos], [Fev/2026 a Abr/2026],
+    [Heurísticas e Implementação Base (A\*, Dijkstra, JPS, Theta\*)], [Mar/2026 a Mai/2026],
+    [Geração de Cenários de Teste e Malhas 3D], [Abr/2026 a Mai/2026],
+    [Multithreading e Testes de Estresse], [Mai/2026 a Jun/2026],
+    [Coleta de Dados Iniciais e Análise Estatística Simples], [Mai/2026 a Jun/2026],
+    [Redação e Revisão do Pré-Projeto], [Abr/2026 a Jun/2026],
     [Defesa do Pré-Projeto], [Jun/2026],
-    [Desenvolvimento de Malhas e Grafos], [Jul/2026 a Ago/2026],
-    [Implementação dos Algoritmos], [Jul/2026 a Ago/2026],
-    [Otimização], [Ago/2026],
-    [Concorrência], [Ago/2026],
-    [Recolha de Dados], [Set/2026 a Out/2026],
-    [Comparação de Dados], [Set/2026 a Out/2026],
-    [Análise Visual], [Set/2026 a Out/2026],
-    [Tratamento de Dados], [Nov/2026],
-    [Redação Final], [Nov/2026],
-    [Revisão], [Dez/2026],
-    [Defesa], [Dez/2026],
-    table.hline(y: 20, stroke: 1pt)
+    [Implementação de NavMeshes e Otimização 3D], [Jul/2026 a Ago/2026],
+    [Otimização de Concorrência e Testes de Estresse], [Ago/2026],
+    [Implementações Específicas (D\* Lite, Busca Bidirecional, Lazy Theta\*)], [Ago/2026 a Set/2026],
+    [Coleta Automatizada de Métricas e Dados], [Set/2026 a Out/2026],
+    [Análise Estatística e Visual dos Resultados], [Out/2026 a Nov/2026],
+    [Redação da Monografia Final], [Out/2026 a Nov/2026],
+    [Revisão e Entrega Final], [Nov/2026],
+    [Defesa do TCC], [Dez/2026],
+    table.hline(y: 17, stroke: 1pt)
   )
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]

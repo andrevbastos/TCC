@@ -21,6 +21,7 @@
 #include "util.hpp"
 
 namespace fs = std::filesystem;
+using namespace ifcg;
 
 const int iterations = 10;
 
@@ -114,11 +115,11 @@ void getStatistics() {
 void renderScene(char* imagePath, int intensity, double heightLimit) {
     srand(static_cast<unsigned>(time(NULL)));
 
-    IFCG::init(1200, 800, "TCC");
-    IFCG::setup3D();
+    Engine::init(1200, 800, "TCC");
+    Engine::setup3D();
 
-    auto& input {IFCG::getInputHandler()};
-    auto& renderer {IFCG::getRenderer()};
+    auto& input {Engine::getInputHandler()};
+    auto& renderer {Engine::getRenderer()};
     GLuint shader {renderer.getShaderID()};
 
     auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader);
@@ -225,9 +226,9 @@ void renderScene(char* imagePath, int intensity, double heightLimit) {
     monitor.addTask(aStarFunc, Priority::Medium);
     monitor.addTask(aStarModFunc, Priority::Medium);
     
-    IFCG::loop(config);
+    Engine::loop(config);
 
-    IFCG::terminate();
+    Engine::terminate();
 }
 
 void warmUp() {
