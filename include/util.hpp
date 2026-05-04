@@ -29,7 +29,6 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
     int intensity,
     double heightLimit, 
     GLuint shader, 
-    ifcg::Keys& input,
     Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f}, 
     Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
 );
@@ -47,7 +46,6 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
     int intensity,
     double heightLimit, 
     GLuint shader, 
-    ifcg::Keys& input,
     Color floorColor, 
     Color outlineColor
 ) {
@@ -134,17 +132,6 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
 
     scene->addChild(floor);
     scene->addChild(outline);
-
-    input.addKeyCallback(GLFW_KEY_Z, [&floor, &input]() {
-        if (input.isKeyHeld(GLFW_KEY_Z)) {
-            auto hitVertex = getClosestVertex(*floor);
-            if (hitVertex) {
-                std::cout << "Hit vertex at (" << hitVertex->x << ", " << hitVertex->y << ", " << hitVertex->z << ")\n";
-            } else {
-                std::cout << "No vertex hit.\n";
-            }
-        }
-    });
 
     return {scene, graph, {startId, endId}};
 };

@@ -53,7 +53,12 @@ public:
         }
     }
 
-    ~Monitor() = default;
+    ~Monitor() {
+        cv.notify_all();
+        for (auto& worker : workers) {
+            worker.request_stop();
+        }
+    };
 
     void addTask(std::function<void()> task, Priority p = Priority::Medium) {
         {

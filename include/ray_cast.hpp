@@ -3,7 +3,7 @@
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
 
-inline Vertex* getClosestVertex(const ifcg::Mesh& mesh) {
+inline Vertex getClosestVertex(const ifcg::Mesh& mesh) {
     double mouseX;
     double mouseY;
 
@@ -37,15 +37,13 @@ inline Vertex* getClosestVertex(const ifcg::Mesh& mesh) {
 
     ray_direction = glm::normalize(ray_end - ray_origin);
 
-    Vertex* closestHitVertexPtr = nullptr;
+    Vertex closestHitVertexPtr {0.0f, 0.0f};
     float minDistanceAlongRay = std::numeric_limits<float>::max();
 
     const float VERTEX_HIT_RADIUS = 0.5f; 
 
-    for (size_t i = 0; i < mesh.getVertices().size(); ++i) {
-        Vertex& currentVertex = mesh.getVertices()[i];
-        
-        glm::vec4 localVertexPosHom = glm::vec4(currentVertex.x, currentVertex.y, currentVertex.z, 1.0f);
+    for (auto v : mesh.getVertices()) {
+        glm::vec4 localVertexPosHom = glm::vec4(v.x, v.y, v.z, 1.0f);
         glm::vec4 worldVertexPosHom = mesh.getModel() * localVertexPosHom; 
         glm::vec3 worldVertexPos = glm::vec3(worldVertexPosHom);
         
@@ -61,7 +59,7 @@ inline Vertex* getClosestVertex(const ifcg::Mesh& mesh) {
         if (distanceSq <= (VERTEX_HIT_RADIUS * VERTEX_HIT_RADIUS)) {
             if (t < minDistanceAlongRay) {
                 minDistanceAlongRay = t;
-                closestHitVertexPtr = &currentVertex;
+                closestHitVertexPtr = v;
             }
         }
     }

@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         int intensity = std::stoi(argv[2]);
         double heightLimit = std::stod(argv[3]);
         renderScene(imagePath, intensity, heightLimit);
-    } else if (argc == 0) {
+    } else if (argc == 1) {
         getStatistics();
     } else {
         std::cerr << "Usage: " << argv[0] << " <imagePath> <intensity> <heightLimit>" << std::endl;
@@ -75,6 +75,12 @@ void getStatistics() {
         std::cout << entry.path().filename().string() << std::flush;
         
         auto [g, ids] = createLwGraphFromHeightmap(entry.path().c_str(), intensity, intensity / 10.0);
+        
+        if (!g) {
+            std::cout << " Erro: Não foi possível carregar o mapa!" << std::endl;
+            continue;
+        }
+
         auto [startId, endId] = ids;
         
         if (startId == -1 || endId == -1) {
@@ -123,7 +129,15 @@ void renderScene(char* imagePath, int intensity, double heightLimit) {
     auto& renderer {Engine::getRenderer()};
     GLuint shader {renderer.getShaderID()};
 
-    auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader, input);
+    Monitor monitor;
+    auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader);
+    
+    if (!scene || !graph) {
+        std::cerr << "Erro: Falha ao criar a cena ou o grafo. Verifique se a imagem existe." << std::endl;
+        Engine::terminate();
+        return;
+    }
+
     auto [startId, endId] = ids;
 
     renderer.addMesh(scene);
@@ -223,7 +237,6 @@ void renderScene(char* imagePath, int intensity, double heightLimit) {
         }
     };
 
-    Monitor monitor;
     monitor.addTask(aStarFunc, Priority::Medium);
     monitor.addTask(aStarModFunc, Priority::Medium);
     
