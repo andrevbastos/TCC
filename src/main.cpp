@@ -17,6 +17,7 @@
 
 #include "statistics.hpp"
 #include "graph_gen.hpp"
+#include "ray_cast.hpp"
 #include "monitor.hpp"
 #include "util.hpp"
 
@@ -122,7 +123,7 @@ void renderScene(char* imagePath, int intensity, double heightLimit) {
     auto& renderer {Engine::getRenderer()};
     GLuint shader {renderer.getShaderID()};
 
-    auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader);
+    auto [scene, graph, ids] = createSceneFromHeightmap(imagePath, intensity, heightLimit, shader, input);
     auto [startId, endId] = ids;
 
     renderer.addMesh(scene);
