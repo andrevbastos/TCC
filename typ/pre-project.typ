@@ -305,31 +305,75 @@ Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, on
 
 = REFERENCIAL TEÓRICO
 == Grafos e Topologias 3D
+@rodacki_grafos, @cormen_algoritmos e @russel_ia
+
 == Algoritmos de Busca Heurística
+@rodacki_grafos e @russel_ia
+
 == Malhas de Navegação (NavMeshes)
+@navigation_mesh
+
 == Concorrência e Paralelismo em Sistemas de Tempo Real
 
+
 = METODOLOGIA
-Aqui, o foco é detalhar a metodologia de pesquisa, explicando como a infraestrutura gráfica e os algoritmos de pathfinding serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
+Aqui, o foco é detalhar a metodologia de pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 == Infraestrutura Gráfica
-/*
-Detalhe o uso da IFCG. Discuta a arquitetura de loop lambda e a separação estrita entre a thread de renderização (OpenGL/Graphics) e a lógica de busca para evitar travamentos.
-*/
+A infraestrutura gráfica será construída utilizando a biblioteca OpenGL, conforme a documentação de #cite(<learnopengl>, form: "prose"), que é amplamente utilizada para renderização 3D. A arquitetura do sistema priorizará renderizações simples e eficientes, uma vez que o foco principal é a análise de algoritmos de pathfinding e não a complexidade gráfica. \
+
+Esconder o grosso do OpenGL em wrappers.
+
+Simplificar uso para os testes.
+
 === Abstração de Primitivas e Malhas 3D
+Orientação a objetos.
+
+Criação de malhas e árvores.
+
+Composite pattern.
+
 === Gerenciamento de Recursos de Renderização
+Reaproveitamento de buffers.
+
+Mínimo overhead.
+
 === Modelo de Execução Lambda
-=== Arquitetura de Desacoplamento
+Função de loop e keybindings.
+
+Abstração com liberdade de uso.
+
+Separação de deveres.
+
 === Sistema de Callbacks e Loop de Eventos
+Simplificação do sistema do OpenGL.
 
 == Estrutura de Grafos
-/*
-Descreva a arquitetura base. Mencione a distinção entre grafos comuns e direcionados, embasando a escolha das estruturas de dados e otimização de memória na literatura de Cormen et al. (2012) e Gomes (2022). Se aplicável, mencione como o trabalho de Duan et al. (2025) inspira o tratamento de filas de prioridade e ordenação nos grafos direcionados.
-*/
-=== Abstração de Grafos e Topologias
+Desenvolvida com base no livro de @rodacki_grafos. Rigor teórico e aplicação com base nos estudos.
+
+Implementado visando alta escalabilidade e facil utilização.
+
+Futuras adaptações visando desempenho.
+
+=== Abstração de Grafos
+Teoria de grafos de @rodacki_grafos. 
+
+Programação orientada a objetos em C++ com metaprogramação.
+
+Controle de memória.
+
 === Representação de Grafos Direcionados e Não-Direcionados
+Classe comum. Composite pattern.
+
+Grafos direcionaos e não-direcionados.
+
 === Otimização de Memória com lwGraph
-=== Algoritmos de Árvore Geradora Mínima (MST) e Labirintos
+Utilização mínima de memória.
+
+Fácil acesso usando inteiros.
+
+=== Algoritmos Famosos
+Algoritmos tirados do livro do @rodacki_grafos.
 
 == Geração de Cenários de Teste
 Durante a fase de desenvolvimento, foram criados diversos cenários de teste para avaliar o desempenho dos algoritmos de pathfinding. É importante retificar como estes cenários foram gerados e o que eles representam em termos de desafios para os algoritmos. A seguir, serão detalhados os tipos de cenários utilizados:
@@ -365,28 +409,85 @@ Agora, considerando que certas diferenças de altura podem ser intransponíveis 
 NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.
 
 == Algoritmos de Busca Heurística
-/*
-Disserte sobre a lógica dos três concorrentes. O A* com suas modificações e suavização (baseado em Smołka et al., 2019), a extensão complexa do Jump Point Search no eixo Z (apoiado em Nobes et al., 2022) e as particularidades do Theta*.
-*/
+O que é um algoritmo de busca heurística.
+
+Definição de heurística. Função de avaliação.
+
 === Algoritmo de Dijkstra
+O pai dos algoritmos de busca.
+
+Falhas.
+
 === Funções Heurísticas e Estimativas de Custo
+Bússola. Função lambda.
+
+Table com funções
+
 === A-Star (A\*)
+Dijkstra com Heurística.
+
+Melhor de todos, monstruoso.
+
 === Jump Point Search (JPS)
+Simplificação do A\* para grafos em grid de peso uniforme.
+
+Abstração para o 3D.
+
 === Theta-Star (Theta\*)
 
+
 == Multithread
-/*
-Detalhe a orquestração dos testes. Como os algoritmos rodarão concorrentemente. Aqui, ancore-se em Madushanka e Madushanka (2026) para justificar a necessidade de isolar e mensurar o impacto do paralelismo real no tempo de execução da navegação.
-*/
+Importância do paralelismo nesses casos.
+
+Separação do contexto gráfico.
+
+Controle de threads.
+
+Gerenciamento controlado.
+
 === Gerenciamento de Tarefas com Monitor
-=== Escalonamento e Priorização
+Não passar dos limites do processador.
+
+Thread pool, senão overhead absurdo.
+
+RAII do C++.
+
+Mutex generalizado.
+
+jthreads e stop_tokens
+
+mutex e condicional_variable.
+
+Criação das threads workers e adição de task.
+
+Fila multinível.
+
+=== Testes de Estresse
+Cenários complexos e concorrência.
 
 == Processo de Coleta e Tratamento de Dados
-/*
-Defina as variáveis dependentes (tempo de processamento de CPU, picos de memória) e como você planeja projetar os caminhos resultantes visualmente (ex: plotar a visão de cima) para certificar a qualidade do trajeto além de apenas sua velocidade.
-*/
+
+Variáveis dependentes: tempo de processamento de CPU, picos de memória, qualidade do caminho encontrado (distância, continuidade), overheads de otimização, vértices percorridos.
+
+Importância de se prender aos números.
+
+Análise estatística (95% de certeza).
+
+Valores estatísticos (taxa de variação, etc)
+
 === Definição de Variáveis e Métricas
+Principais valores que impactam um algoritmo de busca.
+
+Coleta dos dados e alterações temporárias.
+
 === Pipeline de Exportação e Análise
+Wrapper de coleta de dados.
+
+Separação por grupos, variáveis e dados.
+
+Análise estatística.
+
+Plotagem.
 
 = CRONOGRAMA
 
