@@ -407,7 +407,7 @@ Agora, considerando que certas diferenças de altura podem ser intransponíveis 
 === Perlin Noise
 O Perlin Noise é um algoritmo de geração de ruído procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por Ken Perlin em 1983 e é conhecido por produzir padrões de ruído suave e natural, o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios heightmaps, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
 
-Este algoritmo funciona gerando uma grade de tamanho uniforme, onde cada ponto da grade é associado a um vetor de gradiente aleatório. Um quadrado da grade é uma área afetada por 4 vértices que futuramente terão seus vetores atribuídos. Quanto maior a área deste quadrado, mais suave será o ruído, enquanto quadrados menores produzem ruídos mais detalhados com alta frequência. \
+Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritmo funciona gerando uma grade de tamanho uniforme, onde cada ponto da grade é associado a um vetor de gradiente aleatório. Um quadrado da grade é uma área afetada por 4 vértices que futuramente terão seus vetores atribuídos. Quanto maior a área deste quadrado, mais suave será o ruído, enquanto quadrados menores produzem ruídos mais detalhados com alta frequência. \
 
 \
 #columns(2)[
