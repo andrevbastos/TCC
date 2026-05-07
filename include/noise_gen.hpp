@@ -86,7 +86,7 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             float amp {config.amp};
             float ampSum = 0.0f;
 
-            for (int i{0}; i < 3; i++) {
+            for (int i{0}; i < 6; i++) {
                 val += perlin(x * freq / config.wave, y * freq / config.wave, config.seed) * amp;
                 ampSum += amp;
                 amp /= 2;

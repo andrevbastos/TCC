@@ -23,12 +23,12 @@
 #include "monitor.hpp"
 #include "util.hpp"
 
-double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
+float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main(int argc, char* argv[]) {
     char* imagePath;
     int intensity;
-    double heightLimit;
+    float heightLimit;
 
     if (argc > 3) {
         imagePath = argv[1];
@@ -67,17 +67,20 @@ int main(int argc, char* argv[]) {
 
         auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(width * height);
 
+        float maxZ = 0.001f;
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                float z = (data[y * width + x] / 255.0f * intensity); 
                 int currentId = y * width + x;
+                
+                float z = (data[currentId] / 255.0f * intensity); 
+                maxZ = std::max(maxZ, std::abs(z));
 
                 vertices.emplace_back(x, y, z, 0.5f, 0.5f, 0.5f, 1.0f);
                 
                 graph->setVertex(currentId, {
-                    static_cast<double>(x), 
-                    static_cast<double>(y), 
-                    static_cast<double>(z)
+                    static_cast<float>(x), 
+                    static_cast<float>(y), 
+                    static_cast<float>(z)
                 });
             }
         }
@@ -105,7 +108,7 @@ int main(int argc, char* argv[]) {
                     
                     if (std::abs(targetData.z - currentData.z) > heightLimit) return;
 
-                    double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                    float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                     graph->addEdge(currentId, targetId, cost);
                 };
 
@@ -128,7 +131,7 @@ int main(int argc, char* argv[]) {
         outlineModel = glm::rotate(outlineModel, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
         outlineModel = glm::translate(outlineModel, glm::vec3(0.0f, 0.0f, 0.6f));
 
-        auto [verticesOutline, indicesOutline] = createMeshDataFromLwGraph(*graph, shader, {0.8f, 0.8f, 0.8f, 0.8f});
+        auto [verticesOutline, indicesOutline] = createMeshDataFromLwGraph(*graph, maxZ, {0.8f, 0.8f, 0.8f, 0.8f});
 
         {
             std::lock_guard<std::mutex> lock(meshesMutex);
@@ -141,7 +144,7 @@ int main(int argc, char* argv[]) {
 
         auto aStarFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
             int visitedNodes = 0;
-            auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> double {
+            auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> float {
                 visitedNodes++;
                 return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
             };
@@ -149,7 +152,7 @@ int main(int argc, char* argv[]) {
             auto startTime = std::chrono::high_resolution_clock::now();
             auto path = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
             auto endTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = endTime - startTime;
+            std::chrono::duration<float> elapsed = endTime - startTime;
         
             if (path.empty()) {
                 std::cout << "A Star: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
@@ -183,7 +186,7 @@ int main(int argc, char* argv[]) {
 
         auto aStarModFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
             int visitedNodes = 0;
-            auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> double {
+            auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> float {
                 visitedNodes++;
                 return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
             };
@@ -191,7 +194,7 @@ int main(int argc, char* argv[]) {
             auto startTime = std::chrono::high_resolution_clock::now();
             auto path = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
             auto endTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = endTime - startTime;
+            std::chrono::duration<float> elapsed = endTime - startTime;
 
             if (path.empty()) {
                 std::cout << "A Star Modified: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
@@ -269,10 +272,10 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
+float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
     if (path.size() < 2) return 0.0; 
     
-    double totalCost = 0.0;
+    float totalCost = 0.0;
     for (size_t i = 0; i < path.size() - 1; ++i) {
         int currentId = path[i];
         int nextId = path[i + 1];

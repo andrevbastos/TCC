@@ -20,7 +20,7 @@ namespace fs = std::filesystem;
 const int iterations = 10;
 
 void warmUp();
-double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
+float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main() {
     warmUp();
@@ -29,7 +29,7 @@ int main() {
     Statistics stats(iterations);
     std::string path = "../resources/grayscales";
     
-    using HeuristicFuncLW = std::function<double(const Vertex3D&, const Vertex3D&)>;
+    using HeuristicFuncLW = std::function<float(const Vertex3D&, const Vertex3D&)>;
     using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
 
     std::unordered_map<std::string, AlgFunc> algorithms = {
@@ -38,7 +38,7 @@ int main() {
     };
 
     int nosAvaliados = 0;
-    auto trackingHeuristic = [&](const auto& a, const auto& b) -> double {
+    auto trackingHeuristic = [&](const auto& a, const auto& b) -> float {
         nosAvaliados++;
         return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
     };
@@ -110,10 +110,10 @@ void warmUp() {
     }
 };
 
-double calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
+float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
     if (path.size() < 2) return 0.0; 
     
-    double totalCost = 0.0;
+    float totalCost = 0.0;
     for (size_t i = 0; i < path.size() - 1; ++i) {
         int currentId = path[i];
         int nextId = path[i + 1];

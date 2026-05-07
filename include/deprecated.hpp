@@ -12,7 +12,7 @@
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromNoise(
     NoiseConfig config,
     int intensity,
-    double heightLimit,
+    float heightLimit,
     GLuint shader,
     Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f},
     Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
@@ -21,7 +21,7 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
     int intensity,
-    double heightLimit, 
+    float heightLimit, 
     GLuint shader, 
     Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f}, 
     Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
@@ -218,7 +218,7 @@ common::Graph* createRandomMazeGraph2D(int height, int width)
 
         auto [x, y] = coord;
 
-        result->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), 25.0));
+        result->newVertex(std::make_tuple(static_cast<float>(x), static_cast<float>(y), 25.0));
     }
 
     // Itera 3 vezes
@@ -242,8 +242,8 @@ common::Graph* createRandomMazeGraph2D(int height, int width)
             auto [x2, y2, z2] = coord2;
 
             // Altera o Z do vértice do result para 1
-            if (z1 != 5.0) result->getVertex(firstNodeId)->setData(std::make_tuple(static_cast<double>(x1), static_cast<double>(y1), 5.0));
-            if (z2 != 5.0) result->getVertex(secondNodeId)->setData(std::make_tuple(static_cast<double>(x2), static_cast<double>(y2), 5.0));
+            if (z1 != 5.0) result->getVertex(firstNodeId)->setData(std::make_tuple(static_cast<float>(x1), static_cast<float>(y1), 5.0));
+            if (z2 != 5.0) result->getVertex(secondNodeId)->setData(std::make_tuple(static_cast<float>(x2), static_cast<float>(y2), 5.0));
 
             // Faz a aresta
             result->newEdge(firstNodeId, secondNodeId);
@@ -288,7 +288,7 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             float z = (data[y * width + x] / 255.0f * intensity);
-            graph->newVertex(std::make_tuple(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)));
+            graph->newVertex(std::make_tuple(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)));
 
             int currentId = y * width + x;
         }
@@ -312,7 +312,7 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
                 if (!validTarget) return;
                 auto [tx, ty, tz] = coordsTarget;
                 if (tz == 0) return;
-                double cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));
+                float cost = std::sqrt(std::pow(cx - tx, 2) + std::pow(cy - ty, 2) + std::pow(cz - tz, 2));
 
                 graph->newEdge(currentNode, targetNode, cost);
             };
@@ -339,7 +339,7 @@ common::Graph* createRandomGraph(int numVertices, int numEdges) {
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromNoise(
     NoiseConfig config,
     int intensity,
-    double heightLimit, 
+    float heightLimit, 
     GLuint shader,
     Color floorColor, 
     Color outlineColor
@@ -368,9 +368,9 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
             vertices.emplace_back(x, y, z, floorColor.r, floorColor.g, floorColor.b, floorColor.a);
             
             graph->setVertex(currentId, {
-                static_cast<double>(x), 
-                static_cast<double>(y), 
-                static_cast<double>(z)
+                static_cast<float>(x), 
+                static_cast<float>(y), 
+                static_cast<float>(z)
             });
         }
     }
@@ -401,7 +401,7 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
                 
                 if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
 
-                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                 
                 graph->addEdge(currentId, targetId, cost);
             };
@@ -431,7 +431,7 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
     int intensity,
-    double heightLimit, 
+    float heightLimit, 
     GLuint shader, 
     Color floorColor, 
     Color outlineColor
@@ -461,9 +461,9 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
             vertices.emplace_back(x, y, z, floorColor.r, floorColor.g, floorColor.b, floorColor.a);
             
             graph->setVertex(currentId, {
-                static_cast<double>(x), 
-                static_cast<double>(y), 
-                static_cast<double>(z)
+                static_cast<float>(x), 
+                static_cast<float>(y), 
+                static_cast<float>(z)
             });
         }
     }
@@ -494,7 +494,7 @@ std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>
                 
                 if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
 
-                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                 
                 graph->addEdge(currentId, targetId, cost);
             };

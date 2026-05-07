@@ -18,17 +18,21 @@
 using namespace ifcg;
 
 struct Vertex3D {
-    double x, y, z;
+    float x, y, z;
 };
 
 struct Color {
     float r, g, b, a;
+
+    Color operator*(float f) const {
+        return {r * f, g * f, b * f, a};
+    };
 };
 
 std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color);
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, GLuint shader, Color color = {0.5f, 0.5f, 0.5f, 1.5f});
+std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, float maxZ, Color color = {1.0f, 1.0f, 1.0f, 1.0f});
 
-std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit);
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, float heightLimit);
 
 std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color) {
     std::vector<Vertex> vertices;
@@ -50,16 +54,18 @@ std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(con
     return {vertices, indices};
 }
 
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, GLuint shader, Color color) {
+std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, float maxZ, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    int numVertices = graph.getOrder(); 
+    int numVertices {graph.getOrder()}; 
 
     for (int i = 0; i < numVertices; ++i) {
-        const auto& data = graph.getVertexData(i);
+        const auto& data {graph.getVertexData(i)};
         
-        vertices.emplace_back(data.x, data.y, data.z, color.r, color.g, color.b, color.a);
+        float decay = ((data.z / maxZ) < 0.5f) ? 0.5f : (data.z / maxZ);
+        Color vColor = color * decay;
+        vertices.emplace_back(data.x, data.y, data.z, vColor.r, vColor.g, vColor.b, color.a);
     }
 
     for (int i = 0; i < numVertices; ++i) {
@@ -76,7 +82,7 @@ std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(co
     return {vertices, indices};
 }
 
-std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit) {
+std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, float heightLimit) {
     int startId = -1, endId = -1;
 
     int width, height, channels;
@@ -96,9 +102,9 @@ std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> creat
             int currentId = y * width + x;
 
             graph->setVertex(currentId, {
-                static_cast<double>(x), 
-                static_cast<double>(y), 
-                static_cast<double>(z)
+                static_cast<float>(x), 
+                static_cast<float>(y), 
+                static_cast<float>(z)
             });
         }
     }
@@ -117,7 +123,7 @@ std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> creat
                 
                 if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
 
-                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                 
                 graph->addEdge(currentId, targetId, cost);
             };
