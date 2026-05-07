@@ -320,11 +320,9 @@ Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, on
 Aqui, o foco é detalhar a metodologia de pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 == Infraestrutura Gráfica
-A infraestrutura gráfica será construída utilizando a biblioteca OpenGL, conforme a documentação de #cite(<learnopengl>, form: "prose"), que é amplamente utilizada para renderização 3D. A arquitetura do sistema priorizará renderizações simples e eficientes, uma vez que o foco principal é a análise de algoritmos de pathfinding e não a complexidade gráfica. \
+O motor gráfico será construído utilizando a biblioteca OpenGL, conforme a documentação de #cite(<learnopengl>, form: "prose"), que é amplamente utilizada para renderização 3D. A arquitetura do sistema priorizará renderizações simples e eficientes, uma vez que o foco principal é a análise de algoritmos de pathfinding e não a complexidade gráfica. \
 
-Esconder o grosso do OpenGL em wrappers.
-
-Simplificar uso para os testes.
+Foi priorizado o desenvolvimento de uma estrutura que escondesse as chamadas complexas do OpenGL, criando uma camada de abstração para simplificar o uso e a implementação de funcionalidades gráficas. Esta abordagem visa facilitar o desenvolvimento e a manutenção do código, permitindo que os testes de pathfinding sejam realizados sem a necessidade de lidar diretamente com as complexidades do OpenGL. 
 
 === Abstração de Primitivas e Malhas 3D
 Orientação a objetos.
@@ -497,9 +495,10 @@ Com isso, é possível criar uma variedade de cenários de teste para os algorit
 NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.
 
 == Algoritmos de Busca Heurística
-O que é um algoritmo de busca heurística.
+// O que é um algoritmo de busca heurística.
+Um algoritmo de busca heurística
 
-Definição de heurística. Função de avaliação.
+// Definição de heurística. Função de avaliação.
 
 === Algoritmo de Dijkstra
 O pai dos algoritmos de busca.

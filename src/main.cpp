@@ -1,3 +1,6 @@
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include <iostream>
 #include <filesystem>
 #include <thread>
@@ -5,12 +8,6 @@
 #include <graph/undirected/graph.hpp>
 #include <graph/util/a_star.hpp>
 #include <graph/util/dijkstra.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 #include "statistics.hpp"
 #include "util.hpp"
@@ -20,7 +17,6 @@ namespace fs = std::filesystem;
 const int iterations = 10;
 
 void warmUp();
-float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main() {
     warmUp();
@@ -48,15 +44,13 @@ int main() {
 
         std::cout << entry.path().filename().string() << std::flush;
         
-        auto [g, ids] = createLwGraphFromHeightmap(entry.path().c_str(), intensity, intensity / 10.0);
+        auto [g, startId, endId] = createLwGraphFromHeightmap(entry.path().c_str(), intensity, (float)intensity / 10.0f);
         
         if (!g) {
             std::cout << " Erro: Não foi possível carregar o mapa!" << std::endl;
             continue;
         }
 
-        auto [startId, endId] = ids;
-        
         if (startId == -1 || endId == -1) {
             std::cout << " Erro: Fora dos limites!" << std::endl;
             g.reset();
@@ -109,21 +103,3 @@ void warmUp() {
         util::AStarMod(&warmUpGraph, 0, 9, util::heuristics::chebyshevHeuristic3D);
     }
 };
-
-float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
-    if (path.size() < 2) return 0.0; 
-    
-    float totalCost = 0.0;
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        int currentId = path[i];
-        int nextId = path[i + 1];
-        
-        for (const auto& edge : graph.adj(currentId)) {
-            if (edge.target == nextId) {
-                totalCost += edge.weight;
-                break;
-            }
-        }
-    }
-    return totalCost;
-}

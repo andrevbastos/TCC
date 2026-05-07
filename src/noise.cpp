@@ -1,3 +1,6 @@
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include <iostream>
 #include <filesystem>
 #include <thread>
@@ -11,19 +14,9 @@
 #include <ifcg/graphics/meshTree.hpp>
 #include <ifcg/graphics/primitives/sphere.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 #include "statistics.hpp"
-#include "deprecated.hpp"
-#include "ray_cast.hpp"
 #include "monitor.hpp"
 #include "util.hpp"
-
-float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph);
 
 int main(int argc, char* argv[]) {
     NoiseConfig noiseConfig;
@@ -59,94 +52,32 @@ int main(int argc, char* argv[]) {
     std::mutex meshesMutex;
 
     std::function<void()> createScene = [&]() {
-        std::vector<Vertex> vertices;
-        std::vector<GLuint> indices;
-
         auto data = generateNoiseMap(noiseConfig);
-
+        
         auto width = noiseConfig.width;
         auto height = noiseConfig.height;
+        
+        auto graph = createlwGraphFromNoise(data, width, height, heightLimit, intensity);
 
         const std::string& savePath = "../results/noises/noise_temp.png";
         saveNoiseAsPNG(savePath, data, width, height);
 
-        auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(width * height);
-
-        float maxZ = 0.001f;
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                int currentId = y * width + x;
-                
-                float z = (data[currentId] * intensity); 
-                maxZ = std::max(maxZ, std::abs(z));
-
-                float decay = (data[currentId] < 0.25f) ? 0.25f : data[currentId];
-                float floorR = 0.25f * decay;
-                float floorG = 0.60f * decay;
-                float floorB = 0.25f * decay;
-
-                vertices.emplace_back(x, y, z, floorR, floorG, floorB, 1.0f);
-
-                graph->setVertex(currentId, {
-                    static_cast<float>(x), 
-                    static_cast<float>(y), 
-                    static_cast<float>(z)
-                });
-            }
-        }
-
-        for (int y = 0; y < height - 1; ++y) {
-            for (int x = 0; x < width - 1; ++x) {
-                int topLeft = y * width + x;
-                int topRight = y * width + (x + 1);
-                int bottomLeft = (y + 1) * width + x;
-                int bottomRight = (y + 1) * width + (x + 1);
-
-                indices.push_back(topLeft);
-                indices.push_back(bottomLeft);
-                indices.push_back(topRight);
-
-                indices.push_back(topRight);
-                indices.push_back(bottomLeft);
-                indices.push_back(bottomRight);
-
-                int currentId = y * width + x;
-                const auto& currentData = graph->getVertexData(currentId);
-                
-                auto addEdgeWithCost = [&](int targetX, int targetY) {
-                    int targetId = targetY * width + targetX;
-                    const auto& targetData = graph->getVertexData(targetId);
-                    
-                    if (std::abs(targetData.z - currentData.z) > heightLimit) return;
-
-                    float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
-                    
-                    graph->addEdge(currentId, targetId, cost);
-                };
-
-                if (x + 1 < width) addEdgeWithCost(x + 1, y);
-                if (y + 1 < height) addEdgeWithCost(x, y + 1);
-                if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
-                if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
-            }
-        }
-
         int startId = 0;
         int endId = width * height - 1;
 
+        auto [floorVertices, floorIndices] = createMeshDataFromNoise(data, width, height, intensity, {0.6f, 0.6f, 0.6f, 1.0f});
         auto floorModel = glm::mat4(1.0f);
         floorModel = glm::rotate(floorModel, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
+        auto [outlineVertices, outlineIndices] = createMeshDataFromLwGraph(*graph, (float)intensity, {1.0f, 1.0f, 1.0f, 1.0f});
         auto outlineModel = glm::mat4(1.0f);
         outlineModel = glm::rotate(outlineModel, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
         outlineModel = glm::translate(outlineModel, glm::vec3(0.0f, 0.0f, 0.6f));
 
-        auto [verticesOutline, indicesOutline] = createMeshDataFromLwGraph(*graph, maxZ, {1.0f, 1.0f, 1.0f, 1.0f});
-
         {
             std::lock_guard<std::mutex> lock(meshesMutex);
-            newMeshesQueue.push(std::make_tuple(vertices, indices, GL_TRIANGLES, floorModel));
-            newMeshesQueue.push(std::make_tuple(verticesOutline, indicesOutline, GL_LINES, outlineModel));
+            newMeshesQueue.push(std::make_tuple(floorVertices, floorIndices, GL_TRIANGLES, floorModel));
+            newMeshesQueue.push(std::make_tuple(outlineVertices, outlineIndices, GL_LINES, outlineModel));
         }
 
         auto stats = std::make_shared<Statistics>(1);
@@ -286,22 +217,4 @@ int main(int argc, char* argv[]) {
     Engine::terminate();
 
     return 0;
-}
-
-float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
-    if (path.size() < 2) return 0.0; 
-    
-    float totalCost = 0.0;
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        int currentId = path[i];
-        int nextId = path[i + 1];
-        
-        for (const auto& edge : graph.adj(currentId)) {
-            if (edge.target == nextId) {
-                totalCost += edge.weight;
-                break;
-            }
-        }
-    }
-    return totalCost;
 }

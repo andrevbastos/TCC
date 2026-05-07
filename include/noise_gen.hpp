@@ -5,6 +5,8 @@
 #include <fstream>
 #include <filesystem>
 
+#include "stb_image_write.h"
+
 typedef struct {
     float x, y;
 } Vector2D;
@@ -86,7 +88,7 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             float amp {config.amp};
             float ampSum = 0.0f;
 
-            for (int i{0}; i < 6; i++) {
+            for (int i{0}; i < 3; i++) {
                 val += perlin(x * freq / config.wave, y * freq / config.wave, config.seed) * amp;
                 ampSum += amp;
                 amp /= 2;
@@ -100,6 +102,7 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             
             val = (val + 1.0f) * 0.5f;
             val = pow(val, config.exp);
+            
             noiseMap[index] = val;
         }
     }
