@@ -52,7 +52,6 @@ int main(int argc, char* argv[]) {
     std::queue<std::tuple<std::vector<Vertex>, std::vector<GLuint>, GLenum, glm::mat4>> newMeshesQueue;
     std::mutex meshesMutex;
 
-    // Lógica assíncrona para carregar a imagem e gerar o grafo
     std::function<void()> createScene = [imagePath, intensity, heightLimit, shader, &meshesMutex, &newMeshesQueue, &monitor]() {
         int width, height, channels;
         unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 1);
@@ -100,13 +99,11 @@ int main(int argc, char* argv[]) {
                 int currentId = y * width + x;
                 const auto& currentData = graph->getVertexData(currentId);
                 
-                if (currentData.z == 0.0) continue;
-
                 auto addEdgeWithCost = [&](int targetX, int targetY) {
                     int targetId = targetY * width + targetX;
                     const auto& targetData = graph->getVertexData(targetId);
                     
-                    if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
+                    if (std::abs(targetData.z - currentData.z) > heightLimit) return;
 
                     double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                     graph->addEdge(currentId, targetId, cost);
@@ -140,9 +137,9 @@ int main(int argc, char* argv[]) {
         }
 
         auto stats = std::make_shared<Statistics>(1);
-        int pathCounter = 1;
+        auto pathCounter = std::make_shared<int>(1);
 
-        auto aStarFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, &pathCounter]() mutable {
+        auto aStarFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
             int visitedNodes = 0;
             auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> double {
                 visitedNodes++;
@@ -154,11 +151,16 @@ int main(int argc, char* argv[]) {
             auto endTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = endTime - startTime;
         
+            if (path.empty()) {
+                std::cout << "A Star: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
+                return;
+            }
+
             int currentPathIdx;
             {
                 std::lock_guard<std::mutex> lock(meshesMutex);
-                pathCounter++;
-                currentPathIdx = pathCounter;
+                (*pathCounter)++;
+                currentPathIdx = *pathCounter;
             }
 
             stats->addEntry("A Star", "Tempo de Execução", elapsed.count());
@@ -173,13 +175,13 @@ int main(int argc, char* argv[]) {
             auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
             auto model = glm::mat4(1.0f);
             model = glm::rotate(model, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 2.0f * currentPathIdx));
+            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.5f * currentPathIdx));
 
             std::lock_guard<std::mutex> lock(meshesMutex);
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
         };
 
-        auto aStarModFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, &pathCounter]() mutable {
+        auto aStarModFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
             int visitedNodes = 0;
             auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> double {
                 visitedNodes++;
@@ -191,11 +193,16 @@ int main(int argc, char* argv[]) {
             auto endTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = endTime - startTime;
 
+            if (path.empty()) {
+                std::cout << "A Star Modified: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
+                return;
+            }
+
             int currentPathIdx;
             {
                 std::lock_guard<std::mutex> lock(meshesMutex);
-                pathCounter++;
-                currentPathIdx = pathCounter;
+                (*pathCounter)++;
+                currentPathIdx = *pathCounter;
             }
 
             stats->addEntry("A Star Modified", "Tempo de Execução", elapsed.count());
@@ -210,7 +217,7 @@ int main(int argc, char* argv[]) {
             auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
             auto model = glm::mat4(1.0f);
             model = glm::rotate(model, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 2.0f * currentPathIdx));
+            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.5f * currentPathIdx));
 
             std::lock_guard<std::mutex> lock(meshesMutex);
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));

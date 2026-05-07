@@ -388,8 +388,9 @@ Consequentemente, é possível retirar ou adicionar arestas para criar variaçõ
 Embora os labirintos sejam um excelente teste para avaliar a capacidade de desvio de obstáculos, eles foram utilizados apenas como um ponto de partida para a geração de cenários de teste. Uma vez que a ideia desta pesquisa é comparar algoritmos de pathfindings em grafos criados a partir de malhas 3D. Gerar um grafo abstrato e independente seria redundante a esse estudo, o que levou ao descarte deste meio de geração de cenários.
 
 === Mapas de Altura
-Um heightmap (ou mapa de altura) é uma imagem que utiliza apenas tons de cinza para representar a elevação de uma superfície. A intensidade de cada pixel indica a altura de um determinado ponto no terreno, onde tons mais claros representam áreas mais elevadas e tons mais escuros indicam áreas mais baixas. 
+Um heightmap (ou mapa de altura) é uma imagem que utiliza apenas tons de cinza para representar a elevação de uma superfície. A intensidade de cada pixel indica a altura de um determinado ponto no terreno, onde tons mais claros representam áreas mais elevadas e tons mais escuros indicam áreas mais baixas. \
 
+\
 #figure(
   caption: [Exemplo de Heightmap],
   supplement: "Figura",
@@ -404,6 +405,93 @@ Determinando o valor mínimo e máximo de altura, é possível criar uma maha 3D
 Com o uso dos heightmaps, é possível gerar tanto malhas 3D quanto grafos a partir de um mesmo cenário, simplificando o processo de geração de cenários. Esta versatilidade se provará útil futuramente quando falarmos de NavMeshes.
 
 Agora, considerando que certas diferenças de altura podem ser intransponíveis para um agente navegando, foi separada a geração de malhas e grafos. Enquanto as malhas são geradas indiscriminadamente, os grafos verificam as diferenças de altura entre os vértices e, caso a diferença seja maior que um determinado limiar, a aresta entre esses vértices não é adicionada. Isso simula a realidade de que certos terrenos podem ser intransponíveis para um agente, forçando os algoritmos de pathfinding a encontrar rotas alternativas.
+
+=== Perlin Noise
+O Perlin Noise é um algoritmo de geração de ruído procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por Ken Perlin em 1983 e é conhecido por produzir padrões de ruído suave e natural, o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios heightmaps, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
+
+Este algoritmo funciona gerando uma grade de tamanho uniforme, onde cada ponto da grade é associado a um vetor de gradiente aleatório. Um quadrado da grade é uma área afetada por 4 vértices que futuramente terão seus vetores atribuídos. Quanto maior a área deste quadrado, mais suave será o ruído, enquanto quadrados menores produzem ruídos mais detalhados com alta frequência. \
+
+\
+#columns(2)[
+  #figure(
+    caption: [Noise com grade de tamanho 10],
+    supplement: "Figura",
+  )[
+    #image("/typ/images/noise_tamanho10.png", width: 50%)
+    #v(0.5em)
+    #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+  ]
+  #colbreak()
+  #figure(
+    caption: [Noise com grade de tamanho 50],
+    supplement: "Figura",
+  )[
+    #image("/typ/images/noise_tamanho50.png", width: 50%)
+    #v(0.5em)
+    #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+  ]
+] \
+
+Para atribuir um valor de elevação para cada pixel do heightmap gerado pelo Perlin Noise, primeiro é gerado um vetor unitário aleatório para cada vértice da grade. Depois para cada pixel do heightmap, é calculada a contribuição de cada um dos 4 vértices do quadrado correspondente. O valor de distância entre o pixel e cada vértice de seu quadrado é calculado, em seguida o _dot product_ entre o vetor de gradiente do vértice e o vetor de distância é computado. Esses valores são, então, interpolados usando uma função de suavização para garantir que o ruído seja suave e natural. O resultado final é um valor de elevação para cada pixel dessa camada do heightmap.
+
+O processo é repetido para múltiplas camadas (octaves) de ruído, onde cada camada tem uma frequência e amplitude diferentes. A frequência tende a influenciar o nível de detalhe do ruído, enquanto a amplitude controla a intensidade das variações. 
+
+#figure(
+  caption: [Noise de tamanho 25 com 3 octaves],
+  supplement: "Figura",
+)[
+  #image("/typ/images/noise_1_1_1.png", width: 50%)
+  Este noise contém 3 camadas de ruído, 1 de frequência, 1 de ampitude e 1 de expoente.
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+Com este mesmo noise, é possível alterar a frequência e amplitude de cada camada para criar diferentes tipos de terrenos. Por exemplo, aumentando a frequência e diminuindo a amplitude, é possível criar um terreno mais acidentado e detalhado, enquanto diminuindo a frequência e aumentando a amplitude, pode-se criar um terreno mais suave e ondulado. Também, é possível aplicar um expoente para controlar a distribuição dos valores de elevação, o que pode resultar em terrenos mais acidentados, enfatizando valores altos e baixos. \
+
+\
+#columns(3)[
+  #figure(
+    caption: [Frequência 5],
+    supplement: "Figura",
+  )[
+    #image("/typ/images/noise_5_1_1.png", width: 50%)
+    #v(0.5em)
+    #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+  ] \
+  #colbreak()
+  #figure(
+    caption: [Amplitude 5],
+    supplement: "Figura",
+  )[
+    #image("/typ/images/noise_1_5_1.png", width: 50%)
+    #v(0.5em)
+    #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+  ] \
+  #colbreak()
+  #figure(
+    caption: [Expoente 3],
+    supplement: "Figura",
+  )[
+    #image("/typ/images/noise_1_1_5.png", width: 50%)
+    #v(0.5em)
+    #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+  ] \
+]
+
+
+
+
+
+Com isso, é possível criar uma variedade de cenários de teste para os algoritmos de pathfinding, desde terrenos relativamente planos até ambientes montanhosos e cheios de obstáculos.
+
+#figure(
+  caption: [Exemplo de Heightmap gerado com Perlin Noise],
+  supplement: "Figura",
+)[
+  #image("/typ/images/noise_result.png", width: 50%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
 
 === NavMeshes
 NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.

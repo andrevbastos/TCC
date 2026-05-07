@@ -15,12 +15,14 @@ typedef struct {
     float freq = 4.0f;
     float amp = 1.0f;
     float exp = 1.0f;
+    unsigned int seed = 0;
 } NoiseConfig;
 
-Vector2D randomGradient(int ix, int iy) {
+Vector2D randomGradient(int ix, int iy, unsigned int seed) {
     const unsigned w {8 * sizeof(unsigned)};
     const unsigned s {w / 2}; 
     unsigned a = ix, b = iy;
+    a ^= seed;
     a *= 3284157443;
  
     b ^= a << s | a >> w - s;
@@ -37,8 +39,8 @@ Vector2D randomGradient(int ix, int iy) {
     return v;
 }
 
-float dotGridGradient(int ix, int iy, float x, float y) {
-    auto gradient {randomGradient(ix, iy)};
+float dotGridGradient(int ix, int iy, float x, float y, unsigned int seed) {
+    auto gradient {randomGradient(ix, iy, seed)};
 
     float dx {x - (float)ix};
     float dy {y - (float)iy};
@@ -50,7 +52,7 @@ float interpolate(float a0, float a1, float w) {
     return (a1 - a0) * (3.0f - w * 2.0f) * w * w + a0;
 }
 
-float perlin(float x, float y) {
+float perlin(float x, float y, unsigned int seed) {
     int x0 {(int)x};
     int x1 {x0 + 1};
     int y0 {(int)y};
@@ -59,12 +61,12 @@ float perlin(float x, float y) {
     float sx {x - (float)x0};
     float sy {y - (float)y0};
 
-    float n0 {dotGridGradient(x0, y0, x, y)};
-    float n1 {dotGridGradient(x1, y0, x, y)};
+    float n0 {dotGridGradient(x0, y0, x, y, seed)};
+    float n1 {dotGridGradient(x1, y0, x, y, seed)};
     float ix0 {interpolate(n0, n1, sx)};
 
-    n0 = dotGridGradient(x0, y1, x, y);
-    n1 = dotGridGradient(x1, y1, x, y);
+    n0 = dotGridGradient(x0, y1, x, y, seed);
+    n1 = dotGridGradient(x1, y1, x, y, seed);
     float ix1 {interpolate(n0, n1, sx)};
 
     float result {interpolate(ix0, ix1, sy)};
@@ -85,7 +87,7 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             float ampSum = 0.0f;
 
             for (int i{0}; i < 3; i++) {
-                val += perlin(x * freq / config.wave, y * freq / config.wave) * amp;
+                val += perlin(x * freq / config.wave, y * freq / config.wave, config.seed) * amp;
                 ampSum += amp;
                 amp /= 2;
                 freq *= 2;
