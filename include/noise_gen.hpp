@@ -11,7 +11,7 @@ typedef struct {
 
 typedef struct {
     int width, height;
-    int wave = (int)((width + height) / 2);
+    int wave = 100;
     float freq = 4.0f;
     float amp = 1.0f;
     float exp = 1.0f;
