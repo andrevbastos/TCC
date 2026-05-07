@@ -13,6 +13,7 @@
 #include <ifcg/graphics/meshTree.hpp>
 
 #include "ray_cast.hpp"
+#include "noise_gen.hpp"
 
 using namespace ifcg;
 
@@ -23,6 +24,15 @@ struct Vertex3D {
 struct Color {
     float r, g, b, a;
 };
+
+std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromNoise(
+    NoiseConfig config,
+    int intensity,
+    double heightLimit,
+    GLuint shader,
+    Color floorColor = {0.5f, 0.5f, 0.5f, 1.0f},
+    Color outlineColor = {0.8f, 0.8f, 0.8f, 0.8f}
+);
 
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
@@ -40,6 +50,98 @@ std::shared_ptr<Mesh> createMeshFromLwPath(const common::lwGraph<Vertex3D>& grap
 
 std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createGraphFromMesh(std::shared_ptr<Mesh> mesh, double heightLimit);
 std::pair<std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createLwGraphFromHeightmap(const char* imagePath, int intensity, double heightLimit);
+
+std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromNoise(
+    NoiseConfig config,
+    int intensity,
+    double heightLimit, 
+    GLuint shader,
+    Color floorColor, 
+    Color outlineColor
+) {
+    std::vector<Vertex> vertices;
+    std::vector<GLuint> indices;
+
+    int startId = -1, endId = -1;
+    
+    auto data = generateNoiseMap(config);
+
+    auto width = config.width;
+    auto height = config.height;
+
+    const std::string& savePath = "../results/noises/noise_temp.png";
+    saveNoiseAsPNG(savePath, data, width, height);
+
+    auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(width * height);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float z = (data[y * width + x] * intensity); 
+            
+            int currentId = y * width + x;
+            
+            vertices.emplace_back(x, y, z, floorColor.r, floorColor.g, floorColor.b, floorColor.a);
+            
+            graph->setVertex(currentId, {
+                static_cast<double>(x), 
+                static_cast<double>(y), 
+                static_cast<double>(z)
+            });
+        }
+    }
+
+    for (int y = 0; y < height - 1; ++y) {
+        for (int x = 0; x < width - 1; ++x) {
+            int topLeft = y * width + x;
+            int topRight = y * width + (x + 1);
+            int bottomLeft = (y + 1) * width + x;
+            int bottomRight = (y + 1) * width + (x + 1);
+
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+
+            int currentId = y * width + x;
+            const auto& currentData = graph->getVertexData(currentId);
+            
+            if (currentData.z == 0.0) continue;
+
+            auto addEdgeWithCost = [&](int targetX, int targetY) {
+                int targetId = targetY * width + targetX;
+                const auto& targetData = graph->getVertexData(targetId);
+                
+                if (targetData.z == 0.0 || std::abs(targetData.z - currentData.z) > heightLimit) return;
+
+                double cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
+                
+                graph->addEdge(currentId, targetId, cost);
+            };
+
+            if (x + 1 < width) addEdgeWithCost(x + 1, y);
+            if (y + 1 < height) addEdgeWithCost(x, y + 1);
+            if (x + 1 < width && y + 1 < height) addEdgeWithCost(x + 1, y + 1);
+            if (x - 1 >= 0 && y + 1 < height) addEdgeWithCost(x - 1, y + 1);
+
+            if (startId == -1) startId = currentId;
+            endId = currentId;
+        }
+    }
+
+    auto floor = std::make_shared<Mesh>(vertices, indices, shader);
+    auto outline = createMeshFromLwGraph(*graph, shader, outlineColor, GL_LINES);
+    outline->translate(0.0f, 0.0f, 0.6f);
+    auto scene = std::make_shared<MeshTree>();
+    scene->rotate(-3.14159f / 2, 1.0f, 0.0f, 0.0f);
+
+    scene->addChild(floor);
+    scene->addChild(outline);
+
+    return {scene, graph, {startId, endId}};
+};
 
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromHeightmap(
     const char* imagePath,
