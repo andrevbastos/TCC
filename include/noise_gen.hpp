@@ -18,6 +18,7 @@ typedef struct {
     float amp = 1.0f;
     float exp = 1.0f;
     unsigned int seed = 0;
+    unsigned int octaves = 3;
 } NoiseConfig;
 
 Vector2D randomGradient(int ix, int iy, unsigned int seed) {
@@ -88,7 +89,7 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             float amp {config.amp};
             float ampSum = 0.0f;
 
-            for (int i{0}; i < 3; i++) {
+            for (int i{0}; i < config.octaves; i++) {
                 val += perlin(x * freq / config.wave, y * freq / config.wave, config.seed) * amp;
                 ampSum += amp;
                 amp /= 2;
@@ -103,6 +104,44 @@ std::vector<float> generateNoiseMap(NoiseConfig config) {
             val = (val + 1.0f) * 0.5f;
             val = pow(val, config.exp);
             
+            noiseMap[index] = val;
+        }
+    }
+
+    return noiseMap;
+}
+
+float ridgenoise(float nx, float ny) {
+    return 2 * (0.5 - abs(0.5 - perlin(nx, ny, 0)));
+}
+
+std::vector<float> generateRidgedNoiseMap(NoiseConfig config) {
+    std::vector<float> noiseMap(config.width * config.height);
+
+    for (int y{0}; y < config.height; ++y) {
+        for (int x{0}; x < config.width; ++x) {
+            int index {y * config.width + x};
+
+            float val {0.0f};
+            float freq {config.freq};
+            float amp {config.amp};
+            float ampSum = 0.0f;
+
+            std::vector<float> elevations(config.octaves);
+            float eSum = 0.0f;
+            for (auto e : elevations) {
+                e = amp * ridgenoise(x / (float)config.wave, y / (float)config.wave) * eSum;
+                if (eSum > 0.0f) e *= eSum;
+                eSum += e;
+            }
+            val = eSum / ampSum;
+
+            if (val > 1.0f) val = 1.0f;
+            else if (val < -1.0f) val = -1.0f;
+
+            val = (val + 1.0f) * 0.5f;
+            val = pow(val, config.exp);
+
             noiseMap[index] = val;
         }
     }

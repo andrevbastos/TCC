@@ -28,13 +28,14 @@ int main(int argc, char* argv[]) {
         heightLimit = std::stod(argv[2]);
         noiseConfig.width = (argc > 3) ? std::stoi(argv[3]) : 100;
         noiseConfig.height = (argc > 4) ? std::stoi(argv[4]) : 100;
-        noiseConfig.wave = (argc > 5) ? std::stoi(argv[5]) : 50;
-        noiseConfig.freq = (argc > 6) ? std::stof(argv[6]) : 4.0f;
-        noiseConfig.amp = (argc > 7) ? std::stof(argv[7]) : 1.0f;
-        noiseConfig.exp = (argc > 8) ? std::stof(argv[8]) : 1.0f;
-        noiseConfig.seed = (argc > 9) ? std::stoul(argv[9]) : static_cast<unsigned int>(time(NULL));
+        noiseConfig.octaves = (argc > 5) ? std::stoi(argv[5]) : 3;
+        noiseConfig.wave = (argc > 6) ? std::stoi(argv[6]) : 50;
+        noiseConfig.freq = (argc > 7) ? std::stof(argv[7]) : 4.0f;
+        noiseConfig.amp = (argc > 8) ? std::stof(argv[8]) : 1.0f;
+        noiseConfig.exp = (argc > 9) ? std::stof(argv[9]) : 1.0f;
+        noiseConfig.seed = (argc > 10) ? std::stoul(argv[10]) : static_cast<unsigned int>(time(NULL));
     } else {
-        std::cerr << "Usage: " << argv[0] << " <intensity> <heightLimit> <width> <height> <gridSize> <freq> <amp> <exp> [seed]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <intensity> <heightLimit> <width> <height> <octaves> <wave> <freq> <amp> <exp> [seed]" << std::endl;
         return 1;
     }
 

@@ -6,8 +6,7 @@ build_*/
 bin/
 lib/
 out/
-results/graphs/*
-results/statistics/*
+results/
 *.o
 *.obj
 *.a

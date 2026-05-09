@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <thread>
 #include <chrono>
+#include <random>
 #include <graph/undirected/graph.hpp>
 #include <graph/util/a_star.hpp>
 #include <graph/util/dijkstra.hpp>
@@ -14,17 +15,63 @@
 
 namespace fs = std::filesystem;
 
-const int iterations = 10;
+const int repetitions = 5;
+const int intensity = 50;
+const float heightLimit = 5.0f;
 
 void warmUp();
+
+void runBattery(
+    const std::string& batteryName,
+    const std::string& outputCSV,
+    std::function<void(NoiseConfig&, int step)> paramSetter,
+    int numSteps
+);
 
 int main() {
     warmUp();
 
-    int intensity = 50;
-    Statistics stats(iterations);
-    std::string path = "../resources/grayscales";
-    
+    std::cout << "\nIniciando Bateria 1: Escala (Crescimento do Grafo)..." << std::endl;
+    runBattery("Escala", "../results/statistics/stats_escala.csv", [](NoiseConfig& config, int step) {
+        config.width = 100 + (step * 100);
+        config.height = config.width;
+        config.octaves = 4;
+        config.amp = 2.0f;
+        config.freq = 1.5f;
+        config.wave = config.width / 2;
+    }, 10); // 100, 200, ..., 1000
+
+    std::cout << "\nIniciando Bateria 2: Rugosidade (Testando Mínimos Locais)..." << std::endl;
+    runBattery("Rugosidade", "../results/statistics/stats_rugosidade.csv", [](NoiseConfig& config, int step) {
+        config.width = 500;
+        config.height = 500;
+        config.octaves = 1 + step;
+        config.amp = 2.0f;
+        config.freq = 1.5f;
+        config.wave = 250;
+    }, 12); // 1, 2, ..., 12
+
+    std::cout << "\nIniciando Bateria 3: Frequência (Densidade de Obstáculos)..." << std::endl;
+    runBattery("Frequencia", "../results/statistics/stats_frequencia.csv", [](NoiseConfig& config, int step) {
+        config.width = 500;
+        config.height = 500;
+        config.octaves = 4;
+        config.amp = 2.0f;
+        config.freq = 1.0f + (step * 0.5f);
+        config.wave = 250;
+    }, 9);
+
+    return 0;
+}
+
+void runBattery(
+    const std::string& batteryName,
+    const std::string& outputCSV,
+    std::function<void(NoiseConfig&, int step)> paramSetter,
+    int numSteps
+) {
+    Statistics stats(numSteps * repetitions);
+
     using HeuristicFuncLW = std::function<float(const Vertex3D&, const Vertex3D&)>;
     using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
 
@@ -33,60 +80,67 @@ int main() {
         {"A Star Modified", util::lwAStarMod<Vertex3D>}
     };
 
-    int nosAvaliados = 0;
+    int nosAvaliados {0};
     auto trackingHeuristic = [&](const auto& a, const auto& b) -> float {
         nosAvaliados++;
         return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
     };
 
-    for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.path().extension() != ".png") continue;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
-        std::cout << entry.path().filename().string() << std::flush;
-        
-        auto [g, startId, endId] = createLwGraphFromHeightmap(entry.path().c_str(), intensity, (float)intensity / 10.0f);
-        
-        if (!g) {
-            std::cout << " Erro: Não foi possível carregar o mapa!" << std::endl;
-            continue;
-        }
+    for (int step = 0; step < numSteps; ++step) {
+        for (int rep = 0; rep < repetitions; ++rep) {
+            NoiseConfig noiseConfig;
+            paramSetter(noiseConfig, step);
+            noiseConfig.seed = distSeed(gen);
+            noiseConfig.exp = 1.0f;
 
-        if (startId == -1 || endId == -1) {
-            std::cout << " Erro: Fora dos limites!" << std::endl;
-            g.reset();
-            continue;
-        }
-        
-        std::cout << ":" << std::endl;
-        
-        for (const auto& alg : algorithms) {
-            nosAvaliados = 0;
-
-            std::cout << "\t" << alg.first << "..." << std::flush;
-
-            auto startTime = std::chrono::high_resolution_clock::now();
+            auto noise = generateNoiseMap(noiseConfig);
             
-            auto path = alg.second(*g, startId, endId, trackingHeuristic);
-            
-            auto endTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = endTime - startTime;
+            std::string folderPath = "../results/noises/" + batteryName;
+            fs::create_directories(folderPath);
 
-            stats.addEntry(alg.first, "Tempo de Execução", elapsed.count());
-            stats.addEntry(alg.first, "Custo do Caminho", calculatePathCostLW(path, *g));
-            stats.addEntry(alg.first, "Número de Nós Expandidos", nosAvaliados);
+            std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
+            saveNoiseAsPNG(folderPath + "/" + fileName, noise, noiseConfig.width, noiseConfig.height);
 
-            std::cout << " concluído!" << std::endl;
-            std::cout << "\tTempo de Execução: " << elapsed.count() << " segundos" << std::endl;
-            std::cout << "\tCusto do Caminho: " << calculatePathCostLW(path, *g) << std::endl;
-            std::cout << "\tNúmero de Nós Expandidos: " << nosAvaliados << "\n" << std::endl;
+            auto graph = createlwGraphFromNoise(noise, noiseConfig.width, noiseConfig.height, heightLimit, intensity);
+
+            if (!graph) {
+                std::cout << " Erro: Não foi possível carregar o mapa!" << std::endl;
+                continue;
+            }
+
+            int startId = 0;
+            int endId = noiseConfig.width * noiseConfig.height - 1;
+
+            std::cout << "\r" << batteryName << " - Passo " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
+
+            for (const auto& alg : algorithms) {
+                nosAvaliados = 0;
+
+                auto startTime = std::chrono::high_resolution_clock::now();
+                auto path = alg.second(*graph, startId, endId, trackingHeuristic);
+                auto endTime = std::chrono::high_resolution_clock::now();
+                
+                std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
+                double execTime = elapsed.count();
+                double pathCost = (double)calculatePathCostLW(path, *graph);
+
+                stats.addEntry(alg.first, "Tempo de Execução", execTime);
+                stats.addEntry(alg.first, "Custo do Caminho", pathCost);
+                stats.addEntry(alg.first, "Número de Nós Expandidos", (double)nosAvaliados);
+                
+                stats.addEntry(alg.first, "Width", (double)noiseConfig.width);
+                stats.addEntry(alg.first, "Octaves", (double)noiseConfig.octaves);
+                stats.addEntry(alg.first, "Freq", (double)noiseConfig.freq);
+            }
+            graph.reset();
         }
-
-        g.reset();
     }
-
-    stats.makeCSV("../results/statistics");
-
-    return 0;
+    std::cout << " concluído!" << std::endl;
+    stats.saveToCSV(outputCSV);
 }
 
 void warmUp() {

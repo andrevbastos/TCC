@@ -325,26 +325,30 @@ O motor gráfico será construído utilizando a biblioteca OpenGL, conforme a do
 Foi priorizado o desenvolvimento de uma estrutura que escondesse as chamadas complexas do OpenGL, criando uma camada de abstração para simplificar o uso e a implementação de funcionalidades gráficas. Esta abordagem visa facilitar o desenvolvimento e a manutenção do código, permitindo que os testes de pathfinding sejam realizados sem a necessidade de lidar diretamente com as complexidades do OpenGL. 
 
 === Abstração de Primitivas e Malhas 3D
-Orientação a objetos.
+Foi escolhido o paradigma de orientação a objetos para a implementação da infraestrutura gráfica, visando uma estrutura modular e reutilizável. A criação de classes para representar primitivas gráficas, como vértices, arestas e faces, permitirá uma manipulação mais intuitiva e eficiente das malhas 3D.
 
-Criação de malhas e árvores.
+O uso de classes permite a criação de hierarquias e a aplicação do padrão de design Composite, facilitando a construção de estruturas complexas a partir de componentes mais simples. Isso é especialmente útil na criação de malhas 3D, onde diferentes elementos podem ser combinados para formar estruturas mais complexas.
 
-Composite pattern.
+As malhas 3D serão criadas utilizando uma estrutura de árvore com Composite @gamma1994design, onde cada nó representa um componente da malha, como um conjunto de vértices e índices ou outra árvore. Esta abordagem permite uma organização hierárquica dos elementos da malha, facilitando a manipulação e a renderização eficiente. A estrutura de árvore também é benéfica para a implementação de algoritmos de pathfinding, pois permite uma navegação eficiente pelos elementos da malha.
 
 === Gerenciamento de Recursos de Renderização
-Reaproveitamento de buffers.
+No OpenGL, a base de uma malha é composta por vértices e índices, que são armazenados em buffers de vértices (VBOs) e buffers de índices (EBOs). Para otimizar o desempenho, a infraestrutura gráfica implementará um sistema de gerenciamento de recursos que permitirá a criação, atualização e exclusão eficiente desses buffers. O sistema de gerenciamento de recursos garantirá que os buffers sejam reutilizados sempre que possível, minimizando a necessidade de criar novos buffers e reduzindo o overhead associado à criação e destruição de recursos gráficos.
 
-Mínimo overhead.
+Com isso garantimos o mínimo de overhead possível durante a renderização, permitindo que os testes de pathfinding sejam realizados de forma fluida e sem interrupções, mesmo em cenários complexos.
 
 === Modelo de Execução Lambda
-Função de loop e keybindings.
+O contexto de renderização necessita de um loop de eventos para processar as interações do usuário e atualizar a renderização. Para simplificar o desenvolvimento e a manutenção do código, foi adotado um modelo de execução baseado em lambdas, onde as funções de renderização e atualização são definidas como lambdas que podem ser facilmente passadas como argumentos para o loop de eventos. 
 
-Abstração com liberdade de uso.
+Este modelo de execução permite uma maior flexibilidade e modularidade, permitindo que diferentes partes do código sejam facilmente substituídas ou modificadas sem afetar a estrutura geral do sistema. A utilização de lambdas também facilita a implementação de callbacks para eventos específicos, como a atualização da posição da câmera ou IO do usuário, garantindo que o sistema seja responsivo e eficiente durante a execução dos testes de pathfinding.
 
-Separação de deveres.
+A abstração dá total liberdade para a implementação de diferentes tipos de renderização e atualização, permitindo que o sistema seja adaptado para diferentes cenários e necessidades, sem a necessidade de modificar a estrutura subjacente do loop de eventos ou ter que lidar com a complexidade do OpenGL.
+
+Para isso, também, foram implementados diferentes componentes de renderização (renderer, keybindings, câmeras, etc.) que são integrados ao loop de eventos. Cada componente é responsável por uma parte específica da renderização ou da interação do usuário, e o modelo de execução baseado em lambdas permite que esses componentes sejam facilmente integrados e gerenciados dentro do loop de eventos.
 
 === Sistema de Callbacks e Loop de Eventos
-Simplificação do sistema do OpenGL.
+Um dos principais componentes do sistema é o responsável pelos atalhos de teclado, que permite a interação do usuário com a renderização. Este componente é implementado utilizando um sistema de callbacks, onde as funções de callback são definidas para responder a eventos específicos, como pressionar uma tecla ou mover o mouse. Como o OpenGL não possui um gerenciador de atalhos nativo, mas contém um sistema de IO, a implementação de um sistema de callbacks personalizado é essencial para fugir de complexidades adicionais durante o estudo.
+
+O sistema de atalhos é integrado ao loop de eventos a partir de funções lambda, permitindo que as ações do usuário sejam processadas independente do nível de paralelização. Isso garante que a renderização seja atualizada em tempo real sem interrupções.
 
 == Estrutura de Grafos
 Desenvolvida com base no livro de @rodacki_grafos. Rigor teórico e aplicação com base nos estudos.
@@ -393,7 +397,7 @@ Um heightmap (ou mapa de altura) é uma imagem que utiliza apenas tons de cinza 
   caption: [Exemplo de Heightmap],
   supplement: "Figura",
 )[
-  #image("/typ/images/heightmap.png", width: 50%)
+  #image("./images/heightmap.png", width: 50%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: #cite(<imperial_library_solstheim>, form: "prose").]
 ] \
@@ -415,7 +419,7 @@ Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritm
     caption: [Noise com grade de tamanho 10],
     supplement: "Figura",
   )[
-    #image("/typ/images/noise_tamanho10.png", width: 50%)
+    #image("./images/noise_tamanho10.png", width: 50%)
     #v(0.5em)
     #text(size: 10pt)[Fonte: Elaborado pelo autor.]
   ]
@@ -424,7 +428,7 @@ Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritm
     caption: [Noise com grade de tamanho 50],
     supplement: "Figura",
   )[
-    #image("/typ/images/noise_tamanho50.png", width: 50%)
+    #image("./images/noise_tamanho50.png", width: 50%)
     #v(0.5em)
     #text(size: 10pt)[Fonte: Elaborado pelo autor.]
   ]
@@ -432,13 +436,13 @@ Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritm
 
 Para atribuir um valor de elevação para cada pixel do heightmap gerado pelo Perlin Noise, primeiro é gerado um vetor unitário aleatório para cada vértice da grade. Depois para cada pixel do heightmap, é calculada a contribuição de cada um dos 4 vértices do quadrado correspondente. O valor de distância entre o pixel e cada vértice de seu quadrado é calculado, em seguida o _dot product_ entre o vetor de gradiente do vértice e o vetor de distância é computado. Esses valores são, então, interpolados usando uma função de suavização para garantir que o ruído seja suave e natural. O resultado final é um valor de elevação para cada pixel dessa camada do heightmap.
 
-O processo é repetido para múltiplas camadas (octaves) de ruído, onde cada camada tem uma frequência e amplitude diferentes. A frequência tende a influenciar o nível de detalhe do ruído, enquanto a amplitude controla a intensidade das variações. 
+#cite(<patel_terrain_noise>, form: "prose") enfatiza a importância do processo ser  repetido para múltiplas camadas (octaves) de ruído, onde cada camada tem uma frequência e amplitude diferentes. A frequência tende a influenciar o nível de detalhe do ruído, enquanto a amplitude controla a intensidade das variações. 
 
 #figure(
   caption: [Noise de tamanho 25 com 3 octaves],
   supplement: "Figura",
 )[
-  #image("/typ/images/noise_1_1_1.png", width: 50%)
+  #image("./images/noise_1_1_1.png", width: 50%)
   Este noise contém 3 camadas de ruído, 1 de frequência, 1 de ampitude e 1 de expoente.
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
@@ -452,7 +456,7 @@ Com este mesmo noise, é possível alterar a frequência e amplitude de cada cam
     caption: [Frequência 5],
     supplement: "Figura",
   )[
-    #image("/typ/images/noise_5_1_1.png", width: 50%)
+    #image("./images/noise_5_1_1.png", width: 50%)
     #v(0.5em)
     #text(size: 10pt)[Fonte: Elaborado pelo autor.]
   ] \
@@ -461,7 +465,7 @@ Com este mesmo noise, é possível alterar a frequência e amplitude de cada cam
     caption: [Amplitude 5],
     supplement: "Figura",
   )[
-    #image("/typ/images/noise_1_5_1.png", width: 50%)
+    #image("./images/noise_1_5_1.png", width: 50%)
     #v(0.5em)
     #text(size: 10pt)[Fonte: Elaborado pelo autor.]
   ] \
@@ -470,23 +474,19 @@ Com este mesmo noise, é possível alterar a frequência e amplitude de cada cam
     caption: [Expoente 3],
     supplement: "Figura",
   )[
-    #image("/typ/images/noise_1_1_5.png", width: 50%)
+    #image("./images/noise_1_1_5.png", width: 50%)
     #v(0.5em)
     #text(size: 10pt)[Fonte: Elaborado pelo autor.]
   ] \
 ]
 
-
-
-
-
 Com isso, é possível criar uma variedade de cenários de teste para os algoritmos de pathfinding, desde terrenos relativamente planos até ambientes montanhosos e cheios de obstáculos.
 
 #figure(
-  caption: [Exemplo de Heightmap gerado com Perlin Noise],
+  caption: [Exemplo de malha gerada com Perlin Noise],
   supplement: "Figura",
 )[
-  #image("/typ/images/noise_result.png", width: 50%)
+  #image("./images/noise_result.png", width: 50%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
