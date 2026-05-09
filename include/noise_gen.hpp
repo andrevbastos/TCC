@@ -7,6 +7,8 @@
 
 #include "stb_image_write.h"
 
+namespace fs = std::filesystem;
+
 typedef struct {
     float x, y;
 } Vector2D;
@@ -156,5 +158,8 @@ void saveNoiseAsPNG(const std::string& filename, const std::vector<float>& noise
         imageData[i] = static_cast<unsigned char>(noiseMap[i] * 255);
     }
 
-    stbi_write_png(filename.c_str(), width, height, 1, imageData.data(), width);
+    fs::create_directories(fs::path(filename).parent_path());
+    if (!stbi_write_png(filename.c_str(), width, height, 1, imageData.data(), width)) {
+        std::cerr << "Failed to save noise map as PNG: " << filename << std::endl;
+    }
 }
