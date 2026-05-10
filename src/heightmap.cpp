@@ -167,14 +167,15 @@ int main(int argc, char* argv[]) {
     auto& camera {renderer.getCamera()};
     camera.setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
     camera.rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
+    
     renderer.setFarPlane(1000.0f);
 
-    input.addKeyCallback(GLFW_KEY_LEFT_SHIFT, [&camera, &input]() {
-        if (input.isKeyHeld(GLFW_KEY_LEFT_SHIFT)){
-            camera.setSpeed(5.0f);
-        } else {
-            camera.setSpeed(1.0f);
-        }
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera]() {
+        camera.setSpeed(0.5f);
     });
 
     LoopConfig config {

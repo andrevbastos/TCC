@@ -18,6 +18,8 @@
 #include "monitor.hpp"
 #include "util.hpp"
 
+using namespace ifcg;
+
 int main(int argc, char* argv[]) {
     NoiseConfig noiseConfig;
     int intensity;
@@ -184,12 +186,12 @@ int main(int argc, char* argv[]) {
     
     renderer.setFarPlane(1000.0f);
 
-    input.addKeyCallback(GLFW_KEY_LEFT_SHIFT, [&camera, &input]() {
-        if (input.isKeyHeld(GLFW_KEY_LEFT_SHIFT)){
-            camera.setSpeed(0.5f);
-        } else {
-            camera.setSpeed(0.1f);
-        }
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera]() {
+        camera.setSpeed(0.5f);
     });
 
     LoopConfig config {
