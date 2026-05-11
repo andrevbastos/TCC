@@ -43,6 +43,7 @@ int main(int argc, char* argv[]) {
 
     Monitor monitor;
     std::queue<std::tuple<std::vector<Vertex>, std::vector<GLuint>, GLenum, glm::mat4>> newMeshesQueue;
+    std::vector<std::shared_ptr<MeshBase>> activeMeshes;
     std::mutex meshesMutex;
 
     std::function<void()> createScene = [imagePath, intensity, heightLimit, shader, &meshesMutex, &newMeshesQueue, &monitor]() {
@@ -54,12 +55,10 @@ int main(int argc, char* argv[]) {
 
         auto [floorVertices, floorIndices] = createMeshDataFromHeightmap(imagePath, (float)intensity, {0.5f, 0.5f, 0.5f, 1.0f});
         auto floorModel = glm::mat4(1.0f);
-        floorModel = glm::rotate(floorModel, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
         auto [outlineVertices, outlineIndices] = createMeshDataFromLwGraph(*graph, (float)intensity, {0.8f, 0.8f, 0.8f, 0.8f});
         auto outlineModel = glm::mat4(1.0f);
-        outlineModel = glm::rotate(outlineModel, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-        outlineModel = glm::translate(outlineModel, glm::vec3(0.0f, 0.0f, 0.6f));
+        outlineModel = glm::translate(outlineModel, glm::vec3(0.0f, 0.6f, 0.0f));
 
         {
             std::lock_guard<std::mutex> lock(meshesMutex);
@@ -107,8 +106,7 @@ int main(int argc, char* argv[]) {
 
             auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
             auto model = glm::mat4(1.0f);
-            model = glm::rotate(model, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.5f * currentPathIdx));
+            model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
 
             std::lock_guard<std::mutex> lock(meshesMutex);
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
@@ -151,8 +149,7 @@ int main(int argc, char* argv[]) {
 
             auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
             auto model = glm::mat4(1.0f);
-            model = glm::rotate(model, -3.14159f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.5f * currentPathIdx));
+            model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
 
             std::lock_guard<std::mutex> lock(meshesMutex);
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));
@@ -162,13 +159,29 @@ int main(int argc, char* argv[]) {
         monitor.addTask(aStarModFunc, Priority::Medium);
     };
 
-    monitor.addTask(createScene, Priority::High);
-    
     auto& camera {renderer.getCamera()};
-    camera.setPos(glm::vec3(0.0f, (float)intensity, 0.0f));
-    camera.rotate(-1.0f, glm::vec3(1.0f, 1.0f, 0.0f));
-    
+    camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
+    camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
     renderer.setFarPlane(1000.0f);
+
+    monitor.addTask(createScene, Priority::High);
+
+    input.addKeyCallback(Key::K, KeyAction::PRESS, [&]() {
+        for (auto& mesh : activeMeshes) {
+            renderer.removeMesh(mesh);
+        }
+        activeMeshes.clear();
+        
+        {
+            std::lock_guard<std::mutex> lock(meshesMutex);
+            while(!newMeshesQueue.empty()) newMeshesQueue.pop();
+        }
+        
+        monitor.addTask(createScene, Priority::High);
+
+        camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
+        camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
+    });
 
     input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
         camera.setSpeed(1.0f);
@@ -195,6 +208,7 @@ int main(int argc, char* argv[]) {
 
             if (hasNewMesh) {
                 renderer.addMesh(newMesh);
+                activeMeshes.push_back(newMesh);
             }
         }
     };
