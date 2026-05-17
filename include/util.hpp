@@ -227,7 +227,7 @@ inline std::shared_ptr<common::lwGraph<Vertex3D>> createlwGraphFromNoise(const s
                 int targetId = targetY * width + targetX;
                 const auto& targetData = graph->getVertexData(targetId);
                 
-                if (std::abs(targetData.z - currentData.z) > heightLimit) return;
+                if (std::abs(targetData.z - currentData.z) >  heightLimit) return;
 
                 float cost = std::sqrt(std::pow(currentData.x - targetData.x, 2) + std::pow(currentData.y - targetData.y, 2) + std::pow(currentData.z - targetData.z, 2));
                 graph->addEdge(currentId, targetId, cost);

@@ -6,9 +6,11 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <graph/common/lw_grid.hpp>
 #include <graph/undirected/graph.hpp>
 #include <graph/util/a_star.hpp>
 #include <graph/util/dijkstra.hpp>
+#include <graph/util/jps.hpp>
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
@@ -35,7 +37,6 @@ int main(int argc, char* argv[]) {
         noiseConfig.freq = (argc > 7) ? std::stof(argv[7]) : 4.0f;
         noiseConfig.amp = (argc > 8) ? std::stof(argv[8]) : 1.0f;
         noiseConfig.exp = (argc > 9) ? std::stof(argv[9]) : 1.0f;
-        noiseConfig.seed = (argc > 10) ? std::stoul(argv[10]) : static_cast<unsigned int>(time(NULL));
     } else {
         std::cerr << "Usage: " << argv[0] << " <intensity> <heightLimit> <width> <height> <octaves> <wave> <freq> <amp> <exp> [seed]" << std::endl;
         return 1;
@@ -86,7 +87,32 @@ int main(int argc, char* argv[]) {
         auto stats = std::make_shared<Statistics>(1);
         auto pathCounter = std::make_shared<int>(1);
 
-        auto aStarFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
+        auto reconstructPath = [width](const std::vector<int>& path) {
+            std::vector<int> fullPath;
+            if (path.empty()) return fullPath;
+            
+            for (size_t i = 0; i < path.size() - 1; ++i) {
+                int curr = path[i];
+                int next = path[i + 1];
+                
+                int x1 = curr % width, y1 = curr / width;
+                int x2 = next % width, y2 = next / width;
+                
+                int dx = (x2 > x1) ? 1 : (x2 < x1 ? -1 : 0);
+                int dy = (y2 > y1) ? 1 : (y2 < y1 ? -1 : 0);
+                
+                int x = x1, y = y1;
+                while (x != x2 || y != y2) {
+                    fullPath.push_back(y * width + x);
+                    if (x != x2) x += dx;
+                    if (y != y2) y += dy;
+                }
+            }
+            fullPath.push_back(path.back());
+            return fullPath;
+        };
+
+        auto aStarFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter, reconstructPath]() {
             int visitedNodes = 0;
 
             auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> float {
@@ -95,10 +121,11 @@ int main(int argc, char* argv[]) {
             };
             
             auto startTime = std::chrono::high_resolution_clock::now();
-            auto path = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
+            auto rawPath = util::lwAStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
             auto endTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> elapsed = endTime - startTime;
-        
+            
+            auto path = reconstructPath(rawPath);
             if (path.empty()) {
                 std::cout << "A Star: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
                 return;
@@ -117,11 +144,7 @@ int main(int argc, char* argv[]) {
 
             stats->makeCSV("../results/statistics");
 
-            int r = ((currentPathIdx + 1) >> 2) & 1;
-            int g = ((currentPathIdx + 1) >> 1) & 1;
-            int b = ((currentPathIdx + 1) >> 0) & 1;
-
-            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
+            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {1.0f, 0.0f, 0.0f, 1.0f});
             auto model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
 
@@ -129,7 +152,7 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
         };
 
-        auto aStarModFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter]() {
+        auto aStarModFunc = [graph, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter, reconstructPath]() {
             int visitedNodes = 0;
 
             auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> float {
@@ -138,10 +161,11 @@ int main(int argc, char* argv[]) {
             };
 
             auto startTime = std::chrono::high_resolution_clock::now();
-            auto path = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
+            auto rawPath = util::lwAStarMod<Vertex3D>(*graph, startId, endId, chebyshevHeuristic);
             auto endTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> elapsed = endTime - startTime;
-
+            
+            auto path = reconstructPath(rawPath);
             if (path.empty()) {
                 std::cout << "A Star Modified: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
                 return;
@@ -159,12 +183,8 @@ int main(int argc, char* argv[]) {
             stats->addEntry("A Star Modified", "Número de Nós Expandidos", visitedNodes);
             
             stats->makeCSV("../results/statistics");
-            
-            int r = ((currentPathIdx + 1) >> 2) & 1;
-            int g = ((currentPathIdx + 1) >> 1) & 1;
-            int b = ((currentPathIdx + 1) >> 0) & 1;
 
-            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {(float)r, (float)g, (float)b, 1.0f});
+            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {0.0f, 1.0f, 0.0f, 1.0f});
             auto model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
 
@@ -172,8 +192,49 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));
         };
 
+        auto dijkstraFunc = [graph, data, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter, reconstructPath]() {
+            int visitedNodes = 0;
+
+            auto zeroHeuristic = [&](const auto& a, const auto& b) -> float {
+                visitedNodes++;
+                return 0.0f;
+            };
+
+            auto startTime = std::chrono::high_resolution_clock::now();
+            auto rawPath = util::lwAStar<Vertex3D>(*graph, startId, endId, zeroHeuristic);
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> elapsed = endTime - startTime;
+            
+            auto path = reconstructPath(rawPath);
+            if (path.empty()) {
+                std::cout << "Dijkstra: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
+                return;
+            }
+
+            int currentPathIdx;
+            {
+                std::lock_guard<std::mutex> lock(meshesMutex);
+                (*pathCounter)++;
+                currentPathIdx = *pathCounter;
+            }
+
+            stats->addEntry("Dijkstra", "Tempo de Execução", elapsed.count());
+            stats->addEntry("Dijkstra", "Custo do Caminho", calculatePathCostLW(path, *graph));
+            stats->addEntry("Dijkstra", "Número de Nós Expandidos", visitedNodes);
+
+            stats->makeCSV("../results/statistics");
+
+            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {0.0f, 0.0f, 1.0f, 1.0f});
+            auto model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
+
+            std::lock_guard<std::mutex> lock(meshesMutex);
+            newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
+        };
+
         monitor.addTask(aStarFunc, Priority::Medium);
         monitor.addTask(aStarModFunc, Priority::Medium);
+        monitor.addTask(dijkstraFunc, Priority::Medium);
     };
     
     auto& camera {renderer.getCamera()};
