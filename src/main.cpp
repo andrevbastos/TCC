@@ -17,9 +17,9 @@
 
 namespace fs = std::filesystem;
 
-const int repetitions = 5;
-const int intensity = 50;
-const float heightLimit = 5.0f;
+const int repetitions = 10;
+const int intensity = 100;
+const float heightLimit = 2.0f;
 
 void warmUp();
 
@@ -28,12 +28,14 @@ void gridBattery(
     const std::string& batteryName,
     const std::string& outputCSV,
     std::function<void(NoiseConfig&, int step)> paramSetter,
+    std::function<void(Statistics&, const std::string&, NoiseConfig&)> specificStat,
     int numSteps
 );
 void terrainBattery(
     const std::string& batteryName,
     const std::string& outputCSV,
     std::function<void(NoiseConfig&, int step)> paramSetter,
+    std::function<void(Statistics&, const std::string&, NoiseConfig&)> specificStat,
     int numSteps
 );
 
@@ -52,30 +54,36 @@ void runTests() {
         config.width = 100 + (step * 100);
         config.height = config.width;
         config.wave = config.width / 2;
+    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+        stats.addEntry(group, "Tamanho", (double)config.width);
     }, 10);
 
     std::cout << "\nIniciando Bateria de Grid 2: Frequência (Densidade de Obstáculos)..." << std::endl;
     gridBattery("Frequencia", "../results/grids/stats_frequencia.csv", [](NoiseConfig& config, int step) {
         config.freq = 1.0f + (step * 0.5f);
-        config.wave = (config.width / 2) * (1.0f + (step * 0.1f));
+        config.octaves *= (1.0f + (step * 0.1f));
+    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+        stats.addEntry(group, "Frequência", (double)config.freq);
+        stats.addEntry(group, "Octaves", (double)config.octaves);
     }, 10);
 
     // Variação de Parâmetros do Terreno
     std::cout << "\nIniciando Bateria de Terreno 1: Escala (Crescimento do Grafo)..." << std::endl;
-    terrainBattery("Escala", "../results/noises/stats_escala.csv", [](NoiseConfig& config, int step) {
+    terrainBattery("Escala", "../results/terrain/stats_escala.csv", [](NoiseConfig& config, int step) {
         config.width = 100 + (step * 100);
         config.height = config.width;
         config.wave = config.width / 2;
+    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+        stats.addEntry(group, "Tamanho", (double)config.width);
     }, 10);
-
-    std::cout << "\nIniciando Bateria de Terreno 2: Rugosidade (Testando Mínimos Locais)..." << std::endl;
-    terrainBattery("Rugosidade", "../results/noises/stats_rugosidade.csv", [](NoiseConfig& config, int step) {
-        config.octaves = 1 + step;
-    }, 10);
-
-    std::cout << "\nIniciando Bateria de Terreno 3: Frequência (Densidade de Obstáculos)..." << std::endl;
-    terrainBattery("Frequencia", "../results/noises/stats_frequencia.csv", [](NoiseConfig& config, int step) {
+    
+    std::cout << "\nIniciando Bateria de Terreno 2: Frequência (Densidade de Obstáculos)..." << std::endl;
+    terrainBattery("Frequencia", "../results/terrain/stats_frequencia.csv", [](NoiseConfig& config, int step) {
         config.freq = 1.0f + (step * 0.5f);
+        config.octaves *= (1.0f + (step * 0.1f));
+    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+        stats.addEntry(group, "Frequência", (double)config.freq);
+        stats.addEntry(group, "Octaves", (double)config.octaves);
     }, 10);    
 }
 
@@ -83,6 +91,7 @@ void gridBattery(
     const std::string& batteryName,
     const std::string& outputCSV,
     std::function<void(NoiseConfig&, int step)> paramSetter,
+    std::function<void(Statistics&, const std::string&, NoiseConfig&)> specificStat,
     int numSteps
 ) {
     Statistics stats(numSteps * repetitions);
@@ -116,6 +125,9 @@ void gridBattery(
     std::mt19937 gen(rd());
     std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
+    std::string folderPath = "../results/grids/" + batteryName;
+    fs::create_directories(folderPath);
+
     for (int step = 0; step < numSteps; ++step) {
         for (int rep = 0; rep < repetitions; ++rep) {
             // Config melhor para garantir que vá ter um caminho ponta a ponta
@@ -141,9 +153,6 @@ void gridBattery(
                     noise[i] = (float)binaryGrid[i];
                 }
             }
-
-            std::string folderPath = "../results/grids/" + batteryName;
-            fs::create_directories(folderPath);
 
             std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
             saveNoiseAsPNG(folderPath + "/" + fileName, noise, noiseConfig.width, noiseConfig.height);
@@ -185,9 +194,7 @@ void gridBattery(
                 stats.addEntry(alg.first, "Custo do Caminho", pathCost);
                 stats.addEntry(alg.first, "Número de Nós Expandidos", (double)nosAvaliados);
                 
-                stats.addEntry(alg.first, "Width", (double)noiseConfig.width);
-                stats.addEntry(alg.first, "Octaves", (double)noiseConfig.octaves);
-                stats.addEntry(alg.first, "Freq", (double)noiseConfig.freq);
+                specificStat(stats, alg.first, noiseConfig);
             }
 
             graph.reset();
@@ -195,13 +202,14 @@ void gridBattery(
     }
 
     std::cout << " concluído!" << std::endl;
-    stats.saveToCSV(outputCSV);
+    stats.saveToCSV(folderPath + "/stats.csv");
 }
 
 void terrainBattery(
     const std::string& batteryName,
     const std::string& outputCSV,
     std::function<void(NoiseConfig&, int step)> paramSetter,
+    std::function<void(Statistics&, const std::string&, NoiseConfig&)> specificStat,
     int numSteps
 ) {
     Statistics stats(numSteps * repetitions);
@@ -229,6 +237,9 @@ void terrainBattery(
     std::mt19937 gen(rd());
     std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
+    std::string folderPath = "../results/terrain/" + batteryName;
+    fs::create_directories(folderPath);
+
     for (int step = 0; step < numSteps; ++step) {
         for (int rep = 0; rep < repetitions; ++rep) {
             NoiseConfig noiseConfig;
@@ -245,8 +256,6 @@ void terrainBattery(
 
             auto noise = generateNoiseMap(noiseConfig);
             
-            std::string folderPath = "../results/noises/" + batteryName;
-            fs::create_directories(folderPath);
 
             std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
             saveNoiseAsPNG(folderPath + "/" + fileName, noise, noiseConfig.width, noiseConfig.height);
@@ -288,7 +297,7 @@ void terrainBattery(
     }
 
     std::cout << " concluído!" << std::endl;
-    stats.saveToCSV(outputCSV);
+    stats.saveToCSV(folderPath + "/stats.csv");
 }
 
 void warmUp() {
