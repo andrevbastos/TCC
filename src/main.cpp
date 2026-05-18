@@ -149,7 +149,7 @@ void gridBattery(
                 for (int x = 0; x < noiseConfig.width; ++x) {
                     int i = y * noiseConfig.width + x;
                     bool isBorder = (x == 0 || x == (noiseConfig.width - 1) || y == 0 || y == (noiseConfig.height - 1));
-                    binaryGrid[i] = isBorder ? 1 : ((noise[i] > 0.6f) ? 0 : 1);
+                    binaryGrid[i] = isBorder ? 1 : ((noise[i] > 0.55f) ? 0 : 1);
                     noise[i] = (float)binaryGrid[i];
                 }
             }
