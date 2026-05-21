@@ -50,7 +50,7 @@ void runTests() {
 
     // Variação de Parâmetros de Grid
     std::cout << "Iniciando Bateria de Grid: Escala (Crescimento do Grafo)..." << std::endl;
-    gridBattery("Densidade", "../results/grids/stats_densidade.csv", [](NoiseConfig& config, int step) {
+    gridBattery("Escala", "../results/grids/stats_escala.csv", [](NoiseConfig& config, int step) {
         config.width = 100 + (step * 100);
         config.height = config.width;
         config.wave = config.width / 2;

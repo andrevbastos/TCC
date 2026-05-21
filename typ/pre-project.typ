@@ -260,48 +260,28 @@ Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite
 = JUSTIFICATIVA
 Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
 
-Na área de algoritmos de pathfinding, a maioria dos estudos se concentra em topologias 2D ou não geométricas e em cenários ideais, onde as condições são controladas e otimizadas para destacar as vantagens de cada algoritmo. No entanto, a transição para ambientes 3D introduz uma série de desafios adicionais, como a complexidade da geometria, a necessidade de lidar com obstáculos tridimensionais e a gestão de recursos computacionais. A falta de análises estatísticas detalhadas sob condições adversas limita a compreensão real do desempenho desses algoritmos em situações práticas, onde otimizações matemáticas e técnicas avançadas podem ter um impacto significativo.
+Na área de algoritmos de _pathfinding_, a maioria dos estudos se concentra em topologias 2D ou não geométricas e em cenários ideais, onde as condições são controladas e otimizadas para destacar as vantagens de cada algoritmo. No entanto, a transição para ambientes 3D introduz uma série de desafios adicionais, como a complexidade da geometria, a necessidade de lidar com obstáculos tridimensionais e a gestão de recursos computacionais. A falta de análises estatísticas detalhadas sob condições adversas limita a compreensão real do desempenho desses algoritmos em situações práticas, onde otimizações matemáticas e técnicas avançadas podem ter um impacto significativo.
 
 Este estudo se diferencia por adotar uma abordagem aprofundada e detalhada, focando em métricas quantitativas e condições adversas que refletem os desafios do mundo real. Ao invés de uma visão superficial e generalizada, a pesquisa se propõe a investigar o comportamento de algoritmos de busca quando expostos a concorrência computacional e arquiteturas complexas.
 
-Também, a construção de uma infraestrutura gráfica e de uma biblioteca de grafos do zero não apenas proporciona um ambiente de teste personalizado, mas também garante um controle total sobre as variáveis e anomalias de hardware que podem afetar os resultados. A correta aplicação teórica e estrutural da base de grafos é fundamental para garantir a validade dos testes empíricos, conforme destacado por #cite(<rodacki_grafos>, form: "prose") e #cite(<cormen_algoritmos>, form: "prose").
+Além disso, a construção de uma infraestrutura gráfica e de uma biblioteca de grafos do zero não apenas proporciona um ambiente de teste personalizado, mas também garante um controle total sobre as variáveis e anomalias de hardware que podem afetar os resultados. A correta aplicação teórica e estrutural da base de grafos é fundamental para garantir a validade dos testes empíricos, conforme destacado por #cite(<rodacki_grafos>, form: "prose") e #cite(<cormen_algoritmos>, form: "prose").
 
-Com isso, viu-se a necessidade de um estudo que vá além dos testes em ambientes ideais, oferecendo uma análise estatística robusta e detalhada do desempenho dos algoritmos de pathfinding em malhas 3D, contribuindo para a escolha informada de técnicas de navegação em projetos futuros.
+Com isso, viu-se a necessidade de um estudo que vá além dos testes em ambientes ideais, oferecendo uma análise estatística detalhada do desempenho dos algoritmos de pathfinding em malhas 3D, contribuindo para a escolha informada de técnicas de navegação em projetos futuros.
 
 = OBJETIVOS
 Neste capítulo serão apresentados os objetivos gerais e específicos do estudo, detalhando o que se pretende alcançar com a pesquisa. As metas girarão em torno da implementação de algoritmos de pathfinding, desenvolvimento de uma infraestrutura gráfica para testes, coleta e análise de dados, e apresentação dos resultados.
 
-== Geral
-Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, onde a navegação eficiente é crucial, este estudo visa fornecer insights valiosos sobre o desempenho de algoritmos de pathfinding em malhas 3D. Através da implementação de uma infraestrutura gráfica e da coleta de dados detalhados, pretende-se comparar algoritmos como A\*, JPS e Theta\* sob condições adversas, incluindo concorrência e otimizações. O objetivo é não apenas medir o tempo de execução, mas também entender as nuances do comportamento desses algoritmos em ambientes complexos.
+== Objetivos Gerais
+Analisar comparativamente o desempenho dos algoritmos de pathfinding como A\*, JPS e Theta\* em ambientes tridimensionais, considerando métricas de execução, concorrência e técnicas de otimização.
 
-== Específicos
-#topico("Implementar grafos", [
-  Desenvolver uma estrutura de dados leve e eficiente para representar grafos, considerando as particularidades de grafos direcionados e não direcionados. A implementação deve ser baseada em teorias e práticas recomendadas, garantindo que a estrutura seja otimizada para uso em algoritmos de pathfinding.
-])
-
-#topico("Desenvolver a infraestrutura 3D", [
-  Criar um ambiente para renderização de malhas 3D, com foco na separação de responsabilidades entre renderização gráfica e as demais aplicações. A infraestrutura deve ser capaz de gerenciar componentes, câmeras e buffers, garantindo que a renderização ocorra de forma fluida e sem travamentos, mesmo durante a execução dos algoritmos de pathfinding.
-])
-
-#topico("Implementar e adaptar os algoritmos heurísticos", [
-  Implementar os algoritmos de pathfinding A\*, JPS e Theta\*, adaptando-os para ambientes 3D. Otimizando-os com técnicas de alto desempenho e multithreading.
-])
-
-#topico("Adaptar a arquitetura lógica para testes de estresse e multithreading", [
-  Modificar a arquitetura do sistema para permitir a execução concorrente dos algoritmos de pathfinding, garantindo que os testes de estresse possam ser realizados sem interferências ou travamentos. A implementação deve ser baseada em práticas recomendadas para multithreading, garantindo a integridade dos dados e a eficiência do processamento.
-])
-
-#topico("Desenvolver geradores de malhas topológicas complexas", [
-  Criar geradores de malhas que possam simular diferentes cenários de teste, incluindo labirintos e topologias densas. 
-])
-
-#topico("Coletar e tratar dados", [
-  Coletar dados de desempenho dos algoritmos de pathfinding, incluindo tempo de execução, uso de memória e qualidade do caminho encontrado. O tratamento dos dados deve incluir a identificação e análise de outliers, garantindo que as conclusões sejam baseadas em dados confiáveis e representativos.
-])
-
-#topico("Apresentar análises visuais e estatísticas comparativas", [
-  Desenvolver gráficos e tabelas para apresentar os resultados da análise estatística de forma clara e compreensível. As análises devem destacar as diferenças de desempenho entre os algoritmos de pathfinding, considerando as métricas coletadas e as condições dos testes.
-])
+== Objetivos Específicos
+1. Implementar uma estrutura de dados eficiente para representação de grafos direcionados e não direcionados voltada à execução de algoritmos de pathfinding.
+2. Desenvolver uma infraestrutura de renderização para visualização de malhas tridimensionais e execução integrada dos algoritmos de pathfinding.
+3. Implementar e adaptar algoritmos heurísticos (A\*, JPS, Theta\* e outros) para ambientes tridimensionais.
+4. Adaptar a arquitetura do sistema para execução concorrente e realização de testes de estresse utilizando multithreading.
+5. Desenvolver geradores de malhas topológicas complexas para simulação de diferentes cenários de teste.
+6. Coletar e analisar métricas de desempenho dos algoritmos de pathfinding, incluindo tempo de execução, uso de memória e qualidade dos caminhos gerados.
+7. Elaborar análises estatísticas e visuais comparativas dos resultados obtidos nos testes realizados.
 
 = REFERENCIAL TEÓRICO
 == Grafos e Topologias 3D
@@ -315,35 +295,49 @@ Perante o cenário atual de desenvolvimento de jogos e ambientes interativos, on
 
 == Concorrência e Paralelismo em Sistemas de Tempo Real
 
-
 = METODOLOGIA
-Aqui, o foco é detalhar a metodologia de pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto será conduzido como uma pesquisa experimental de caráter quantitativo, onde a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorrerá em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
+Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 == Infraestrutura Gráfica
-O motor gráfico será construído utilizando a biblioteca OpenGL, conforme a documentação de #cite(<learnopengl>, form: "prose"), que é amplamente utilizada para renderização 3D. A arquitetura do sistema priorizará renderizações simples e eficientes, uma vez que o foco principal é a análise de algoritmos de pathfinding e não a complexidade gráfica. \
+O motor gráfico foi construído utilizando a biblioteca OpenGL, conforme a documentação de #cite(<learnopengl>, form: "prose"), que é amplamente utilizada para renderização 3D. A arquitetura do sistema priorizará renderizações simples e eficientes, uma vez que o foco principal é a análise de algoritmos de pathfinding e não a complexidade gráfica. \
 
 Foi priorizado o desenvolvimento de uma estrutura que escondesse as chamadas complexas do OpenGL, criando uma camada de abstração para simplificar o uso e a implementação de funcionalidades gráficas. Esta abordagem visa facilitar o desenvolvimento e a manutenção do código, permitindo que os testes de pathfinding sejam realizados sem a necessidade de lidar diretamente com as complexidades do OpenGL. 
 
 === Abstração de Primitivas e Malhas 3D
 Foi escolhido o paradigma de orientação a objetos para a implementação da infraestrutura gráfica, visando uma estrutura modular e reutilizável. A criação de classes para representar primitivas gráficas, como vértices, arestas e faces, permitirá uma manipulação mais intuitiva e eficiente das malhas 3D.
 
-O uso de classes permite a criação de hierarquias e a aplicação do padrão de design Composite, facilitando a construção de estruturas complexas a partir de componentes mais simples. Isso é especialmente útil na criação de malhas 3D, onde diferentes elementos podem ser combinados para formar estruturas mais complexas.
+O uso de programação orientada a objetos melhora a criação de hierarquias de entidades de software. Adicionalmente, a aplicacao do padrão de projetos Composite @gamma1994design melhora a organização de estruturas complexas em componentes mais simples. 
 
-As malhas 3D serão criadas utilizando uma estrutura de árvore com Composite @gamma1994design, onde cada nó representa um componente da malha, como um conjunto de vértices e índices ou outra árvore. Esta abordagem permite uma organização hierárquica dos elementos da malha, facilitando a manipulação e a renderização eficiente. A estrutura de árvore também é benéfica para a implementação de algoritmos de pathfinding, pois permite uma navegação eficiente pelos elementos da malha.
+As malhas 3D serão criadas utilizando uma estrutura de árvore com Composite @gamma1994design, /* explicar o sistema de mesh e meshtree */. Esta abordagem permite uma organização hierárquica dos elementos da malha, facilitando a manipulação e a renderização eficiente. A estrutura de árvore também é benéfica para a implementação de algoritmos de pathfinding, pois permite uma navegação eficiente pelos elementos da malha.
+
+\
+#figure(
+  caption: [Diagrama de classe do Composite],
+  supplement: "Figura",
+)[
+  #image("./images/mesh_composite.png", width: 100%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
 
 === Gerenciamento de Recursos de Renderização
-No OpenGL, a base de uma malha é composta por vértices e índices, que são armazenados em buffers de vértices (VBOs) e buffers de índices (EBOs). Para otimizar o desempenho, a infraestrutura gráfica implementará um sistema de gerenciamento de recursos que permitirá a criação, atualização e exclusão eficiente desses buffers. O sistema de gerenciamento de recursos garantirá que os buffers sejam reutilizados sempre que possível, minimizando a necessidade de criar novos buffers e reduzindo o overhead associado à criação e destruição de recursos gráficos.
+No OpenGL, a base de uma malha é composta por vértices e índices, que são armazenados em buffers de vértices (VBOs) e buffers de índices (EBOs). Para otimizar o desempenho, a infraestrutura gráfica contém um sistema de gerenciamento de recursos que permitirá a criação, atualização e exclusão eficiente desses buffers. O sistema de gerenciamento de recursos garantirá que os buffers sejam reutilizados sempre que possível, minimizando a necessidade de criar novos buffers e reduzindo o overhead associado à criação e destruição de recursos gráficos.
+
+// Colocar figura da arquitetura de gerenciamento de recursos
 
 Com isso garantimos o mínimo de overhead possível durante a renderização, permitindo que os testes de pathfinding sejam realizados de forma fluida e sem interrupções, mesmo em cenários complexos.
 
 === Modelo de Execução Lambda
+// Explicar sobre funções lambdas
 O contexto de renderização necessita de um loop de eventos para processar as interações do usuário e atualizar a renderização. Para simplificar o desenvolvimento e a manutenção do código, foi adotado um modelo de execução baseado em lambdas, onde as funções de renderização e atualização são definidas como lambdas que podem ser facilmente passadas como argumentos para o loop de eventos. 
 
 Este modelo de execução permite uma maior flexibilidade e modularidade, permitindo que diferentes partes do código sejam facilmente substituídas ou modificadas sem afetar a estrutura geral do sistema. A utilização de lambdas também facilita a implementação de callbacks para eventos específicos, como a atualização da posição da câmera ou IO do usuário, garantindo que o sistema seja responsivo e eficiente durante a execução dos testes de pathfinding.
 
-A abstração dá total liberdade para a implementação de diferentes tipos de renderização e atualização, permitindo que o sistema seja adaptado para diferentes cenários e necessidades, sem a necessidade de modificar a estrutura subjacente do loop de eventos ou ter que lidar com a complexidade do OpenGL.
+A abstração dá total liberdade para a implementação de diferentes tipos de renderização e atualização, permitindo que o sistema seja adaptado para diferentes cenários, sem a necessidade de modificar a estrutura subjacente do loop de eventos ou ter que lidar com a complexidade do OpenGL.
 
 Para isso, também, foram implementados diferentes componentes de renderização (renderer, keybindings, câmeras, etc.) que são integrados ao loop de eventos. Cada componente é responsável por uma parte específica da renderização ou da interação do usuário, e o modelo de execução baseado em lambdas permite que esses componentes sejam facilmente integrados e gerenciados dentro do loop de eventos.
+
+// Colocar diagrama dos componentes de renderização
 
 === Sistema de Callbacks e Loop de Eventos
 Um dos principais componentes do sistema é o responsável pelos atalhos de teclado, que permite a interação do usuário com a renderização. Este componente é implementado utilizando um sistema de callbacks, onde as funções de callback são definidas para responder a eventos específicos, como pressionar uma tecla ou mover o mouse. Como o OpenGL não possui um gerenciador de atalhos nativo, mas contém um sistema de IO, a implementação de um sistema de callbacks personalizado é essencial para fugir de complexidades adicionais durante o estudo.
@@ -381,7 +375,7 @@ Algoritmos tirados do livro do @rodacki_grafos.
 Durante a fase de desenvolvimento, foram criados diversos cenários de teste para avaliar o desempenho dos algoritmos de pathfinding. É importante retificar como estes cenários foram gerados e o que eles representam em termos de desafios para os algoritmos. A seguir, serão detalhados os tipos de cenários utilizados:
 
 === Labirintos
-Como testes iniciais, foram gerados labirintos utilizando o Algoritmo de Kruskal, que é um método eficiente para criar labirintos. Este tipo de teste é ótimo para avaliar a capacidade dos algoritmos de pathfinding em encontrar caminhos em ambientes complexos e com muitos obstáculos, forçando-os a realizar cálculos exaustivos para encontrar a rota mais eficiente.
+Como testes iniciais, foram gerados labirintos utilizando o Algoritmo de Kruskal @rodacki_grafos, que é um método eficiente para criar labirintos. O objetivos deste tipo de teste é avaliar a capacidade dos algoritmos de pathfinding em encontrar caminhos em ambientes complexos e com muitos obstáculos, forçando-os a realizar cálculos exaustivos para encontrar a rota mais eficiente.
 
 Para criar um labirinto, segundo #cite(<buck2011kruskal>, form: "prose"), se cria um grafo em grid com valores de peso aleatórios entre os vértices e seus vizinhos (considerando os 8 vizinhos para permitir movimento diagonal). Em seguida, é aplicado o Algoritmo de Kruskal para gerar um labirinto perfeito, uma vez que ele gera uma Árvore Geradora Mínima (MST), e criar um novo grafo a partir dessa árvore. Isso garante que para qualquer par de vértices, existe exatamente um caminho entre eles, o que é ideal para testar a eficiência dos algoritmos de pathfinding.
 
@@ -402,7 +396,7 @@ Um heightmap (ou mapa de altura) é uma imagem que utiliza apenas tons de cinza 
   #text(size: 10pt)[Fonte: #cite(<imperial_library_solstheim>, form: "prose").]
 ] \
 
-Determinando o valor mínimo e máximo de altura, é possível criar uma maha 3D a partir do heightmap, onde cada pixel é convertido em um vértice com coordenadas (x, y, z), sendo x e y as coordenadas do pixel e z o valor do pixel. Como trabalhamos com valores cinza, os valores RGB serão iguais, alternando apenas na intensidade entre 0 e 255. A partir disso, é possível criar uma malha 3D que representa o terreno que desejamos simular.
+Determinando o valor mínimo e máximo de altura, é possível criar uma malha 3D a partir do heightmap, onde cada pixel é convertido em um vértice com coordenadas (x, y, z), sendo x e y as coordenadas do pixel e z o valor do pixel. Como trabalhamos com valores cinza, os valores RGB serão iguais, alternando apenas na intensidade entre 0 e 255. A partir disso, é possível criar uma malha 3D que representa o terreno que desejamos simular.
 
 Com o uso dos heightmaps, é possível gerar tanto malhas 3D quanto grafos a partir de um mesmo cenário, simplificando o processo de geração de cenários. Esta versatilidade se provará útil futuramente quando falarmos de NavMeshes.
 
@@ -411,12 +405,12 @@ Agora, considerando que certas diferenças de altura podem ser intransponíveis 
 === Perlin Noise
 O Perlin Noise é um algoritmo de geração de ruído procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por Ken Perlin em 1983 e é conhecido por produzir padrões de ruído suave e natural, o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios heightmaps, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
 
-Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritmo funciona gerando uma grade de tamanho uniforme, onde cada ponto da grade é associado a um vetor de gradiente aleatório. Um quadrado da grade é uma área afetada por 4 vértices que futuramente terão seus vetores atribuídos. Quanto maior a área deste quadrado, mais suave será o ruído, enquanto quadrados menores produzem ruídos mais detalhados com alta frequência. \
+Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritmo funciona gerando uma grade de tamanho uniforme. Cada ponto da grade é associado a um vetor de gradiente aleatório. Um quadrado da grade é uma área afetada por 4 vértices que futuramente terão seus vetores atribuídos. Quanto maior a área deste quadrado, mais suave será o ruído, enquanto quadrados menores produzem ruídos mais detalhados com alta frequência. \
 
 \
 #columns(2)[
   #figure(
-    caption: [Noise com grade de tamanho 10],
+    caption: [Ruído com grade de tamanho 10],
     supplement: "Figura",
   )[
     #image("./images/noise_tamanho10.png", width: 50%)
@@ -425,7 +419,7 @@ Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritm
   ]
   #colbreak()
   #figure(
-    caption: [Noise com grade de tamanho 50],
+    caption: [Ruído com grade de tamanho 50],
     supplement: "Figura",
   )[
     #image("./images/noise_tamanho50.png", width: 50%)
@@ -434,7 +428,9 @@ Segundo os estudos de #cite(<zipped_perlin_noise>, form: "prose"), este algoritm
   ]
 ] \
 
-Para atribuir um valor de elevação para cada pixel do heightmap gerado pelo Perlin Noise, primeiro é gerado um vetor unitário aleatório para cada vértice da grade. Depois para cada pixel do heightmap, é calculada a contribuição de cada um dos 4 vértices do quadrado correspondente. O valor de distância entre o pixel e cada vértice de seu quadrado é calculado, em seguida o _dot product_ entre o vetor de gradiente do vértice e o vetor de distância é computado. Esses valores são, então, interpolados usando uma função de suavização para garantir que o ruído seja suave e natural. O resultado final é um valor de elevação para cada pixel dessa camada do heightmap.
+Para atribuir um valor de elevação para cada pixel do heightmap gerado pelo Perlin Noise, primeiro é gerado um vetor unitário aleatório para cada vértice da grade. Depois para cada pixel do heightmap, é calculada a contribuição de cada um dos 4 vértices do quadrado correspondente. O valor de distância entre o pixel e cada vértice de seu quadrado é calculado, em seguida o produto escalar entre o vetor de gradiente do vértice e o vetor de distância é computado. Esses valores são, então, interpolados usando uma função de suavização para garantir que o ruído seja suave e natural. O resultado final é um valor de elevação para cada pixel dessa camada do heightmap.
+
+// Explicar fórmula de geração de noise
 
 #cite(<patel_terrain_noise>, form: "prose") enfatiza a importância do processo ser  repetido para múltiplas camadas (octaves) de ruído, onde cada camada tem uma frequência e amplitude diferentes. A frequência tende a influenciar o nível de detalhe do ruído, enquanto a amplitude controla a intensidade das variações. 
 
@@ -448,7 +444,7 @@ Para atribuir um valor de elevação para cada pixel do heightmap gerado pelo Pe
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
 
-Com este mesmo noise, é possível alterar a frequência e amplitude de cada camada para criar diferentes tipos de terrenos. Por exemplo, aumentando a frequência e diminuindo a amplitude, é possível criar um terreno mais acidentado e detalhado, enquanto diminuindo a frequência e aumentando a amplitude, pode-se criar um terreno mais suave e ondulado. Também, é possível aplicar um expoente para controlar a distribuição dos valores de elevação, o que pode resultar em terrenos mais acidentados, enfatizando valores altos e baixos. \
+Utilizando a formula vista, é possível alterar a frequência e amplitude de cada geração para gerar uma variedade de terrenos diferentes. Por exemplo, aumentando a frequência e diminuindo a amplitude, é possível criar um terreno mais acidentado e detalhado, enquanto diminuindo a frequência e aumentando a amplitude, pode-se criar um terreno mais suave e ondulado. Também, é possível aplicar um expoente para controlar a distribuição dos valores de elevação, o que pode resultar em terrenos mais acidentados, enfatizando valores altos e baixos. \
 
 \
 #columns(3)[
@@ -495,10 +491,9 @@ Com isso, é possível criar uma variedade de cenários de teste para os algorit
 NavMeshes ou malhas de navegação são uma representação eficiente do espaço navegável em um ambiente 3D. Elas consistem em polígonos que representam áreas onde um agente pode se mover.
 
 == Algoritmos de Busca Heurística
-// O que é um algoritmo de busca heurística.
-Um algoritmo de busca heurística
+O que é um algoritmo de busca heurística.
 
-// Definição de heurística. Função de avaliação.
+Definição de heurística. Função de avaliação.
 
 === Algoritmo de Dijkstra
 O pai dos algoritmos de busca.
@@ -523,7 +518,7 @@ Abstração para o 3D.
 === Theta-Star (Theta\*)
 
 
-== Multithread
+== Otimização com paralelismo
 Importância do paralelismo nesses casos.
 
 Separação do contexto gráfico.
