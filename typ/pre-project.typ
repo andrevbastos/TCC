@@ -231,10 +231,22 @@
   lista_ilustracoes: true,
   lista_tabelas: true,
   lista_siglas: (
-    "A*": "A-Star",
-    "API": "Application Programming Interface",
+    "A*": [_A-Star_],
+    "API": [_Application Programming Interface_ \ (Interface de Programação de Aplicações)],
+    "CPU": [_Central Processing Unit_ (Unidade Central de Processamento)],
+    "EBO": [_Element Buffer Object_],
+    "GLFW": [_Graphics Library Framework_],
+    "GPU": [_Graphics Processing Unit_ (Unidade de Processamento Gráfico)],
     "IFCG": "Instituto Federal Catarinense/Computação Gráfica",
-    "JPS": "Jump Point Search",
+    "JPS": [_Jump Point Search_],
+    "MST": [_Minimum Spanning Tree_ (Árvore Geradora Mínima)],
+    "OpenGL": [_Open Graphics Library_],
+    "RAII": [_Resource Acquisition Is Initialization_],
+    "RGB": [_Red, Green, Blue_],
+    "SIGSEGV": [_Segmentation Violation_ (Violação de Segmentação)],
+    "STL": [_Standard Template Library_],
+    "VAO": [_Vertex Array Object_],
+    "VBO": [_Vertex Buffer Object_]
   )
 )
 
@@ -291,7 +303,7 @@ Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite
 = JUSTIFICATIVA
 Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
 
-Na área de algoritmos de _pathfinding_, a maioria dos estudos se concentra em topologias 2D ou não geométricas e em cenários ideais, onde as condições são controladas e otimizadas para destacar as vantagens de cada algoritmo. No entanto, a transição para ambientes 3D introduz uma série de desafios adicionais, como a complexidade da geometria, a necessidade de lidar com obstáculos tridimensionais e a gestão de recursos computacionais. A falta de análises estatísticas detalhadas sob condições adversas limita a compreensão real do desempenho desses algoritmos em situações práticas, onde otimizações matemáticas e técnicas avançadas podem ter um impacto significativo.
+Na área de algoritmos de _pathfinding_, busca de caminhos, a maioria dos estudos se concentra em topologias 2D ou não geométricas e em cenários ideais, onde as condições são controladas e otimizadas para destacar as vantagens de cada algoritmo. No entanto, a transição para ambientes 3D introduz uma série de desafios adicionais, como a complexidade da geometria, a necessidade de lidar com obstáculos tridimensionais e a gestão de recursos computacionais. A falta de análises estatísticas detalhadas sob condições adversas limita a compreensão real do desempenho desses algoritmos em situações práticas, onde otimizações matemáticas e técnicas avançadas podem ter um impacto significativo.
 
 Este estudo se diferencia por adotar uma abordagem aprofundada e detalhada, focando em métricas quantitativas e condições adversas que refletem os desafios do mundo real. Ao invés de uma visão superficial e generalizada, a pesquisa se propõe a investigar o comportamento de algoritmos de busca quando expostos a concorrência computacional e arquiteturas complexas.
 
@@ -321,7 +333,7 @@ Para a realização deste estudo, foi necessário adquirir conhecimentos em dive
 === Linguagem de Programação
 Todas as implementações e experimentos deste estudo foram realizados utilizando a linguagem de programação C++20. Escolhida por sua eficiência, controle de baixo nível e ampla adoção na indústria de jogos e simulações, a linguagem C++ oferece recursos avançados para manipulação de memória, concorrência e otimização de desempenho, essenciais para o desenvolvimento de algoritmos de pathfinding em ambientes tridimensionais.
 
-A escolha do C++20 também se justifica pela disponibilidade de bibliotecas e frameworks que facilitam a implementação de estruturas de dados complexas, renderização gráfica e multithreading, além de permitir uma integração eficiente com APIs gráficas como OpenGL.
+A escolha do C++20 também se justifica pela disponibilidade de bibliotecas e _frameworks_ que facilitam a implementação de estruturas de dados complexas, renderização gráfica e multithreading, além de permitir uma integração eficiente com APIs gráficas como OpenGL.
 
 Enquanto a implementação da infraestrutura gráfica e dos algoritmos de pathfinding foi realizada do zero, a escolha do C++20 garantiu um ambiente de desenvolvimento robusto e flexível, permitindo a aplicação de técnicas avançadas de otimização e controle total sobre os recursos computacionais utilizados durante os testes.
 
@@ -333,7 +345,7 @@ A escolha de estruturas de dados adequadas é crucial para garantir o desempenho
 ==== Funções _Lambda_
 A introdução de funções _lambda_ em C++11 e suas melhorias contínuas nas versões subsequentes, incluindo C++20, proporcionaram uma maneira mais concisa de definir funções anônimas. No contexto deste estudo, as funções _lambda_ foram amplamente utilizadas. 
 
-Por definição, uma função anônima é uma função "sem nome", que pode ser definida e utilizada diretamente no local onde é necessária. Essas funções são particularmente úteis para operações que exigem uma função de curto prazo, como a definição de heurísticas em algoritmos de busca ou a implementação de callbacks para eventos específicos durante a renderização ou execução dos algoritmos.
+Por definição, uma função anônima é uma função "sem nome", que pode ser definida e utilizada diretamente no local onde é necessária. Essas funções são particularmente úteis para operações que exigem uma função de curto prazo, como a definição de heurísticas em algoritmos de busca ou a implementação de _callbacks_ para eventos específicos durante a renderização ou execução dos algoritmos.
 
 ==== Biblioteca _jthread_
 Um dos principais motivadores para o uso da versão C++20 é a introdução da biblioteca _jthread_, que simplifica significativamente a implementação de multithreading e concorrência. A _jthread_ oferece uma interface mais segura e fácil de usar para gerenciamento de _threads_, incluindo a capacidade de interromper _threads_ de forma cooperativa, o que é crucial para a realização de testes de estresse e simulações em ambientes dinâmicos.
@@ -368,7 +380,7 @@ Segundo #cite(<rodacki_grafos>, form: "prose"), um grafo é uma estrutura de dad
 === MST (_Minimum Spanning Tree_)
 
 == Computação Gráfica
-Por causa da necessidade de controle total sobre a infraestrutura gráfica e a implementação dos algoritmos, optou-se por desenvolver uma engine gráfica do zero, denominada IFCG#footnote[Disponível em: #link("https://github.com/andrevbastos/IFCG"). Acesso em: 22 mai. 2026.] (Instituto Federal Catarinense/Computação Gráfica). Esta decisão foi motivada pela necessidade de um ambiente de teste personalizado, que permita a coleta de dados em condições controladas e a aplicação de otimizações específicas para os algoritmos de pathfinding.
+Por causa da necessidade de controle total sobre a infraestrutura gráfica e a implementação dos algoritmos, optou-se por desenvolver um montor gráfica do zero, denominada IFCG#footnote[Disponível em: #link("https://github.com/andrevbastos/IFCG"). Acesso em: 22 mai. 2026.] (Instituto Federal Catarinense/Computação Gráfica). Esta decisão foi motivada pela necessidade de um ambiente de teste personalizado, que permita a coleta de dados em condições controladas e a aplicação de otimizações específicas para os algoritmos de pathfinding.
 
 === OpenGL API
 O OpenGL é uma API de gráficos 3D amplamente utilizada para renderização de gráficos em tempo real @learnopengl. No desenvolvimento da infraestrutura gráfica para este estudo, o OpenGL foi escolhido por sua flexibilidade, desempenho e ampla adoção na indústria de jogos e simulações.  A utilização do OpenGL também facilita a implementação de técnicas avançadas de renderização e otimização, garantindo que os testes sejam realizados em um ambiente gráfico realista.
@@ -383,7 +395,7 @@ O conhecimento detalhado do funcionamento de cada buffer se prova essencial, qua
 ==== Programação Orientada a Eventos e Funções de _Callback_
 Embora o OpenGL seja estritamente uma API de renderização, sem conhecimento nativo sobre o sistema operacional, janelas ou periféricos de entrada, a infraestrutura gráfica desenvolvida (IFCG) utiliza a biblioteca GLFW para o gerenciamento da janela e a criação do contexto gráfico. Essa integração permite implementar um modelo de programação orientada a eventos, onde o fluxo de execução é guiado por interações externas, como atualizações do sistema e entradas do usuário.
 
-As funções de _callback_ fornecidas pela API do GLFW foram implementadas na camada de gerenciamento da _engine_ para interceptar eventos de teclado e mouse, servindo como uma ponte de comunicação com o sistema de renderização. Isso permite criar um ambiente de teste interativo e responsivo, onde as interações do usuário ditam de forma dinâmica as atualizações do cenário e os disparos de execução dos algoritmos de pathfinding em tempo real.
+As funções de _callback_ fornecidas pela API do GLFW foram implementadas na camada de gerenciamento do motor para interceptar eventos de teclado e mouse, servindo como uma ponte de comunicação com o sistema de renderização. Isso permite criar um ambiente de teste interativo e responsivo, onde as interações do usuário ditam de forma dinâmica as atualizações do cenário e os disparos de execução dos algoritmos de pathfinding em tempo real.
 
 ==== A Máquina de Estados e o Contexto OpenGL
 Para lidar com a renderização em si, o OpenGL opera como uma vasta máquina de estados. Todas as configurações e referências de dados ficam armazenadas no que é chamado de Contexto OpenGL (fornecido e gerenciado pelo GLFW). Dessa forma, para renderizar uma malha, é necessário configurar o estado da máquina de acordo com as características do objeto — como a vinculação dos _buffers_ VBO e EBO e a definição dos atributos de vértice — antes de emitir os comandos de desenho para a GPU.
@@ -401,9 +413,28 @@ A geração procedural é uma técnica utilizada para criar conteúdo de forma a
 === Labirintos
 Temos como difinição que labirintos são estruturas complexas compostas por caminhos interconectados, onde o objetivo é encontrar uma rota do ponto de partida até um destino específico. A geração de labirintos pode ser realizada utilizando diversos algoritmos. Para este estudo, foi utilizado o algoritmo de Kruskal @rodacki_grafos, que é um método eficiente para gerar labirintos perfeitos, ou seja, labirintos sem ciclos, onde existe apenas um caminho entre quaisquer dois pontos. 
 
-Inicialmente, para gerar labirintos com o algoritmo de Kruskal, é construído um grafo em formato de grade. Neste grafo, cada célula do labirinto é representada por um vértice, e as possíveis conexões entre as células são representadas por arestas de pesos aleatórios. 
+Inicialmente, para gerar labirintos com o algoritmo de Kruskal, é construído um grafo em formato de grade (Figura 1a). Neste grafo, cada célula do labirinto é representada por um vértice, e as possíveis conexões entre as células são representadas por arestas de pesos aleatórios. 
 
-O algoritmo de Kruskal é então aplicado para construir uma árvore geradora mínima (MST) a partir desse grafo, selecionando as arestas de menor peso e garantindo que não sejam formados ciclos. O resultado é um labirinto perfeito, onde cada célula tem um caminho que a conecta a qualquer outra célula, criando um caminho único entre o ponto de partida e o destino.
+O algoritmo de Kruskal é então aplicado para construir uma _Minimum Spanning Tree_ (MST), ou árvore geradora mínima, a partir desse grafo, selecionando as arestas de menor peso e garantindo que não sejam formados ciclos (Figura 1b). O resultado é um labirinto perfeito, onde cada célula tem um caminho que a conecta a qualquer outra célula, criando um caminho único entre o ponto de partida e o destino (Figura 1c).
+
+\
+#figure(
+  caption: [Etapas de geração de um labirinto perfeito utilizando o algoritmo de Kruskal],
+  supplement: "Figura",
+)[
+  #columns(3)[
+    #image("./images/kruskal_grid.svg", width: 100%)
+    (a) Grafo inicial em formato \ de grade.
+    #colbreak()
+    #image("./images/kruskal_selection.svg", width: 100%)
+    (b) Seleção das arestas de \ menor peso.
+    #colbreak()
+    #image("./images/kruskal_mst.svg", width: 100%)
+    (c) Extração da MST.
+  ]
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]
+] \
 
 Com um labirinto perfeito em mãos, é possível sobrepor múltiplos labirintos perfeitos para criar cenários mais complexos. Essa técnica de sobreposição permite aumentar a densidade de obstáculos e criar topologias mais desafiadoras para os algoritmos de pathfinding, simulando ambientes mais realistas e variados.
 
@@ -432,12 +463,12 @@ Para poder criar uma malha a partir dessas imagens, primeiro é necessário proc
   caption: [Conversão de um mapa de altura para uma malha 3D],
   supplement: "Figura",
 )[
-  #image("./images/pixel_to_vertex.png", width: 90%)
+  #image("./images/pixel_to_vertex.svg", width: 90%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
 
-É importante ressaltar que os valores de cor ($r, g, b$) de uma imagem em escala de cinza variam igualmente de 0 a 255. Para evitar que as variações de altura no cenário 3D sejam desproporcionais às distâncias horizontais, o valor do pixel precisa ser normalizado e escalonado. Considerando $v$ como o valor RGB do pixel e $H$ como a altura máxima desejada para o terreno, a elevação $h$ de cada vértice é calculada pela fórmula:
+É importante ressaltar que os valores de cor ($r, g, b$) de uma imagem em escala de cinza variam igualmente de 0 a 255. Para evitar que as variações de altura no cenário 3D sejam desproporcionais às distâncias horizontais, o valor do pixel precisa ser normalizado e escalonado. Considerando $v$ como o valor $r$, $g$ ou $b$ do pixel e $H$ como a altura máxima desejada para o terreno, a elevação $h$ de cada vértice é calculada pela fórmula:
 
 \
 $ h = (v / 255) * H $ \
@@ -461,7 +492,114 @@ Utilizar mapas de altura foi uma grande vantagem para a geração de cenários r
 
 Um ruído é uma função matemática que gera valores pseudoaleatórios, mas de forma controlada, para criar padrões que se assemelham a fenômenos naturais. Existem diversos tipos de ruídos, como o ruído Perlin, o ruído Simplex e o ruído de valor, cada um com suas características e aplicações específicas. Porém, para essa pesquisa, o foco será no ruído Perlin, devido à sua capacidade de gerar padrões suaves e naturais, ideal para simular terrenos realistas.
 
-O ruído Perlin é um algoritmo de geração de ruído procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por #cite(<perlin1985image>, form: "prose") e é conhecido por produzir padrões de ruído suave e natural, o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios heightmaps, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
+O ruído de Perlin é um algoritmo de geração de ruído gradiente procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por #cite(<perlin1985image>, form: "prose") e é conhecido por produzir padrões de ruído suaves e naturais (Figura 5.a), o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios mapas de altura, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
+
+Para conseguir um ruído suave e natural, o algoritmo gera diversas camadas de texturas diferentes (Figura 5.b) e as sobrepõe, essas camadas são chamadas de _octaves_ (oitavas). Ao sobrepor múltiplas _octaves_, é usada uma função de interpolação, que será detalhada na Seção 4.4.3.1, para suavizar a transição entre os valores gerados por cada camada, criando um resultado final que se assemelha a padrões naturais. A combinação de múltiplas _octaves_ permite criar terrenos com detalhes variados, desde grandes elevações até pequenas variações de altura.
+
+\
+#figure(
+  caption: [Exemplo de ruído de Perlin e um de seus _octaves_],
+  supplement: "Figura",
+)[
+  #columns(2)[
+    #image("./images/perlin_noise.png", width: 100%)
+    #align(center)[(a) Ruído de Perlin completo.]
+    #colbreak()
+    #image("./images/octave.png", width: 100%)
+    #align(center)[(b) Uma _octave_ do ruído de Perlin.]
+  ]
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+Para gerar uma _octave_ do ruído de Perlin, primeiro é necessário criar uma grade de tamanho unitário com vetores de gradiente unitários em cada ponto de interceçao da grade, onde cada vetor aponta em uma direção aleatória. O tamanho de cada célula da grade determina o nível de detalhe do ruído, onde células maiores produzem um ruído mais suave, enquanto células menores geram um ruído mais detalhado. 
+
+\
+#figure(
+  caption: [Ruídos de Perlin com diferentes tamanhos de células],
+  supplement: "Figura",
+)[
+  #columns(3)[
+    #image("./images/small_grid.png", width: 100%)
+    #align(center)[(a) Ruído gerado com células pequenas.]
+    #colbreak()
+    #image("./images/medium_grid.png", width: 100%)
+    #align(center)[(b) Ruído gerado com células medianas.]
+    #colbreak()
+    #image("./images/big_grid.png", width: 100%)
+    #align(center)[(c) Ruído gerado com células grandes.]
+  ]
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+Para cada ponto no espaço (ou _pixel_), o algoritmo calcula os vetores de distância entre ele e cada ponto de interceção de sua respectiva célula da grade. Em seguida, é calculado o produto escalar entre os vetores de distância $arrow(a) = (a_x, a_y)$ e os vetores de gradiente correspondentes $arrow(b) = (b_x, b_y)$, pela fórmula:
+
+\
+$ arrow(a) dot arrow(b) = (a_x * b_x) + (a_y * b_y) $ \
+
+O resultado do produto escalar é um valor numérico que representa a contribuição do vetor de gradiente para o _pixel_ em questão. Por fim, é aplicada uma função de interpolação (Seção 4.4.3.1), onde cada valor escalar é suavizado para criar uma transição entre o _pixel_ de forma ponderada, ou seja quanto mais próximo o _pixel_ estiver do ponto de interseção, maior será a contribuição do vetor de gradiente para o valor final do ruído.
+
+\
+#figure(
+  caption: [Cálculo do produto escalar em uma célula do ruído de Perlin],
+  supplement: "Figura",
+)[
+  #columns(2)[
+    #image("./images/perlin_vectors.svg", width: 75%)
+    #align(center)[(a) Vetores de gradiente e distância.]
+    #colbreak()
+    #image("./images/perlin_dot.svg", width: 75%)
+    #align(center)[(b) Valores escalares (produto escalar).]
+  ]
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+Com uma _octave_ do ruído de Perlin gerada, é possível sobrepor múltiplas octaves para criar um ruído mais complexo e detalhado. Porém, para evitar que as octaves sejam idênticas, é necessário aplicar valores que alterem sua geração. Para isso são introduzidos valores de frequência (Lacunaridade) e amplitude (Persistência), onde a frequência determina o número de detalhes presentes na _octave_, e a amplitude controla a intensidade desses detalhes. 
+
+A combinação de múltiplas octaves com diferentes frequências e amplitudes permite criar terrenos com uma variedade de características, desde grandes elevações até pequenas variações de altura, simulando ambientes naturais de forma realista.
+
+\
+#figure(
+  caption: [Ruídos de Perlin com diferentes frequências e amplitudes],
+  supplement: "Figura",
+)[
+  #columns(3)[
+    #image("./images/perlin_high_freq.png", width: 100%)
+    #align(center)[(a) Ruído gerado com alta \ lacunaridade (Frequência 4 e Amplitude 1).]
+    #colbreak()
+    #image("./images/perlin_high_amp.png", width: 100%)
+    #align(center)[(b) Ruído gerado com alta \ persistência (Frequência 1 \ e Amplitude 4).]
+    #colbreak()
+    #image("./images/perlin_high_freq_amp.png", width: 100%)
+    #align(center)[(c) Ruído gerado com alta \ lacunaridade e persistência \ (Frequência 4 e Amplitude 4).]
+  ]
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+Assim, em cada ponto do espaço $(x, y)$, o valor base do ruído acumulado $V(x, y)$ é definido pela soma ponderada das _octaves_:
+
+\
+$ V(x, y) = sum_(i=0)^(N-1) (a_i dot "perlin"((x dot f_i)/lambda, (y dot f_i)/lambda)) $ \
+
+Onde $N$ é o número de _octaves_, $lambda$ é o tamanho da célula, $f_i = F dot 2^i$ representa o aumento exponencial da frequência e $a_i = A dot 0.5^i$ representa o decaimento exponencial da amplitude. 
+
+Após o acúmulo, o valor final $V_"f" (x,y)$ do terreno é limitado para um intervalo de $[-1, 1]$ e pode ser remapeado para um intervalo de $[0, H]$, onde $H$ é a altura máxima desejada para o terreno, utilizando a fórmula:
+$ V_"f" (x,y) = ((V(x, y) + 1) / 2) dot H $ \
+
+Finalmente, o valor $V_"f" (x,y)$ é utilizado para definir a elevação de cada vértice da malha como $h$. Isso permite gerar terrenos como feito anteriormente a partir de mapas de altura, mas com controle total sobre a geração dos cenários de teste, criando uma variedade de terrenos sem depender de imagens de terceiros.
+
+\
+#figure(
+  caption: [Exemplo de malha gerada a partir de um ruído de Perlin],
+  supplement: "Figura",
+)[
+  #image("./images/perlin_noise.png", width: 50%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
 
 == Algoritmos de Busca Heurística
 === Dijkstra
@@ -475,8 +613,18 @@ O ruído Perlin é um algoritmo de geração de ruído procedural que é amplame
 === Monitores
 === Fila Multinível e _Thread Pool_
 
+\
+#figure(
+  caption: [Diagrama de classe do Composite],
+  supplement: "Figura",
+)[
+  #image("./images/thread_pool.svg", width: 100%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
 = METODOLOGIA
-Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção da engine do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
+Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção do motor do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 == Arquitetura do Motor Gráfico (IFCG)
 === Aplicação de conceitos
