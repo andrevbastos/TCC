@@ -232,9 +232,9 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
         };
 
-        // monitor.addTask(aStarFunc, Priority::Medium);
-        // monitor.addTask(aStarModFunc, Priority::Medium);
-        // monitor.addTask(dijkstraFunc, Priority::Medium);
+        monitor.addTask(aStarFunc, Priority::Medium);
+        monitor.addTask(aStarModFunc, Priority::Medium);
+        monitor.addTask(dijkstraFunc, Priority::Medium);
     };
     
     auto& camera {renderer.getCamera()};

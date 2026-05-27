@@ -366,9 +366,29 @@ Em adição, o uso de uma arquitetura orientada a objetos permite abstrações d
 ==== Padrões de Projeto
 Padrões de projeto são soluções reutilizáveis para problemas comuns de design de _software_  @gamma1994design. No desenvolvimento deste estudo, foram aplicados diversos padrões de projeto para garantir a modularidade, flexibilidade e manutenibilidade do código.
 
-O padrão _Composite_ @gamma1994design foi utilizado para representar a hierarquia de objetos na infraestrutura gráfica, permitindo que objetos complexos sejam tratados de forma uniforme, e na representação de grafos, onde grafos direcionados e não direcionados podem ser manipulados de maneira consistente. Neste padrão, objetos compostos (como grafos ou cenas gráficas) e objetos individuais (como nós ou entidades gráficas) são tratados de forma uniforme, com a introdução de um parente comum que define a interface para ambos. Isso facilita a manipulação de estruturas complexas e a implementação de algoritmos de pathfinding que podem operar em diferentes tipos de grafos ou cenários gráficos.
+O padrão _Composite_ @gamma1994design foi utilizado para representar a hierarquia de objetos na infraestrutura gráfica, permitindo que objetos complexos sejam tratados de forma uniforme, e na representação de grafos, onde grafos direcionados e não direcionados podem ser manipulados de maneira consistente. Neste padrão, objetos compostos (_Composite_) e objetos individuais (_Leaves_ ou folhas) são tratados de forma uniforme, com a introdução de um parente comum (_Component_) que define a interface para ambos. Com isso, é possível que _Composite_ delegue a execução de uma função comum entre eles para todos os seus filhos, sejam eles _Composite_ ou _Leaves_.
 
-Na estrutura gráfica, também, foi utilizado o padrão _Singleton_ @gamma1994design. Este padrão garante que uma classe tenha apenas uma instância e fornece um ponto global de acesso a essa instância, garantindo um controle centralizado de recursos.
+\
+#figure(
+  caption: [Diagrama de classes do padrão _Composite_],
+  supplement: "Figura",
+)[
+  #image("./images/composite.png", width: 75%)
+  #v(0.5em)
+  Fonte: #cite(<gamma1994design>, form: "prose")
+]\
+
+Em adição, foi utilizado o padrão _Singleton_ @gamma1994design. Este padrão dita que uma classe deve ter apenas uma instância e fornecer um ponto global de acesso a essa instância. Para isso, o construtor da classe é privado e ela contém uma variável estática que armazena a única instância da classe (inicializada como nula). A classe também tem um método público estático que retorna a instância, criando-a se ainda não existir. Este padrão é útil para gerenciar recursos compartilhados, como o contexto gráfico do OpenGL, garantindo que haja um controle centralizado sobre a renderização e os recursos gráficos utilizados durante os testes.
+
+\
+#figure(
+  caption: [Diagrama de classes do padrão _Singleton_],
+  supplement: "Figura",
+)[
+  #image("./images/singleton.png", width: 75%)
+  #v(0.5em)
+  Fonte: #cite(<gamma1994design>, form: "prose")
+]\
 
 == Teoria dos Grafos
 Uma vez que os algoritmos de pathfinding operam sobre estruturas de grafos para encontrar caminhos entre nós, o estudo da teoria dos grafos é a base fundamental deste experimento. A teoria dos grafos fornece as ferramentas e conceitos necessários para representar e manipular essas estruturas, permitindo a implementação eficiente dos algoritmos de busca.
@@ -413,9 +433,9 @@ A geração procedural é uma técnica utilizada para criar conteúdo de forma a
 === Labirintos
 Temos como difinição que labirintos são estruturas complexas compostas por caminhos interconectados, onde o objetivo é encontrar uma rota do ponto de partida até um destino específico. A geração de labirintos pode ser realizada utilizando diversos algoritmos. Para este estudo, foi utilizado o algoritmo de Kruskal @rodacki_grafos, que é um método eficiente para gerar labirintos perfeitos, ou seja, labirintos sem ciclos, onde existe apenas um caminho entre quaisquer dois pontos. 
 
-Inicialmente, para gerar labirintos com o algoritmo de Kruskal, é construído um grafo em formato de grade (Figura 1a). Neste grafo, cada célula do labirinto é representada por um vértice, e as possíveis conexões entre as células são representadas por arestas de pesos aleatórios. 
+Inicialmente, para gerar labirintos com o algoritmo de Kruskal, é construído um grafo em formato de grade (Figura /*Definir depois*/Xa). Neste grafo, cada célula do labirinto é representada por um vértice, e as possíveis conexões entre as células são representadas por arestas de pesos aleatórios. 
 
-O algoritmo de Kruskal é então aplicado para construir uma _Minimum Spanning Tree_ (MST), ou árvore geradora mínima, a partir desse grafo, selecionando as arestas de menor peso e garantindo que não sejam formados ciclos (Figura 1b). O resultado é um labirinto perfeito, onde cada célula tem um caminho que a conecta a qualquer outra célula, criando um caminho único entre o ponto de partida e o destino (Figura 1c).
+O algoritmo de Kruskal é então aplicado para construir uma _Minimum Spanning Tree_ (MST), ou árvore geradora mínima, a partir desse grafo, selecionando as arestas de menor peso e garantindo que não sejam formados ciclos (Figura /*Definir depois*/Xb). O resultado é um labirinto perfeito, onde cada célula tem um caminho que a conecta a qualquer outra célula, criando um caminho único entre o ponto de partida e o destino (Figura /*Definir depois*/Xc).
 
 \
 #figure(
@@ -492,9 +512,9 @@ Utilizar mapas de altura foi uma grande vantagem para a geração de cenários r
 
 Um ruído é uma função matemática que gera valores pseudoaleatórios, mas de forma controlada, para criar padrões que se assemelham a fenômenos naturais. Existem diversos tipos de ruídos, como o ruído Perlin, o ruído Simplex e o ruído de valor, cada um com suas características e aplicações específicas. Porém, para essa pesquisa, o foco será no ruído Perlin, devido à sua capacidade de gerar padrões suaves e naturais, ideal para simular terrenos realistas.
 
-O ruído de Perlin é um algoritmo de geração de ruído gradiente procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por #cite(<perlin1985image>, form: "prose") e é conhecido por produzir padrões de ruído suaves e naturais (Figura 5.a), o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios mapas de altura, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
+O ruído de Perlin é um algoritmo de geração de ruído gradiente procedural que é amplamente utilizado para criar texturas e terrenos realistas em gráficos 3D. Ele foi desenvolvido por #cite(<perlin1985image>, form: "prose") e é conhecido por produzir padrões de ruído suaves e naturais (Figura /*Definir depois*/Xa), o que o torna ideal para simular superfícies como montanhas, nuvens e oceanos. Com isso em mente, podemos utilizar desse algoritmo para gerar nossos próprios mapas de altura, sem precisar recorrer a imagens pré-existentes. Isso nos dá controle total sobre a geração dos cenários de teste, permitindo criar uma variedade de terrenos com diferentes características e desafios para os algoritmos de pathfinding.
 
-Para conseguir um ruído suave e natural, o algoritmo gera diversas camadas de texturas diferentes (Figura 5.b) e as sobrepõe, essas camadas são chamadas de _octaves_ (oitavas). Ao sobrepor múltiplas _octaves_, é usada uma função de interpolação, que será detalhada na Seção 4.4.3.1, para suavizar a transição entre os valores gerados por cada camada, criando um resultado final que se assemelha a padrões naturais. A combinação de múltiplas _octaves_ permite criar terrenos com detalhes variados, desde grandes elevações até pequenas variações de altura.
+Para conseguir um ruído suave e natural, o algoritmo gera diversas camadas de texturas diferentes (Figura /*Definir depois*/Xb) e as sobrepõe, essas camadas são chamadas de _octaves_ (oitavas). Ao sobrepor múltiplas _octaves_, é usada uma função de interpolação, que será detalhada na Seção 4.4.3.1, para suavizar a transição entre os valores gerados por cada camada, criando um resultado final que se assemelha a padrões naturais. A combinação de múltiplas _octaves_ permite criar terrenos com detalhes variados, desde grandes elevações até pequenas variações de altura.
 
 \
 #figure(
@@ -558,7 +578,7 @@ O resultado do produto escalar é um valor numérico que representa a contribui�
 
 Com uma _octave_ do ruído de Perlin gerada, é possível sobrepor múltiplas octaves para criar um ruído mais complexo e detalhado. Porém, para evitar que as octaves sejam idênticas, é necessário aplicar valores que alterem sua geração. Para isso são introduzidos valores de frequência (Lacunaridade) e amplitude (Persistência), onde a frequência determina o número de detalhes presentes na _octave_, e a amplitude controla a intensidade desses detalhes. 
 
-A combinação de múltiplas octaves com diferentes frequências e amplitudes permite criar terrenos com uma variedade de características, desde grandes elevações até pequenas variações de altura, simulando ambientes naturais de forma realista.
+Conforme #cite(<patel_terrain_noise>, form:"prose") explica, a combinação de múltiplas octaves com diferentes frequências e amplitudes permite criar terrenos com uma variedade de características, desde grandes elevações até pequenas variações de altura, simulando ambientes naturais de forma realista.
 
 \
 #figure(
@@ -601,6 +621,33 @@ Finalmente, o valor $V_"f" (x,y)$ é utilizado para definir a elevação de cada
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
 
+==== Função de Interpolação
+A função de interpolação é um componente crucial no algoritmo de geração de ruído de Perlin, pois é responsável por suavizar a transição entre os valores gerados por cada camada de ruído, criando um resultado final que se assemelha a padrões naturais. 
+
+A função de interpolação utilizada no ruído de Perlin é conhecida como função de suavização. #cite(<zipped_perlin_noise>, form:"prose") ressalta que a interpolação linear simples não é adequada de forma isolada para gerar padrões naturais, pois deixa transições abruptas entre os valores de ruído, resultando em um terreno com bordas visíveis entre as células da grade.
+
+Para solucionar esse problema e garantir uma transição orgânica, emprega-se uma curva de atenuação (ou função _fade_). No algoritmo original de Perlin, essa suavização é alcançada através de uma função polinomial cúbica, conhecida como _Smoothstep_, definida matematicamente por:
+
+\
+$ S(w) = 3w^2 - 2w^3 $ \
+
+#figure(
+  caption: [Função de Suavização no Ruído de Perlin],
+  supplement: "Figura",
+)[
+  #image("./images/smoothstep_graph.png", width: 100%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] \
+
+
+Essa curva mapeia o peso $w$ (a posição relativa da coordenada, variando de $0$ a $1$) para um valor suavizado. A principal vantagem matemática do uso dessa função é que a sua primeira derivada é igual a zero em ambas as extremidades ($w = 0$ e $w = 1$). Isso garante que a transição de influência entre os gradientes de duas células vizinhas seja perfeitamente contínua, ocultando os limites da grade original.
+
+Após obter o peso suavizado $S(w)$, o algoritmo realiza a interpolação linear padrão entre os valores de contribuição escalar $a_0$ e $a_1$ calculados:
+
+\
+$ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
+
 == Algoritmos de Busca Heurística
 === Dijkstra
 === Heurísticas
@@ -615,7 +662,7 @@ Finalmente, o valor $V_"f" (x,y)$ é utilizado para definir a elevação de cada
 
 \
 #figure(
-  caption: [Diagrama de classe do Composite],
+  caption: [Diagrama de Thread Pool e filas multinível],
   supplement: "Figura",
 )[
   #image("./images/thread_pool.svg", width: 100%)
