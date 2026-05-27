@@ -482,7 +482,7 @@ Por fim, são criadas faces conectando cada vértice com seus vizinhos diretos, 
   caption: [Exemplo de malha gerada a partir de um mapa de altura],
   supplement: "Figura",
 )[
-  #image("./images/heightmap_to_mesh.png", width: 50%)
+  #image("./images/heightmap_to_mesh.png", width: 100%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
@@ -596,7 +596,7 @@ Finalmente, o valor $V_"f" (x,y)$ é utilizado para definir a elevação de cada
   caption: [Exemplo de malha gerada a partir de um ruído de Perlin],
   supplement: "Figura",
 )[
-  #image("./images/perlin_noise.png", width: 50%)
+  #image("./images/mesh_from_perlin.png", width: 100%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
