@@ -14,6 +14,7 @@
 
 #include "statistics.hpp"
 #include "util.hpp"
+#include "task.hpp"
 
 namespace fs = std::filesystem;
 
@@ -23,7 +24,7 @@ const float heightLimit = 2.0f;
 
 void warmUp();
 
-void runTests();
+void runTestsSeq();
 void gridBattery(
     const std::string& batteryName,
     const std::string& outputCSV,
@@ -39,52 +40,193 @@ void terrainBattery(
     int numSteps
 );
 
+void runTestsPar();
+
 int main() {
-    runTests();
+    std::cout << "Iniciando testes sequenciais..." << std::flush;
+    
+    auto startTime = std::chrono::high_resolution_clock::now();
+    runTestsSeq();
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
+    double execTime = elapsed.count();
+
+    std::cout << " concluídos em " << execTime << " ms." << std::endl;
+
+    std::cout << "\nIniciando testes paralelos..." << std::flush;
+
+    startTime = std::chrono::high_resolution_clock::now();
+    runTestsPar();
+    endTime = std::chrono::high_resolution_clock::now();
+    elapsed = endTime - startTime;
+    execTime = elapsed.count();
+
+    std::cout << " concluídos em " << execTime << " ms." << std::endl;
 
     return 0;
 }
 
-void runTests() {
+void runTestsPar() {
+    warmUp();
+    TaskMaster tm;
+    
+    int numSteps = 10;
+    int totalTarefas = numSteps * repetitions * 3; 
+    
+    int tarefasConcluidas = 0;
+    std::mutex mainMtx;
+    std::condition_variable mainCv;
+
+    Statistics stats(numSteps * repetitions);
+    std::mutex statsMtx;
+
+    std::string folderPath = "../results/noises/";
+    fs::create_directories(folderPath);
+    
+    for (int step = 0; step < numSteps; ++step) {
+        for (int rep = 0; rep < repetitions; ++rep) {
+            // Gera noise
+            tm.addTask([step, rep, totalTarefas, &stats, &statsMtx, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+                
+                NoiseConfig config = {
+                    .width = 100 + (step * 100),
+                    .height = config.width,
+                    .wave = (int)config.width / 4,
+                    .freq = 1.0f,
+                    .amp = 1.0f,
+                    .exp = 1.0f,
+                    .seed = distSeed(gen),
+                    .octaves = 4
+                };
+
+                auto noise = generateNoiseMap(config);
+
+                // Salva noise como PNG
+                tm.addTask([config, noise, step, rep]() {
+                    std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
+                    saveNoiseAsPNG("../results/noises/" + fileName, noise, config.width, config.height);
+                }, Priority::Low);
+
+                // Gera grafo
+                tm.addTask([config, noise = std::move(noise), totalTarefas, &stats, &statsMtx, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() mutable {
+                    auto graph = createlwGraphFromNoise(noise, config.width, config.height, heightLimit, intensity);
+
+                    if (!graph) {
+                        std::lock_guard<std::mutex> lock(mainMtx);
+                        tarefasConcluidas += 3;
+                        if (tarefasConcluidas == totalTarefas) {
+                            stats.saveToCSV("../results/stats_par.csv");
+                            mainCv.notify_one();
+                        }
+                        return;
+                    }
+
+                    using HeuristicFuncLW = std::function<float(const Vertex3D&, const Vertex3D&)>;
+                    using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
+
+                    AlgFunc dijkstra = [](const common::lwGraph<Vertex3D>& g, int startId, int endId, HeuristicFuncLW) {
+                        return util::lwAStar<Vertex3D>(g, startId, endId, [](const Vertex3D&, const Vertex3D&) { return 0.0f; });
+                    };
+
+                    std::unordered_map<std::string, AlgFunc> algorithms = {
+                        {"Dijkstra", dijkstra},
+                        {"A Star", util::lwAStar<Vertex3D>},
+                        {"A Star Modified", util::lwAStarMod<Vertex3D>}
+                    };
+
+                    for (const auto& algPair : algorithms) {
+                        std::string algName = algPair.first;
+                        AlgFunc algFunc = algPair.second;
+
+                        // Executa cada algoritmo
+                        tm.addTask([config, graph, algName, algFunc, totalTarefas, &stats, &statsMtx, &mainMtx, &mainCv, &tarefasConcluidas]() {
+                            int nosAvaliados = 0;
+                            auto trackingHeuristic = [&nosAvaliados](const auto& a, const auto& b) -> float {
+                                nosAvaliados++;
+                                return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+                            };
+
+                            int startId = 0;
+                            int endId = config.width * config.height - 1;
+
+                            auto startTime = std::chrono::high_resolution_clock::now();
+                            auto path = algFunc(*graph, startId, endId, trackingHeuristic);
+                            auto endTime = std::chrono::high_resolution_clock::now();
+                            
+                            double execTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                            double pathCost = (double)calculatePathCostLW(path, *graph);
+                        
+                            {
+                                std::lock_guard<std::mutex> lock(statsMtx);
+                                stats.addEntry(algName, "Tempo de Execução", execTime);
+                                stats.addEntry(algName, "Custo do Caminho", pathCost);
+                                stats.addEntry(algName, "Número de Nós Expandidos", (double)nosAvaliados);
+                                stats.addEntry(algName, "Tamanho", (double)config.width);
+                            }
+
+                            {
+                                std::lock_guard<std::mutex> lock(mainMtx);
+                                tarefasConcluidas++;
+                                if (tarefasConcluidas == totalTarefas) {
+                                    stats.saveToCSV("../results/stats_par.csv");
+                                    mainCv.notify_one();
+                                }
+                            }
+                            
+                        }, Priority::Low); 
+                    }
+                }, Priority::Medium); 
+            }, Priority::High); 
+        }
+    }
+
+    std::unique_lock<std::mutex> mainLock(mainMtx);
+    mainCv.wait(mainLock, [&]() { return tarefasConcluidas == totalTarefas; });
+    
+    std::cout << "\nTestes paralelos concluidos!" << std::endl;
+}
+
+void runTestsSeq() {
     warmUp();
 
-    // Variação de Parâmetros de Grid
-    std::cout << "Iniciando Bateria de Grid: Escala (Crescimento do Grafo)..." << std::endl;
-    gridBattery("Escala", "../results/grids/stats_escala.csv", [](NoiseConfig& config, int step) {
-        config.width = 100 + (step * 100);
-        config.height = config.width;
-        config.wave = config.width / 2;
-    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
-        stats.addEntry(group, "Tamanho", (double)config.width);
-    }, 10);
+    // std::cout << "Iniciando Bateria de Grid: Escala (Crescimento do Grafo)..." << std::endl;
+    // gridBattery("Escala", "../results/grids/stats_escala.csv", [](NoiseConfig& config, int step) {
+    //     config.width = 100 + (step * 100);
+    //     config.height = config.width;
+    //     config.wave = config.width / 4;
+    // }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+    //     stats.addEntry(group, "Tamanho", (double)config.width);
+    // }, 10);
 
-    std::cout << "\nIniciando Bateria de Grid 2: Frequência (Densidade de Obstáculos)..." << std::endl;
-    gridBattery("Frequencia", "../results/grids/stats_frequencia.csv", [](NoiseConfig& config, int step) {
-        config.freq = 1.0f + (step * 0.5f);
-        config.octaves *= (1.0f + (step * 0.1f));
-    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
-        stats.addEntry(group, "Frequência", (double)config.freq);
-        stats.addEntry(group, "Octaves", (double)config.octaves);
-    }, 10);
+    // std::cout << "\nIniciando Bateria de Grid 2: Frequência (Densidade de Obstáculos)..." << std::endl;
+    // gridBattery("Frequencia", "../results/grids/stats_frequencia.csv", [](NoiseConfig& config, int step) {
+    //     config.freq = 1.0f + (step * 0.5f);
+    //     config.octaves *= (1.0f + (step * 0.1f));
+    // }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+    //     stats.addEntry(group, "Frequência", (double)config.freq);
+    //     stats.addEntry(group, "Octaves", (double)config.octaves);
+    // }, 10);
 
-    // Variação de Parâmetros do Terreno
     std::cout << "\nIniciando Bateria de Terreno 1: Escala (Crescimento do Grafo)..." << std::endl;
     terrainBattery("Escala", "../results/terrain/stats_escala.csv", [](NoiseConfig& config, int step) {
         config.width = 100 + (step * 100);
         config.height = config.width;
-        config.wave = config.width / 2;
+        config.wave = config.width / 4;
     }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
         stats.addEntry(group, "Tamanho", (double)config.width);
     }, 10);
     
-    std::cout << "\nIniciando Bateria de Terreno 2: Frequência (Densidade de Obstáculos)..." << std::endl;
-    terrainBattery("Frequencia", "../results/terrain/stats_frequencia.csv", [](NoiseConfig& config, int step) {
-        config.freq = 1.0f + (step * 0.5f);
-        config.octaves *= (1.0f + (step * 0.1f));
-    }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
-        stats.addEntry(group, "Frequência", (double)config.freq);
-        stats.addEntry(group, "Octaves", (double)config.octaves);
-    }, 10);    
+    // std::cout << "\nIniciando Bateria de Terreno 2: Frequência (Densidade de Obstáculos)..." << std::endl;
+    // terrainBattery("Frequencia", "../results/terrain/stats_frequencia.csv", [](NoiseConfig& config, int step) {
+    //     config.freq = 1.0f + (step * 0.5f);
+    //     config.octaves *= (1.0f + (step * 0.1f));
+    // }, [](Statistics& stats, const std::string& group, NoiseConfig& config) {
+    //     stats.addEntry(group, "Frequência", (double)config.freq);
+    //     stats.addEntry(group, "Octaves", (double)config.octaves);
+    // }, 10);    
 }
 
 void gridBattery(

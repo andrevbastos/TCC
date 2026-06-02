@@ -17,7 +17,7 @@
 #include <ifcg/graphics/primitives/sphere.hpp>
 
 #include "statistics.hpp"
-#include "monitor.hpp"
+#include "task.hpp"
 #include "util.hpp"
 
 using namespace ifcg;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     auto& renderer {Engine::getRenderer()};
     GLuint shader {renderer.getShaderID()};
 
-    Monitor monitor;
+    TaskMaster tm;
     std::queue<std::tuple<std::vector<Vertex>, std::vector<GLuint>, GLenum, glm::mat4>> newMeshesQueue;
     std::vector<std::shared_ptr<MeshBase>> activeMeshes;
     std::mutex meshesMutex;
@@ -232,9 +232,9 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
         };
 
-        monitor.addTask(aStarFunc, Priority::Medium);
-        monitor.addTask(aStarModFunc, Priority::Medium);
-        monitor.addTask(dijkstraFunc, Priority::Medium);
+        tm.addTask(aStarFunc, Priority::Medium);
+        tm.addTask(aStarModFunc, Priority::Medium);
+        tm.addTask(dijkstraFunc, Priority::Medium);
     };
     
     auto& camera {renderer.getCamera()};
@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
             while(!newMeshesQueue.empty()) newMeshesQueue.pop();
         }
 
-        monitor.addTask(createScene, Priority::High);
+        tm.addTask(createScene, Priority::High);
 
         camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
         camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));

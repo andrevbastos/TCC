@@ -658,7 +658,8 @@ $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
 == Concorrência e Paralelismo
 === _Multithreading_
 === Monitores
-=== Fila Multinível e _Thread Pool_
+=== _Task Scheduler_
+=== Fila Multinível
 
 \
 #figure(

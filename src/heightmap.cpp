@@ -15,7 +15,7 @@
 #include <ifcg/graphics/primitives/sphere.hpp>
 
 #include "statistics.hpp"
-#include "monitor.hpp"
+#include "task.hpp"
 #include "util.hpp"
 
 int main(int argc, char* argv[]) {
@@ -41,12 +41,12 @@ int main(int argc, char* argv[]) {
     auto& renderer {Engine::getRenderer()};
     GLuint shader {renderer.getShaderID()};
 
-    Monitor monitor;
+    TaskMaster tm;
     std::queue<std::tuple<std::vector<Vertex>, std::vector<GLuint>, GLenum, glm::mat4>> newMeshesQueue;
     std::vector<std::shared_ptr<MeshBase>> activeMeshes;
     std::mutex meshesMutex;
 
-    std::function<void()> createScene = [imagePath, intensity, heightLimit, shader, &meshesMutex, &newMeshesQueue, &monitor]() {
+    std::function<void()> createScene = [imagePath, intensity, heightLimit, shader, &meshesMutex, &newMeshesQueue, &tm]() {
         auto [graph, startId, endId] = createLwGraphFromHeightmap(imagePath, intensity, heightLimit);
         
         if (!graph) return;
@@ -155,8 +155,8 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));
         };
 
-        monitor.addTask(aStarFunc, Priority::Medium);
-        monitor.addTask(aStarModFunc, Priority::Medium);
+        tm.addTask(aStarFunc, Priority::Medium);
+        tm.addTask(aStarModFunc, Priority::Medium);
     };
 
     auto& camera {renderer.getCamera()};
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
     camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
     renderer.setFarPlane(1000.0f);
 
-    monitor.addTask(createScene, Priority::High);
+    tm.addTask(createScene, Priority::High);
 
     input.addKeyCallback(Key::K, KeyAction::PRESS, [&]() {
         for (auto& mesh : activeMeshes) {
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
             while(!newMeshesQueue.empty()) newMeshesQueue.pop();
         }
         
-        monitor.addTask(createScene, Priority::High);
+        tm.addTask(createScene, Priority::High);
 
         camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
         camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));

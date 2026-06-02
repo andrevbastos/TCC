@@ -7,6 +7,7 @@
 #include <queue>
 #include <condition_variable>
 #include <array>
+#include <type_traits>
 
 enum class Priority {
     High = 0,
@@ -14,16 +15,16 @@ enum class Priority {
     Low = 2
 };
 
-class Monitor {
+class TaskMaster {
 public:
-    Monitor() {
+    TaskMaster() {
         unsigned int processingUnits = std::thread::hardware_concurrency();
         if (processingUnits > 1) processingUnits--;
 
         for (unsigned int i = 0; i < processingUnits; ++i) {
             workers.emplace_back([this](std::stop_token st) {
                 while (!st.stop_requested()) {
-                    std::function<void()> task;
+                    std::function<void(std::stop_token)> task;
                     {
                         std::unique_lock<std::mutex> lock(mtx);
 
@@ -46,31 +47,43 @@ public:
                         }
                     }
                     if (task) {
-                        task();
+                        task(st);
                     }
                 }
             });
         }
     }
 
-    ~Monitor() {
+    ~TaskMaster() {
         cv.notify_all();
         for (auto& worker : workers) {
             worker.request_stop();
         }
-    };
+    }
 
-    void addTask(std::function<void()> task, Priority p = Priority::Medium) {
+    template <typename Func>
+    void addTask(Func&& task, Priority p = Priority::Medium) {
+        std::function<void(std::stop_token)> wrappedTask;
+
+        if constexpr (std::is_invocable_v<Func, std::stop_token>) {
+            wrappedTask = std::forward<Func>(task);
+        } else {
+            wrappedTask = [t = std::forward<Func>(task)](std::stop_token) mutable {
+                t();
+            };
+        }
+
         {
             std::lock_guard<std::mutex> lock(mtx);
-            taskQueues[static_cast<size_t>(p)].push(std::move(task));
+            taskQueues[static_cast<size_t>(p)].push(std::move(wrappedTask));
         }
         cv.notify_one();
     }
 
 private:
     std::vector<std::jthread> workers;
-    std::array<std::queue<std::function<void()>>, 3> taskQueues;
+    
+    std::array<std::queue<std::function<void(std::stop_token)>>, 3> taskQueues;
 
     std::mutex mtx;
     std::condition_variable_any cv;
