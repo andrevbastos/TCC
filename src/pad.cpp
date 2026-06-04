@@ -1,3 +1,5 @@
+// rodar com `~/facul/programacao-de-alto-desempenho/benchmark.sh`
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
@@ -26,9 +28,16 @@ struct TestConfig {
     Stats statsSetter;
 };
 
-int main() {
-    const uint repetitions = 50;
-    const uint numSteps = 4;
+int main(int argc, char* argv[]) {
+    if (argc < 2 || (argv[1] != std::string("paralelo") && argv[1] != std::string("sequencial"))) {
+        std::cerr << "Uso: " << argv[0] << " [paralelo | sequencial]" << std::endl;
+        return 1;
+    }
+
+    std::string mode = argv[1];
+
+    const uint repetitions = 20;
+    const uint numSteps = 8;
 
     const uint intensity = 100;
     const float heightLimit = 5.0f;
@@ -65,52 +74,6 @@ int main() {
             [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
                 stats.addEntry(algName, "Tamanho do Mapa", (double)config.width);
             }
-        }, {
-            "Lacunaridade",
-            [](int step) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
-
-                NoiseConfig config = {
-                    .width = 500,
-                    .height = 500,
-                    .wave = 50,
-                    .freq = 1.0f + (step * 0.5f),
-                    .amp = 1.0f,
-                    .exp = 1.0f,
-                    .seed = distSeed(gen),
-                    .octaves = 6
-                };
-                
-                return config;
-            },
-            [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
-                stats.addEntry(algName, "Frequência", (double)config.freq);
-            }
-        }, {
-            "Persistência",
-            [](int step) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
-
-                NoiseConfig config = {
-                    .width = 500,
-                    .height = 500,
-                    .wave = 50,
-                    .freq = 4.0f,
-                    .amp = 1.0f - (step * 0.15f),
-                    .exp = 1.0f,
-                    .seed = distSeed(gen),
-                    .octaves = 6
-                };
-
-                return config;
-            },
-            [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
-                stats.addEntry(algName, "Amplitude", (double)config.amp);
-            }
         }
     };
 
@@ -119,17 +82,42 @@ int main() {
         auto paramSetter = config.paramSetter;
         auto statsSetter = config.statsSetter;
 
-        runTestsPar(
-            testName,
-            algorithms,
-            paramSetter,
-            statsSetter,
-            repetitions, numSteps,
-            intensity, heightLimit
-        );
+        if (mode == "paralelo") {
+            std::cout << "Iniciando testes paralelizados de " << testName << "... " << std::flush;
+            
+            auto startTime = std::chrono::steady_clock::now();
+            runTestsParClean(
+                testName,
+                algorithms,
+                paramSetter,
+                statsSetter,
+                repetitions, numSteps,
+                intensity, heightLimit
+            );
+            auto endTime = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed = endTime - startTime;
+            double execTime = elapsed.count();
+            
+            std::cout << "Concluídos em " << execTime << "s" << std::endl;
+        } else {
+            std::cout << "Iniciando testes sequenciais de " << testName << "..." << std::flush;
+            
+            auto startTime = std::chrono::steady_clock::now();
+            runTestsSeqClean(
+                testName,
+                algorithms,
+                paramSetter,
+                statsSetter,
+                repetitions, numSteps,
+                intensity, heightLimit
+            );
+            auto endTime = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed = endTime - startTime;
+            double execTime = elapsed.count();
 
-        std::cout << std::endl;
+            std::cout << "Concluídos em " << execTime << "s" << std::endl;
+        }
     }
-
+    
     return 0;
 }

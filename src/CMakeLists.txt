@@ -15,12 +15,8 @@ foreach(SOURCE_FILE ${TCC_SOURCES})
     # Obtém o nome do arquivo sem a extensão
     get_filename_component(EXE_NAME ${SOURCE_FILE} NAME_WE)
 
-    # Padroniza: 'main.cpp' vira o executável 'tcc', os outros mantêm o nome do arquivo
-    if(EXE_NAME STREQUAL "main")
-        set(TARGET_NAME "tcc")
-    else()
-        set(TARGET_NAME ${EXE_NAME})
-    endif()
+    # Define o nome do alvo como o nome do executável
+    set(TARGET_NAME ${EXE_NAME})
 
     # Cria o executável para o arquivo atual
     add_executable(${TARGET_NAME} ${SOURCE_FILE})

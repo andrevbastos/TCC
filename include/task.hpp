@@ -19,7 +19,11 @@ enum class Priority {
 
 class TaskMaster {
 public:
-    TaskMaster() {
+    bool verbose;
+
+    TaskMaster(bool verbose = false) 
+        : verbose(verbose) 
+    {        
         unsigned int processingUnits = std::thread::hardware_concurrency();
         if (processingUnits > 1) processingUnits--;
 
@@ -55,9 +59,9 @@ public:
                     }
                     
                     if (task) {
-                        drawWorkers(id, priorityLevel);
+                        if (this->verbose) drawWorkers(id, priorityLevel);
                         task(st);
-                        drawWorkers(id, -1); 
+                        if (this->verbose) drawWorkers(id, -1); 
                     }
                 }
             });
@@ -69,7 +73,7 @@ public:
         for (auto& worker : workers) {
             worker.request_stop();
         }
-        std::cout << "";
+        if (this->verbose) std::cout << "";
     }
 
     template <typename Func>
@@ -113,6 +117,6 @@ private:
         for (char state : workerStates) {
             std::cout << state << " ";
         }
-        std::cout << "]" << std::flush;
+        std::cout << "]"<< std::flush;
     }
 };

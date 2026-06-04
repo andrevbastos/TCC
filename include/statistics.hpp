@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <filesystem>
+#include <pthread.h>
 #include <iomanip>
 #include <fstream>
 #include <thread>
@@ -174,7 +175,7 @@ void warmUp() {
         warmUpGraph.newEdge(warmUpGraph.getVertex(i), warmUpGraph.getVertex(i + 1));
     }
 
-    for (int w_i = 0; w_i < 5; ++w_i) {
+    for (int i = 0; i < 5; ++i) {
         util::AStar(&warmUpGraph, 0, 9, util::heuristics::euclideanHeuristic3D);
         util::AStarMod(&warmUpGraph, 0, 9, util::heuristics::chebyshevHeuristic3D);
     }
@@ -185,6 +186,13 @@ using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&,
 
 using Param = std::function<NoiseConfig(int)>;
 using Stats = std::function<void(Statistics&, const std::string&, const NoiseConfig&)>;
+
+void pinThreadToCore(int core_id) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
+    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+}
 
 void runTestsPar(
     std::string testName,
@@ -197,7 +205,7 @@ void runTestsPar(
     float heightLimit
 ) {
     warmUp();
-    TaskMaster tm;
+    TaskMaster tm(true);
     
     int tarefasPorPasso = repetitions * 3; 
     
@@ -210,13 +218,15 @@ void runTestsPar(
     fs::create_directories(folderPath);
 
     for (int step = 0; step < numSteps; ++step) {
+        std::cout << "\r                                                   " << std::flush;
+
         std::vector<std::shared_ptr<common::lwGraph<Vertex3D>>> graphs(repetitions);
         std::vector<NoiseConfig> configs(repetitions);
         
         int tarefasConcluidas = 0;
 
         for (int rep = 0; rep < repetitions; ++rep) {
-            tm.addTask([step, rep, tarefasPorPasso, algorithms, paramSetter, heightLimit, intensity, &graphs, &configs, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
+            tm.addTask([step, rep, tarefasPorPasso, algorithms, paramSetter, heightLimit, intensity, folderPath, &graphs, &configs, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
                 std::random_device rd;
                 std::mt19937 gen(rd());
                 std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
@@ -227,9 +237,9 @@ void runTestsPar(
                 configs[rep] = config;
                 auto noise = generateNoiseMap(config);
 
-                tm.addTask([config, noise, step, rep, tarefasPorPasso, &mainMtx, &mainCv, &tarefasConcluidas]() {
+                tm.addTask([config, noise, step, rep, tarefasPorPasso, folderPath, &mainMtx, &mainCv, &tarefasConcluidas]() {
                     std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
-                    saveNoiseAsPNG("../results/noises/" + fileName, noise, config.width, config.height);
+                    saveNoiseAsPNG(folderPath + "/" + fileName, noise, config.width, config.height);
                     
                     std::lock_guard<std::mutex> lock(mainMtx);
                     tarefasConcluidas++;
@@ -261,8 +271,8 @@ void runTestsPar(
             mainCv.wait(mainLock, [&]() { return tarefasConcluidas == tarefasPorPasso; });
         }
 
-        std::cout << "\rStep " << step + 1 << "/" << numSteps << ". Executing sequential statistics..." << std::endl;
-        
+        pinThreadToCore(2);
+
         for (int rep = 0; rep < repetitions; ++rep) {
             if (!graphs[rep]) continue;
             
@@ -271,6 +281,8 @@ void runTestsPar(
             
             int startId = 0;
             int endId = config.width * config.height - 1;
+            
+            std::cout << "\r" << testName << ": Step " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
 
             for (const auto& algPair : algorithms) {
                 const std::string& algName = algPair.first;
@@ -282,9 +294,9 @@ void runTestsPar(
                     return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
                 };
 
-                auto startTime = std::chrono::high_resolution_clock::now();
+                auto startTime = std::chrono::steady_clock::now();
                 auto path = algFunc(graph, startId, endId, trackingHeuristic);
-                auto endTime = std::chrono::high_resolution_clock::now();
+                auto endTime = std::chrono::steady_clock::now();
                 
                 double execTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
                 double pathCost = (double)calculatePathCostLW(path, graph);
@@ -299,8 +311,8 @@ void runTestsPar(
             graphs[rep].reset();
         }
     }
-    
-    stats.saveToCSV("../results/noises/stats_par.csv");
+
+    stats.saveToCSV(folderPath + "/stats.csv");
 };
 
 void runTestsSeq(
@@ -342,7 +354,6 @@ void runTestsSeq(
 
             auto noise = generateNoiseMap(noiseConfig);
             
-
             std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
             saveNoiseAsPNG(folderPath + "/" + fileName, noise, noiseConfig.width, noiseConfig.height);
 
@@ -356,14 +367,14 @@ void runTestsSeq(
             int startId = 0;
             int endId = noiseConfig.width * noiseConfig.height - 1;
 
-            std::cout << "\r" << testName << " - Passo " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
+            std::cout << "\r" << testName << ": Step " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
 
             for (const auto& alg : algorithms) {
                 nosAvaliados = 0;
 
-                auto startTime = std::chrono::high_resolution_clock::now();
+                auto startTime = std::chrono::steady_clock::now();
                 auto path = alg.second(*graph, startId, endId, trackingHeuristic);
-                auto endTime = std::chrono::high_resolution_clock::now();
+                auto endTime = std::chrono::steady_clock::now();
                 
                 std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
                 double execTime = elapsed.count();
@@ -380,6 +391,194 @@ void runTestsSeq(
         }
     }
 
-    std::cout << " concluído!" << std::endl;
+    stats.saveToCSV(folderPath + "/stats.csv");
+};
+
+void runTestsParClean(
+    std::string testName,
+    std::unordered_map<std::string, AlgFunc> algorithms, 
+    Param paramSetter, 
+    Stats statsSetter,
+    unsigned int repetitions,
+    unsigned int numSteps,
+    unsigned int intensity,
+    float heightLimit
+) {
+    warmUp();
+    TaskMaster tm(false);
+    
+    int tarefasPorPasso = repetitions * 3; 
+    
+    std::mutex mainMtx;
+    std::condition_variable mainCv;
+
+    Statistics stats(numSteps * repetitions);
+
+    std::string folderPath = "../results/parallel/" + testName;
+    fs::create_directories(folderPath);
+
+    for (int step = 0; step < numSteps; ++step) {
+        std::vector<std::shared_ptr<common::lwGraph<Vertex3D>>> graphs(repetitions);
+        std::vector<NoiseConfig> configs(repetitions);
+        
+        int tarefasConcluidas = 0;
+
+        for (int rep = 0; rep < repetitions; ++rep) {
+            tm.addTask([step, rep, tarefasPorPasso, algorithms, paramSetter, heightLimit, intensity, folderPath, &graphs, &configs, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+                
+                int currentSize = (step + 1) * 125;
+                NoiseConfig config = paramSetter(step);
+                
+                configs[rep] = config;
+                auto noise = generateNoiseMap(config);
+
+                tm.addTask([config, noise, step, rep, tarefasPorPasso, folderPath, &mainMtx, &mainCv, &tarefasConcluidas]() {
+                    std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
+                    saveNoiseAsPNG(folderPath + "/" + fileName, noise, config.width, config.height);
+                    
+                    std::lock_guard<std::mutex> lock(mainMtx);
+                    tarefasConcluidas++;
+                    if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
+                }, Priority::Low);
+
+                tm.addTask([config, noise = std::move(noise), rep, tarefasPorPasso, heightLimit, intensity, &graphs, &mainMtx, &mainCv, &tarefasConcluidas]() mutable {
+                    auto graph = createlwGraphFromNoise(noise, config.width, config.height, heightLimit, intensity);
+                    
+                    if (graph) {
+                        graphs[rep] = std::move(graph);
+                    }
+
+                    std::lock_guard<std::mutex> lock(mainMtx);
+                    tarefasConcluidas++;
+                    if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
+                }, Priority::Medium);
+
+                {
+                    std::lock_guard<std::mutex> lock(mainMtx);
+                    tarefasConcluidas++;
+                    if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
+                }
+            }, Priority::High); 
+        }
+
+        {
+            std::unique_lock<std::mutex> mainLock(mainMtx);
+            mainCv.wait(mainLock, [&]() { return tarefasConcluidas == tarefasPorPasso; });
+        }
+
+        pinThreadToCore(2);
+
+        for (int rep = 0; rep < repetitions; ++rep) {
+            if (!graphs[rep]) continue;
+            
+            const NoiseConfig& config = configs[rep];
+            auto& graph = *graphs[rep];
+            
+            int startId = 0;
+            int endId = config.width * config.height - 1;
+            
+            for (const auto& algPair : algorithms) {
+                const std::string& algName = algPair.first;
+                const AlgFunc& algFunc = algPair.second;
+                
+                int nosAvaliados = 0;
+                auto trackingHeuristic = [&nosAvaliados](const auto& a, const auto& b) -> float {
+                    nosAvaliados++;
+                    return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+                };
+
+                auto startTime = std::chrono::steady_clock::now();
+                auto path = algFunc(graph, startId, endId, trackingHeuristic);
+                auto endTime = std::chrono::steady_clock::now();
+                
+                double execTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
+                double pathCost = (double)calculatePathCostLW(path, graph);
+            
+                stats.addEntry(algName, "Tempo de Execução", execTime);
+                stats.addEntry(algName, "Custo do Caminho", pathCost);
+                stats.addEntry(algName, "Número de Nós Expandidos", (double)nosAvaliados);
+
+                statsSetter(stats, algName, config);
+            }
+            
+            graphs[rep].reset();
+        }
+    }
+
+    stats.saveToCSV(folderPath + "/stats.csv");
+};
+
+void runTestsSeqClean(
+    std::string testName,
+    std::unordered_map<std::string, AlgFunc> algorithms,
+    Param paramSetter,
+    Stats statsSetter,
+    unsigned int repetitions,
+    unsigned int numSteps,
+    unsigned int intensity,
+    float heightLimit
+) {
+
+    Statistics stats(numSteps * repetitions);
+
+    using HeuristicFuncLW = std::function<float(const Vertex3D&, const Vertex3D&)>;
+    using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
+
+    AlgFunc dijkstra = [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW) {
+        return util::lwAStar<Vertex3D>(graph, startId, endId, [](const Vertex3D&, const Vertex3D&) { return 0.0f; });
+    };
+
+    int nosAvaliados {0};
+    auto trackingHeuristic = [&](const auto& a, const auto& b) -> float {
+        nosAvaliados++;
+        return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+    };
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+
+    std::string folderPath = "../results/sequential/" + testName;
+    fs::create_directories(folderPath);
+
+    for (int step = 0; step < numSteps; ++step) {
+        for (int rep = 0; rep < repetitions; ++rep) {
+            NoiseConfig noiseConfig = paramSetter(step);
+
+            auto noise = generateNoiseMap(noiseConfig);
+            
+            std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
+            saveNoiseAsPNG(folderPath + "/" + fileName, noise, noiseConfig.width, noiseConfig.height);
+
+            auto graph = createlwGraphFromNoise(noise, noiseConfig.width, noiseConfig.height, heightLimit, intensity);
+
+            int startId = 0;
+            int endId = noiseConfig.width * noiseConfig.height - 1;
+
+            for (const auto& alg : algorithms) {
+                nosAvaliados = 0;
+
+                auto startTime = std::chrono::steady_clock::now();
+                auto path = alg.second(*graph, startId, endId, trackingHeuristic);
+                auto endTime = std::chrono::steady_clock::now();
+                
+                std::chrono::duration<double, std::milli> elapsed = endTime - startTime;
+                double execTime = elapsed.count();
+                double pathCost = (double)calculatePathCostLW(path, *graph);
+
+                stats.addEntry(alg.first, "Tempo de Execução", execTime);
+                stats.addEntry(alg.first, "Custo do Caminho", pathCost);
+                stats.addEntry(alg.first, "Número de Nós Expandidos", (double)nosAvaliados);
+                
+                statsSetter(stats, alg.first, noiseConfig);
+            }
+
+            graph.reset();
+        }
+    }
+
     stats.saveToCSV(folderPath + "/stats.csv");
 };
