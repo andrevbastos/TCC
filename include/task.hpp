@@ -8,6 +8,8 @@
 #include <condition_variable>
 #include <array>
 #include <type_traits>
+#include <iostream>
+#include <string>
 
 enum class Priority {
     High = 0,
@@ -21,10 +23,14 @@ public:
         unsigned int processingUnits = std::thread::hardware_concurrency();
         if (processingUnits > 1) processingUnits--;
 
-        for (unsigned int i = 0; i < processingUnits; ++i) {
-            workers.emplace_back([this](std::stop_token st) {
+        workerStates.assign(processingUnits, '-');
+
+        for (unsigned int id = 0; id < processingUnits; ++id) {
+            workers.emplace_back([this, id](std::stop_token st) {
                 while (!st.stop_requested()) {
                     std::function<void(std::stop_token)> task;
+                    int priorityLevel = -1;
+
                     {
                         std::unique_lock<std::mutex> lock(mtx);
 
@@ -38,16 +44,20 @@ public:
                             return;
                         }
 
-                        for (int i = 0; i < 3; ++i) {
-                            if (!taskQueues[i].empty()) {
-                                task = std::move(taskQueues[i].front());
-                                taskQueues[i].pop();
+                        for (int q = 0; q < 3; ++q) {
+                            if (!taskQueues[q].empty()) {
+                                task = std::move(taskQueues[q].front());
+                                taskQueues[q].pop();
+                                priorityLevel = q;
                                 break;
                             }
                         }
                     }
+                    
                     if (task) {
+                        drawWorkers(id, priorityLevel);
                         task(st);
+                        drawWorkers(id, -1); 
                     }
                 }
             });
@@ -59,6 +69,7 @@ public:
         for (auto& worker : workers) {
             worker.request_stop();
         }
+        std::cout << "";
     }
 
     template <typename Func>
@@ -82,9 +93,26 @@ public:
 
 private:
     std::vector<std::jthread> workers;
-    
     std::array<std::queue<std::function<void(std::stop_token)>>, 3> taskQueues;
 
     std::mutex mtx;
     std::condition_variable_any cv;
+
+    std::mutex printMtx;
+    std::string workerStates;
+
+    void drawWorkers(unsigned int workerId, int priorityLevel) {
+        std::lock_guard<std::mutex> lock(printMtx);
+        
+        if (priorityLevel == 0) workerStates[workerId] = 'H';      // High
+        else if (priorityLevel == 1) workerStates[workerId] = 'M'; // Medium
+        else if (priorityLevel == 2) workerStates[workerId] = 'L'; // Low
+        else workerStates[workerId] = '-';                         // Idle
+
+        std::cout << "\r[ ";
+        for (char state : workerStates) {
+            std::cout << state << " ";
+        }
+        std::cout << "]" << std::flush;
+    }
 };

@@ -9,11 +9,11 @@
 
 namespace fs = std::filesystem;
 
-typedef struct {
+struct Vector2D {
     float x, y;
-} Vector2D;
+};
 
-typedef struct {
+struct NoiseConfig {
     int width, height;
     int wave = 100;
     float freq = 4.0f;
@@ -21,7 +21,7 @@ typedef struct {
     float exp = 1.0f;
     unsigned int seed = 0;
     unsigned int octaves = 3;
-} NoiseConfig;
+};
 
 Vector2D randomGradient(int ix, int iy, unsigned int seed) {
     const unsigned w {8 * sizeof(unsigned)};
