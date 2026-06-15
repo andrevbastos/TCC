@@ -159,7 +159,7 @@
     )
   ),
   abstract: [
-    Este documento apresenta um estudo quantitativo sobre a performance de algoritmos de busca (A*, Jump Point Search e Theta*) em ambientes tridimensionais. O foco está na otimização de uso de cache da CPU e na arquitetura do motor gráfico subjacente, avaliando taxas de quadros e consumo de memória durante simulações intensivas.
+    Este documento apresenta um estudo quantitativo sobre a performance de algoritmos de busca (A\*, Jump Point Search e Theta\*) em ambientes tridimensionais. O foco está na otimização de uso de cache da CPU e na arquitetura do motor gráfico subjacente, avaliando taxas de quadros e consumo de memória durante simulações intensivas.
   ],
   ccs-concepts: (
     "Computing methodologies ~ Rendering",
@@ -318,8 +318,146 @@ Para isso, foi criada uma classe `TaskMaster` que encapsula a lógica de gerenci
 
 === Estrutura do `TaskMaster`
 
+Esse componente é projetado para ser o núcleo do sistema de agendamento de tarefas, gerenciando a execução concorrente das tarefas de extração e construção de dados. Ele mantém uma fila de tarefas pendentes e um conjunto de threads trabalhadoras que processam essas tarefas em paralelo.
+
+\
+#figure(
+  caption: [Diagrama de classes da arquitetura do TaskMaster],
+  supplement: "Figura",
+)[
+  #image("./images/task_master.png", width: 100%)
+]\
+
+A implementação do `TaskMaster` utiliza um conjunto de três filas de prioridade, representadas pelo `enum class Priority` com os níveis `High` (0), `Medium` (1) e `Low` (2). Essas filas são armazenadas em um `std::array` de `std::queue`, permitindo um acesso eficiente e organizado por nível de importância.
+
+No construtor da classe, o número de threads trabalhadoras é determinado dinamicamente através de `std::thread::hardware_concurrency()`. Para evitar a saturação completa dos núcleos do processador e garantir que a _main thread_ (responsável pela renderização e interface) permaneça responsiva, o sistema reserva um núcleo, instanciando $N-1$ threads trabalhadoras. Estas threads são implementadas como objetos `std::jthread`, aproveitando o comportamento RAII para garantir que sejam finalizadas corretamente na destruição do escalonador.
+
+Cada thread trabalhadora executa um loop contínuo que aguarda por novas tarefas utilizando uma `std::condition_variable_any`. A lógica de seleção de tarefas prioriza sempre as filas de maior importância: o trabalhador verifica sequencialmente as filas `High`, `Medium` e `Low`, extraindo a primeira tarefa disponível na fila de maior prioridade encontrada. Isso garante que tarefas críticas, como a extração de malhas para o grafo, sejam processadas antes de tarefas de menor impacto, como a exportação de dados estatísticos. 
+
+O loop de execução é projetado para ser interrompido de forma cooperativa através do uso de `std::stop_token`, permitindo que as threads sejam encerradas de forma segura quando o escalonador for destruído ou quando uma interrupção for solicitada. 
+
+\
+#align(center)[
+  ```
+  workers.emplace_back([this, id](std::stop_token st) {
+    while (!st.stop_requested()) {
+      // Lógica de espera e execução de tarefas
+    }
+  });
+  ```
+]\
+
+Em cara iteração, a thread trabalhadora aguarda por uma notificação indicando que uma nova tarefa foi adicionada à fila. A espera é implementada utilizando `std::condition_variable_any`, que bloqueia a thread até que uma tarefa esteja disponível ou até que uma solicitação de parada seja feita.
+
+\
+#align(center)[
+  ```
+  // Bloco de código para uso do lock
+  {
+    std::unique_lock<std::mutex> lock(mtx);
+    auto stopCon = [this]{
+      return 
+      !taskQueues[0].empty() || 
+      !taskQueues[1].empty() || 
+      !taskQueues[2].empty();
+    };
+    if (!cv.wait(lock, st, stopCon)) return;
+  ```
+]
+
+Após ser notificada, a thread trabalhadora verifica as filas de tarefas em ordem de prioridade. A primeira tarefa disponível na fila de maior prioridade é extraída e executada. Se nenhuma tarefa estiver disponível, a thread retorna ao estado de espera. Mesmo que um lock tenha sido adquirido, a função `wait` do `std::condition_variable_any` é projetada para liberar o lock enquanto a thread está bloqueada, permitindo que outras threads adicionem tarefas à fila. Quando a thread é acordada, o lock é automaticamente re-adquirido e destruído com o escopo do bloco.
+
+\
+#align(center)[
+  ```
+    for (int q = 0; q < 3; ++q) {
+      if (!taskQueues[q].empty()) {
+        task = std::move(taskQueues[q].front());
+        taskQueues[q].pop();
+        break;
+      }
+    }
+  // Fim do bloco de código para uso do lock
+  }
+
+  if (task) task(st);
+  ```
+]\
+
+O método `addTask` é o ponto de entrada para a submissão de tarefas. Utilizando modelos de programação (_templates_) e metaprogramação em tempo de compilação (`if constexpr`), o método é capaz de aceitar funções que recebem ou não um `std::stop_token`. Isso confere flexibilidade ao sistema, permitindo que tarefas de longa duração verifiquem periodicamente se uma interrupção foi solicitada, enquanto tarefas curtas e simples podem ser executadas sem essa complexidade adicional. Na Figura 2, observa-se como o método `addTask` emprega metaprogramação para unificar a submissão de tarefas, além de notificar a variável de condição para despertar uma thread ociosa.
+
+O uso de metaprogramação permite que o `TaskMaster` possa lidar com uma variedade de tarefas sem exigir que todas as funções de tarefa sejam projetadas para aceitar um `std::stop_token`.
+
+\
+#align(center)[
+  ```
+  template <typename Func>
+  void addTask(Func&& task, Priority p) {
+    // Lógica de adição de tarefas, 
+    // com suporte para funções que
+    // aceitam ou não um std::stop_token
+  }
+  ```
+]\
+
+Encapsulando a tarefa, é mais fácil manter a fila de prioridade sem abstrações desnecessárias. Então, o método `addTask` verifica se a função fornecida é invocável com um `std::stop_token`. Se for, a função é usada diretamente. Caso contrário, ela é encapsulada em uma função lambda que ignora o `std::stop_token`, permitindo que tarefas simples sejam adicionadas sem a necessidade de lidar com tokens de parada.
+
+\
+#align(center)[
+  ```
+  std::function<void(std::stop_token)> wrappedTask;
+
+  if constexpr (
+    std::is_invocable_v<Func, std::stop_token>
+  ) {
+    wrappedTask = std::forward<Func>(task);
+  } else {
+    wrappedTask = [t = std::forward<Func>(task)]
+    (std::stop_token) mutable {
+      t();
+    };
+  }
+  ```
+]\
+
+Com a função encapsulada, o método `addTask` adquire um lock para garantir acesso exclusivo às filas de tarefas e adiciona a tarefa à fila correspondente à sua prioridade. Após a adição, a variável de condição é notificada para acordar uma thread trabalhadora que esteja aguardando por novas tarefas, garantindo que a tarefa seja processada o mais rápido possível.
+  
+\
+#align(center)[
+  ```
+  {
+    std::lock_guard<std::mutex> lock(mtx);
+    taskQueues[static_cast<size_t>(p)]
+    .push(std::move(wrappedTask));
+  }
+
+  cv.notify_one();
+  ```
+]\
+
+A sincronização entre as threads trabalhadoras e a thread principal é garantida por um `std::mutex`, protegendo o acesso às filas de tarefas e à variável de condição. O uso de `std::condition_variable_any` permite que as threads trabalhadoras sejam notificadas imediatamente quando uma nova tarefa é adicionada, evitando a necessidade de polling e garantindo uma resposta rápida às mudanças na fila de tarefas.
+
+Por fim, o ciclo de vida do escalonador é encerrado de forma cooperativa através do seu destrutor (Listagem 3). O uso combinado de `notify_all` para acordar threads bloqueadas e `request_stop` do `std::jthread` garante um encerramento limpo e livre de _deadlocks_.
+
+\
+#align(center)[
+```
+~TaskMaster() {
+  // Notifica todas as threads para acordar 
+  // e verificar o estado de parada
+  cv.notify_all();
+  for (auto& worker : workers) {
+    worker.request_stop();
+  }
+}
+```
+]\
 
 == Controle de Recursos do Sistema Operacional
+
+Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, o `TaskMaster` adota estratégias de controle de recursos em nível de software. A principal estratégia é a afinidade implícita de threads e a limitação do pool de trabalhadores. Ao limitar o número de threads ao total de núcleos físicos menos um, reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre os trabalhadores e o motor de renderização.
+
+Além disso, o uso de `std::stop_token` permite um cancelamento cooperativo de tarefas. Se a aplicação precisar ser encerrada ou se uma tarefa se tornar obsoleta (por exemplo, uma busca de caminho que foi cancelada pelo usuário), o sistema pode sinalizar a interrupção de forma segura, evitando desperdício de ciclos de CPU em processamentos que não serão mais utilizados.
 
 = Resultados e Discussão
 == Impacto na Responsividade da Main Thread
