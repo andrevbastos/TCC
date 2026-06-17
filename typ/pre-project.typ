@@ -413,17 +413,13 @@ Cada conjunto de vértices e arestas diferentes são armazenados em _buffers_ de
 O conhecimento detalhado do funcionamento de cada buffer se prova essencial, quando consideramos a forma que o OpenGL lida com a renderização de malhas e troca de dados entre CPU e GPU. Uma vez que o OpenGL tem grandes problemas para lidar com múltiplas _threads_, o gerenciamento eficiente dos _buffers_ e a minimização de operações de troca de dados entre CPU e GPU são cruciais para garantir o desempenho dos algoritmos de pathfinding em ambientes tridimensionais.
 
 ==== Programação Orientada a Eventos e Funções de _Callback_
-Embora o OpenGL seja estritamente uma API de renderização, sem conhecimento nativo sobre o sistema operacional, janelas ou periféricos de entrada, a infraestrutura gráfica desenvolvida (IFCG) utiliza a biblioteca GLFW para o gerenciamento da janela e a criação do contexto gráfico. Essa integração permite implementar um modelo de programação orientada a eventos, onde o fluxo de execução é guiado por interações externas, como atualizações do sistema e entradas do usuário.
-
-As funções de _callback_ fornecidas pela API do GLFW foram implementadas na camada de gerenciamento do motor para interceptar eventos de teclado e mouse, servindo como uma ponte de comunicação com o sistema de renderização. Isso permite criar um ambiente de teste interativo e responsivo, onde as interações do usuário ditam de forma dinâmica as atualizações do cenário e os disparos de execução dos algoritmos de pathfinding em tempo real.
+Embora o OpenGL seja estritamente uma API de renderização, sem conhecimento nativo sobre o sistema operacional, janelas ou periféricos de entrada, a infraestrutura gráfica desenvolvida (IFCG) utiliza a biblioteca GLFW para o gerenciamento da janela e a criação do contexto gráfico. Essa integração permite implementar um modelo de programação orientada a eventos, onde o fluxo de execução é guiado por interações externas, como atualizações do sistema e entradas do usuário. As funções de _callback_ fornecidas pela API do GLFW foram implementadas na camada de gerenciamento do motor para interceptar eventos de teclado e mouse, servindo como uma ponte de comunicação interativa com o sistema de renderização.
 
 ==== A Máquina de Estados e o Contexto OpenGL
-Para lidar com a renderização em si, o OpenGL opera como uma vasta máquina de estados. Todas as configurações e referências de dados ficam armazenadas no que é chamado de Contexto OpenGL (fornecido e gerenciado pelo GLFW). Dessa forma, para renderizar uma malha, é necessário configurar o estado da máquina de acordo com as características do objeto — como a vinculação dos _buffers_ VBO e EBO e a definição dos atributos de vértice — antes de emitir os comandos de desenho para a GPU.
-
-Ademais, cada alteração na máquina de estados exige comunicação direta com o _driver_ de vídeo. Como mudanças excessivas de estado geram alto custo de processamento (_overhead_), o gerenciamento eficiente dos _buffers_ procura minimizar as trocas de estado e agrupar comandos sempre que possível, otimizando o tráfego de dados entre a CPU e a GPU.
+Para lidar com a renderização em si, o OpenGL opera como uma vasta máquina de estados. Todas as configurações e referências de dados ficam armazenadas no que é chamado de Contexto OpenGL. Dessa forma, para renderizar uma malha, é necessário configurar o estado da máquina de acordo com as características do objeto — como a vinculação dos _buffers_ VBO e EBO — antes de emitir os comandos de desenho para a GPU. Como mudanças excessivas de estado geram alto custo de processamento (_overhead_), o gerenciamento eficiente dos _buffers_ procura minimizar as trocas de estado e agrupar comandos sempre que possível, otimizando o tráfego de dados entre a CPU e a GPU.
 
 ==== Concorrência e Isolamento de _Threads_
-Essa arquitetura baseada em contexto de estado impõe restrições rígidas à implementação de concorrência. O contexto do OpenGL é estritamente atrelado à _thread_ em que foi ativado, tipicamente a _thread_ principal. Tentativas de acessar ou modificar o estado da API gráfica a partir de múltiplas _threads_ simultaneamente causam violações de acesso à memória, resultando em falhas críticas de limite de endereço, como erros SIGSEGV.
+Essa arquitetura baseada em contexto de estado impõe restrições rígidas à implementação de concorrência. O contexto do OpenGL é estritamente atrelado à _thread_ em que foi ativado, tipicamente a _thread_ principal. Tentativas de acessar ou modificar o estado da API gráfica a partir de múltiplas _threads_ simultaneamente causam violações de acesso à memória, resultando em falhas críticas de limite de endereço, como erros SIGSEGV. Por isso, a arquitetura deste trabalho isola a renderização na _main thread_ e delega o processamento pesado de dados para as _worker threads_ do `TaskMaster`.
 
 == Geração de Cenários de Teste
 Para garantir a diversidade e complexidade dos cenários de teste, é necessário implementar algoritmos de geração procedural de terrenos. Esses algoritmos permitem criar malhas 3D complexas e variadas, simulando diferentes tipos de ambientes que os algoritmos de pathfinding podem encontrar em situações reais.
@@ -656,10 +652,27 @@ $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
 === Theta\*
 
 == Concorrência e Paralelismo
-=== _Multithreading_
+A evolução do hardware moderno, com o aumento do número de núcleos de processamento, tornou o paralelismo uma ferramenta essencial para manter a responsividade em aplicações gráficas e intensivas em dados.
+
+=== _Multithreading_ com C++20
+A linguagem C++20 introduziu várias melhorias para a programação concorrente, incluindo a classe `std::jthread`, que é uma extensão da classe `std::thread` com suporte integrado para cancelamento de threads. O uso de `std::jthread` permite que as threads sejam encerradas de forma limpa e segura, aproveitando o padrão RAII (_Resource Acquisition Is Initialization_) para garantir que as threads sejam automaticamente unidas (_joined_) em chamadas de destruição. 
+
+Em seu construtor, as `std::jthread` recebem uma função lambda que encapsula a lógica de execução da thread trabalhadora. Funções lambda são funções anônimas que podem capturar variáveis do escopo onde foram definidas, facilitando a passagem de dados. Ao ser instanciada, a `std::jthread` inicia a execução da lambda em uma nova linha de processamento paralela.
+
+=== Tokens de Parada
+O `std::stop_token` é um mecanismo que permite sinalizar a uma thread que ela deve parar sua execução de forma cooperativa. Isso é especialmente útil para evitar bloqueios e garantir encerramentos limpos. No seu loop interno, a função lambda pode verificar periodicamente o estado do `std::stop_token` para determinar se deve continuar executando ou encerrar a thread. Uma vantagem da `std::jthread` é a injeção automática desse token caso a função lambda possua um parâmetro correspondente, eliminando a necessidade de instanciá-lo explicitamente.
+
+=== Variáveis Condicionais
+O `std::condition_variable_any` é uma ferramenta de sincronização que permite que as threads esperem por condições específicas, facilitando a coordenação entre threads trabalhadoras e a _main thread_. Quando as threads trabalhadoras são criadas, elas entram em estado de espera usando a variável condicional, aguardando que a _main thread_ adicione uma tarefa à fila. O uso desta ferramenta é crucial para garantir que as tarefas sejam processadas em ordem e sem o uso excessivo de CPU por meio de _polling_.
+
 === Monitores
+Conforme explica #cite(<ladeira_sincronizacao>, form: "prose"), o padrão Monitor é uma implementação de alto nível para controle de sincronização. Ele encapsula tanto os dados quanto os métodos que operam sobre esses dados, utilizando mecanismos de bloqueio (_mutexes_) para garantir exclusão mútua e variáveis de condição para coordenar a execução das threads. A adoção do padrão Monitor visa prevenir condições de corrida (_race conditions_) entre as rotinas assíncronas de processamento e a _main thread_, garantindo a integridade dos recursos compartilhados como os dados da malha e do grafo.
+
 === _Task Scheduler_
+Um _Task Scheduler_ é um componente responsável por gerenciar a execução de tarefas concorrentes. Ele mantém uma fila de tarefas pendentes e um conjunto de threads (_thread pool_) que processam essas tarefas em paralelo @ladeira_threads. O objetivo é otimizar o uso dos recursos do sistema, garantindo que as tarefas de extração e construção de dados sejam executadas de forma eficiente sem bloquear o loop principal da aplicação.
+
 === Fila Multinível
+Certas tarefas possuem criticidade superior a outras. Para gerenciar essa disparidade, o escalonador implementa filas multinível, onde as tarefas são categorizadas por prioridade. As tarefas de alta prioridade (como a geração de configurações de ruído) são processadas antes das tarefas de média prioridade (como a extração do grafo), enquanto tarefas de baixa prioridade (como a exportação de logs e imagens para disco) são executadas apenas quando houver folga no pool de trabalhadores.
 
 \
 #figure(
@@ -670,6 +683,11 @@ $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
+
+=== Segurança de Memória e Compartilhamento de Estado
+O uso de ponteiros brutos do C++ em um ambiente de programação concorrente pode levar a problemas de segurança de memória gravíssimos, como condições de corrida e falhas de segmentação (SIGSEGV). Uma vez que as threads trabalhadoras operam sobre os dados compartilhados, é crucial garantir que esses dados permaneçam válidos durante toda a execução das tarefas.
+
+Diferente de ponteiros brutos, a implementação adotará exclusivamente referências e _smart pointers_ (como `std::shared_ptr` ou `std::unique_ptr`). As referências garantem acesso a objetos não nulos, enquanto os _smart pointers_ gerenciam automaticamente a vida útil dos recursos. Um `std::shared_ptr` permite que múltiplos objetos compartilhem a propriedade de um recurso, garantindo sua destruição apenas quando a última referência for liberada, assegurando que o grafo permaneça válido durante toda a execução paralela.
 
 = METODOLOGIA
 Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção do motor do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
@@ -711,12 +729,61 @@ O padrão _Singleton_ foi aplicado na criação de instâncias do motor gráfico
 === Implementação de Algoritmos de Pathfinding
 === Adaptação para Ambientes 3D
 === Implementação de Multithreading e Testes de Estresse
-Para viabilizar a arquitetura da IFCG sem comprometer o desempenho, o ciclo principal de renderização e todas as chamadas ao OpenGL foram isolados na _thread_ principal. Simultaneamente, a execução pesada dos algoritmos de pathfinding ocorre em _threads_ operárias concorrentes (utilizando _jthread_). Os resultados desses cálculos são repassados à _thread_ gráfica através de mecanismos seguros de sincronização de memória, permitindo que a geometria seja atualizada e renderizada sem corromper o contexto global da GPU.
+Para viabilizar a arquitetura da IFCG sem comprometer o desempenho, o ciclo principal de renderização e todas as chamadas ao OpenGL foram isolados na _thread_ principal. Simultaneamente, a execução pesada dos processos de geração de terreno e extração de grafos ocorre em _threads_ operárias concorrentes gerenciadas pelo `TaskMaster`.
+
+O `TaskMaster` foi implementado como um escalonador que mantém três filas de prioridade (`High`, `Medium` e `Low`) protegidas por um monitor. O número de threads trabalhadoras é determinado dinamicamente pelo sistema através de `std::thread::hardware_concurrency()`. Para evitar a saturação completa dos núcleos do processador e garantir que a _main thread_ (responsável pela renderização e interface) permaneça responsiva, o sistema reserva um núcleo, instanciando $N-1$ threads trabalhadoras. Estas threads são implementadas como objetos `std::jthread`, aproveitando o comportamento RAII para garantir que sejam finalizadas corretamente na destruição do escalonador.
+
+\
+#figure(
+  caption: [Diagrama de classes da arquitetura do TaskMaster],
+  supplement: "Figura",
+)[
+  #image("./images/task_master.png", width: 100%)
+]\
+
+O método `addTask` é o ponto de entrada para a submissão de tarefas. Utilizando modelos de programação (_templates_) e metaprogramação em tempo de compilação (`if constexpr`), o método é capaz de aceitar funções que recebem ou não um `std::stop_token`. Isso confere flexibilidade ao sistema, permitindo que tarefas de longa duração verifiquem periodicamente se uma interrupção foi solicitada, enquanto tarefas curtas e simples podem ser executadas sem essa complexidade adicional.
+
+Cada thread trabalhadora executa um loop contínuo que aguarda por novas tarefas utilizando uma `std::condition_variable_any`. A lógica de seleção de tarefas prioriza sempre as filas de maior importância: o trabalhador verifica sequencialmente as filas `High`, `Medium` e `Low`, extraindo a primeira tarefa disponível na fila de maior prioridade encontrada. Mesmo que um lock tenha sido adquirido, a função `wait` da variável condicional é projetada para liberá-lo enquanto a thread está bloqueada, permitindo que a _main thread_ adicione novas tarefas sem contenção desnecessária. Quando a thread operária é acordada, o lock é automaticamente re-adquirido para a extração segura da tarefa.
+
+Para os testes de estresse, o sistema é configurado para gerar e processar centenas de malhas sequencialmente em múltiplos núcleos, permitindo medir a escalabilidade da arquitetura e a eficácia das filas de prioridade em manter a responsividade da interface durante picos de carga de processamento.
+
+=== Controle de Recursos do Sistema Operacional
+Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, a arquitetura adota estratégias de controle de recursos em nível de software. Ao limitar o pool de trabalhadores ao total de núcleos físicos menos um, reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre as _threads_ operárias e o motor de renderização. Além disso, o uso do `std::stop_token` permite o cancelamento cooperativo de tarefas obsoletas, evitando o desperdício de ciclos de CPU em processamentos que não serão mais utilizados.
 
 == Desenho Experimental e Coleta de Dados
+A coleta de dados foi projetada para avaliar a eficiência da arquitetura paralela e o impacto computacional dos algoritmos em terrenos de complexidade variável.
+
+=== Ambiente de Teste
+O hardware utilizado para os testes consiste em um processador de 12ª geração Intel Core i5-1235U (12 _threads_, frequência máxima de 4.40 GHz) e 16 GB de memória RAM. A aceleração gráfica foi provida por uma GPU integrada Intel Iris Xe Graphics. 
+
+O sistema operacional utilizado foi Arch Linux (Kernel 6.15.9). Todo o código-fonte foi desenvolvido obedecendo estritamente ao padrão C++20 e compilado utilizando a coleção de compiladores GNU (GCC). Para avaliar a máxima performance dos algoritmos, o binário final foi gerado utilizando a flag de otimização de tempo de execução `-O3` (`Release`), juntamente com diretrizes rigorosas de compilação (`-Wall`, `-Wextra`, `-Wpedantic` e `-Werror`). A renderização foi construída sobre OpenGL 4.6 e GLFW 3.4.
+
 === Configuração dos Testes e Métricas Coletadas
+Para analisar o desempenho, foram selecionadas métricas que avaliam tanto a eficiência computacional quanto a qualidade da solução e a estabilidade do sistema:
+
+- *Tempo de Execução:* Mede o intervalo gasto na geração de mapas, construção de grafos e busca de caminhos.
+- *Responsividade (FPS):* A taxa de quadros por segundo é monitorada para validar a eficácia do isolamento da _main thread_.
+- *Consumo de Memória:* Avalia o impacto das estruturas de dados (malhas e grafos) no uso de RAM.
+- *Eficiência do Cache:* Analisa a taxa de acertos e falhas na CPU, fornecendo _insights_ sobre a localidade de referência dos algoritmos.
+- *Métricas de Busca:* Incluem o número de nós expandidos e o custo total do caminho para validar a otimalidade.
+
+Além das métricas, o sistema registra os parâmetros de configuração do terreno que influenciam a complexidade da busca:
+- *Escala:* Refere-se à dimensão do mapa, influenciando diretamente o volume de dados e o tempo de construção do grafo.
+- *Lacunaridade:* Indica a densidade de obstáculos e a frequência das variações no mapa de ruído.
+- *Persistência:* Refere-se à variação de altura e irregularidade do relevo, definindo a inclinação das faces da malha.
+
 === Execução dos Testes e Registro dos Resultados
+O experimento utiliza uma bateria de testes organizada em três eixos principais de variação: escala, lacunaridade e persistência. A aquisição dos dados estatísticos é realizada de forma paralelizada para otimizar o tempo total de experimentação e garantir que o motor gráfico permaneça responsivo.
+
+O fluxo de execução é gerenciado pelo `TaskMaster`, que agrupa as tarefas de cada repetição do experimento:
+1. *Geração do Mapa (Alta Prioridade):* O mapa de ruído de Perlin é gerado na fila `Priority::High`.
+2. *Construção do Grafo (Média Prioridade):* A extração da estrutura de dados para busca ocorre na fila `Priority::Medium`.
+3. *Exportação de Dados (Baixa Prioridade):* O salvamento das representações visuais (PNG) é feito na fila `Priority::Low` por ser uma operação de I/O lenta.\
+
+A _main thread_ utiliza um mecanismo de sincronização baseado em `std::condition_variable` para aguardar a conclusão de um lote completo de processamento (passo do experimento). Somente após todos os grafos estarem prontos e alocados, a _thread_ principal executa os algoritmos de busca (A\*, Dijkstra, etc.) e registra os tempos de execução, garantindo que a medição de performance não sofra ruído devido à contenção de recursos do processamento paralelo.
+
 === Análise Estatística e Visual dos Resultados
+Os resultados armazenados em memória são exportados para arquivos CSV (_Comma-Separated Values_), permitindo o processamento posterior em ferramentas de análise. A avaliação final incluirá a comparação entre o pipeline sequencial (_baseline_) e a solução concorrente, utilizando gráficos de dispersão e boxplots para visualizar a distribuição dos tempos de execução e a variação da taxa de quadros conforme a carga de processamento aumenta.
 
 = CRONOGRAMA
 
