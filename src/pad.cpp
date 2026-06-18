@@ -15,6 +15,7 @@
 
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
+#include <ifcg/common/meshBase.hpp>
 
 #include "statistics.hpp"
 #include "util.hpp"
@@ -30,18 +31,13 @@ void runBenchPar(std::string testName, Param paramSetter, Stats statsSetter, uin
 void runEngineSeq(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity);
 void runEnginePar(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity);
 
-struct MeshData {
-    std::vector<Vertex> v;
-    std::vector<GLuint> i;
-    double time;
-    NoiseConfig config;
-};
-
 struct TestConfig {
     std::string name;
     Param paramSetter;
     Stats statsSetter;
 };
+
+std::string folderPath = "/home/andre/projects/tcc/results/pad";
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -105,6 +101,7 @@ int main(int argc, char* argv[]) {
                 runBenchSeq(config.name, config.paramSetter, config.statsSetter, repetitions, numSteps, intensity);
             }
         } else {
+            bool finished = true;
             if (mode == "paralelo") {
                 runEnginePar(config.name, config.paramSetter, config.statsSetter, repetitions, numSteps, intensity);
             } else {
@@ -116,17 +113,15 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-
 void runBenchSeq(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity) {
     Statistics stats(numSteps * repetitions);
-    std::string folderPath = "../results/bench_seq/" + testName;
-    fs::create_directories(folderPath);
+
+    auto path = folderPath + "/" + testName;
+    fs::create_directories(path);
 
     for (int step = 0; step < (int)numSteps; ++step) {
         NoiseConfig config = paramSetter(step);
         for (uint rep = 0; rep < repetitions; ++rep) {
-            std::cout << "\rBench Seq: Step " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
-            
             auto start = std::chrono::steady_clock::now();
             auto noise = generateNoiseMap(config);
             auto [v, i] = createMeshDataFromNoise(noise, config.width, config.height, (float)intensity);
@@ -137,87 +132,123 @@ void runBenchSeq(std::string testName, Param paramSetter, Stats statsSetter, uin
             statsSetter(stats, "Sequencial", config);
         }
     }
-    std::cout << std::endl;
-    stats.saveToCSV(folderPath + "/stats.csv");
+
+    stats.saveToCSV(path + "/sequential.csv");
 }
 
+
 void runBenchPar(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity) {
-    TaskMaster tm(true);
+    warmUp();
+    TaskMaster tm(false);
+    
+    int tarefasPorPasso = repetitions * 2; 
+    
+    std::mutex mainMtx;
+    std::condition_variable mainCv;
+
     Statistics stats(numSteps * repetitions);
-    std::string folderPath = "../results/bench_par/" + testName;
-    fs::create_directories(folderPath);
 
-    std::mutex mtx;
-    std::condition_variable_any cv;
-    uint totalTasks = repetitions * numSteps;
-    uint completedTasks = 0;
+    std::string path = folderPath + "/" + testName;
+    fs::create_directories(path);
+    
+    for (int step = 0; step < numSteps; ++step) {
+        std::vector<NoiseConfig> configs(repetitions);
+        std::vector<double> times(repetitions);
+        
+        int tarefasConcluidas = 0;
 
-    for (int step = 0; step < (int)numSteps; ++step) {
-        NoiseConfig config = paramSetter(step);
-        for (uint rep = 0; rep < repetitions; ++rep) {
-            tm.addTask([&stats, &statsSetter, &mtx, &cv, &completedTasks, config, intensity]() {
+        for (int rep = 0; rep < repetitions; ++rep) {
+            tm.addTask([step, rep, tarefasPorPasso, paramSetter, intensity, path, &configs, &times, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
+                NoiseConfig config = paramSetter(step);
+                configs[rep] = config;
+
                 auto start = std::chrono::steady_clock::now();
                 auto noise = generateNoiseMap(config);
-                auto [v, i] = createMeshDataFromNoise(noise, config.width, config.height, (float)intensity);
-                auto end = std::chrono::steady_clock::now();
 
-                double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
-                stats.addEntry("Paralelo", "Tempo Geração", totalTime);
-                statsSetter(stats, "Paralelo", config);
+                tm.addTask([config, noise = std::move(noise), rep, tarefasPorPasso, intensity, start, &times, &mainMtx, &mainCv, &tarefasConcluidas]() mutable {
+                    auto [v, i] = createMeshDataFromNoise(noise, config.width, config.height, intensity);
+                    auto end = std::chrono::steady_clock::now();
+                    times[rep] = (double)std::chrono::duration<double, std::milli>(end - start).count();
+
+                    std::lock_guard<std::mutex> lock(mainMtx);
+                    tarefasConcluidas++;
+                    if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
+                }, Priority::Medium);
 
                 {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    completedTasks++;
+                    std::lock_guard<std::mutex> lock(mainMtx);
+                    tarefasConcluidas++;
+                    if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
                 }
-                cv.notify_all();
-            }, Priority::High);
+            }, Priority::High); 
+        }
+
+        {
+            std::unique_lock<std::mutex> mainLock(mainMtx);
+            mainCv.wait(mainLock, [&]() { return tarefasConcluidas == tarefasPorPasso; });
+        }
+
+        for (uint rep = 0; rep < repetitions; ++rep) {
+            stats.addEntry(testName, "Tempo Total", times[rep]);
+            statsSetter(stats, testName, configs[rep]);
         }
     }
 
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock, [&]() { return completedTasks == totalTasks; });
-    }
-    std::cout << std::endl;
-    stats.saveToCSV(folderPath + "/stats.csv");
-}
+    stats.saveToCSV(path + "/paralelo.csv");
+};
 
 void runEngineSeq(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity) {
-    Engine::init(1200, 800, "Engine Sequential - Blocking Main Thread");
-    Engine::setup3D();
-    auto& renderer = Engine::getRenderer();
-    GLuint shader = renderer.getShaderID();
+    ifcg::Engine::init(800, 800, "PAD - Engine Sequencial");
+    ifcg::Engine::setup3D();
+
+    auto& renderer {Engine::getRenderer()};
+    GLuint shader {renderer.getShaderID()};
 
     Statistics stats(numSteps * repetitions);
-    std::string folderPath = "../results/engine_seq/" + testName;
-    fs::create_directories(folderPath);
+
+    auto path = folderPath + "/" + testName;
+    fs::create_directories(path);
 
     uint currentStep = 0;
     uint currentRep = 0;
-    std::vector<std::shared_ptr<MeshBase>> activeMeshes;
+    
+    auto lastTime = std::chrono::high_resolution_clock::now();
+    double fps = 0.0;
 
-    LoopConfig config {
+    uint totalTasks = numSteps * repetitions;
+    uint completedTasks = 0;
+
+    ifcg::LoopConfig config = {
         .loopBody = [&]() {
-            if (currentStep >= numSteps) return;
+            if (currentStep >= numSteps) {
+                stats.saveToCSV(path + "/engine_sequencial.csv");
+                glfwSetWindowShouldClose(Engine::getWindow().getGLFWwindow(), true);
+                return;
+            }
 
-            NoiseConfig nConfig = paramSetter(currentStep);
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            double deltaTime = std::chrono::duration<double>(currentTime - lastTime).count();
+            lastTime = currentTime;
+
+            if (deltaTime > 0) {
+                fps = 1.0 / deltaTime;
+            }
+
+            std::cout << "\rFPS: " << (int)fps << " | Tasks: " << completedTasks << "/" << totalTasks << "            " << std::flush;
+
             
+            NoiseConfig noiseConfig = paramSetter(currentStep);
             auto start = std::chrono::steady_clock::now();
-            auto noise = generateNoiseMap(nConfig);
-            auto [v, i] = createMeshDataFromNoise(noise, nConfig.width, nConfig.height, (float)intensity);
+            auto noise = generateNoiseMap(noiseConfig);
+            auto [vertices, indices] = createMeshDataFromNoise(noise, noiseConfig.width, noiseConfig.height, (float)intensity);
             auto end = std::chrono::steady_clock::now();
-
             double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
-            stats.addEntry("Engine Seq", "Tempo Geração", totalTime);
-            statsSetter(stats, "Engine Seq", nConfig);
-
-            // Substitui a malha antiga para manter performance de renderização mas mostrar o custo de CPU
-            for (auto& mesh : activeMeshes) renderer.removeMesh(mesh);
-            activeMeshes.clear();
-
-            auto mesh = std::make_shared<Mesh>(v, i, shader, GL_TRIANGLES);
-            renderer.addMesh(mesh);
-            activeMeshes.push_back(mesh);
+            
+            completedTasks++;
+            
+            stats.addEntry(testName, "Tempo Total", totalTime);
+            stats.addEntry(testName, "FPS", fps);
+            statsSetter(stats, testName, noiseConfig);
 
             currentRep++;
             if (currentRep >= repetitions) {
@@ -228,82 +259,87 @@ void runEngineSeq(std::string testName, Param paramSetter, Stats statsSetter, ui
     };
 
     Engine::loop(config);
-    Engine::terminate();
-    stats.saveToCSV(folderPath + "/stats.csv");
+
+    ifcg::Engine::terminate();
 }
 
 void runEnginePar(std::string testName, Param paramSetter, Stats statsSetter, uint repetitions, uint numSteps, uint intensity) {
-    Engine::init(1200, 800, "Engine Parallel - Async Generation");
-    Engine::setup3D();
-    auto& renderer = Engine::getRenderer();
-    GLuint shader = renderer.getShaderID();
+    ifcg::Engine::init(800, 800, "PAD - Engine Paralelo");
+    ifcg::Engine::setup3D();
+
+    auto& renderer {Engine::getRenderer()};
+    GLuint shader {renderer.getShaderID()};
 
     Statistics stats(numSteps * repetitions);
-    std::string folderPath = "../results/engine_par/" + testName;
-    fs::create_directories(folderPath);
+    TaskMaster tm(false);
 
-    std::queue<MeshData> queue;
-    std::mutex queueMtx;
-    bool running = true;
+    auto path = folderPath + "/" + testName;
+    fs::create_directories(path);
 
-    std::thread generator([&]() {
+    uint currentStep = 0;
+    uint currentRep = 0;
+    bool taskInProgress = false;
+
+    auto lastTime = std::chrono::high_resolution_clock::now();
+    double fps = 0.0;
+
+    uint totalTasks = numSteps * repetitions;
+    uint completedTasks = 0;
+    uint facadeCompletedTasks = 0;
+    std::mutex taskMtx;
+
+    tm.addTask([numSteps, repetitions, intensity, paramSetter, statsSetter, testName, path, &stats, &tm, &fps, &completedTasks, &facadeCompletedTasks, &taskMtx]() {
         for (uint step = 0; step < numSteps; ++step) {
-            NoiseConfig nConfig = paramSetter(step);
             for (uint rep = 0; rep < repetitions; ++rep) {
-                if (!running) return;
+                tm.addTask([step, rep, intensity, paramSetter, statsSetter, testName, path, &stats, &tm, &fps, &completedTasks, &facadeCompletedTasks, &taskMtx]() {
+                    NoiseConfig noiseConfig = paramSetter(step);
 
-                auto start = std::chrono::steady_clock::now();
-                auto noise = generateNoiseMap(nConfig);
-                auto [v, i] = createMeshDataFromNoise(noise, nConfig.width, nConfig.height, (float)intensity);
-                auto end = std::chrono::steady_clock::now();
+                    auto start = std::chrono::steady_clock::now();
+                    auto noise = generateNoiseMap(noiseConfig);
+                    auto [vertices, indices] = createMeshDataFromNoise(noise, noiseConfig.width, noiseConfig.height, (float)intensity);
+                    auto end = std::chrono::steady_clock::now();
+                    double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
 
-                double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
-                
-                {
-                    std::lock_guard<std::mutex> lock(queueMtx);
-                    queue.push({v, i, totalTime, nConfig});
-                }
-                
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                    {
+                        std::lock_guard<std::mutex> lock(taskMtx);
+                        facadeCompletedTasks++;
+                    }
+
+                    tm.addTask([testName, totalTime, noise, noiseConfig, step, rep, statsSetter, path, &stats, &fps, &completedTasks, &taskMtx]() {
+                        stats.addEntry(testName, "Tempo Total", totalTime);
+                        stats.addEntry(testName, "FPS", fps);
+                        statsSetter(stats, testName, noiseConfig);
+
+                        {
+                            std::lock_guard<std::mutex> lock(taskMtx);
+                            completedTasks++;
+                        }
+                    }, Priority::Low);
+                }, Priority::Medium);
             }
         }
-    });
+    }, Priority::High);
 
-    std::vector<std::shared_ptr<MeshBase>> activeMeshes;
-
-    LoopConfig config {
+    ifcg::LoopConfig config = {
         .loopBody = [&]() {
-            MeshData data;
-            bool hasData = false;
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            double deltaTime = std::chrono::duration<double>(currentTime - lastTime).count();
+            lastTime = currentTime;
+            if (deltaTime > 0) fps = 1.0 / deltaTime;
 
+            std::cout << "\rFPS: " << (int)fps << " | Tasks: " << facadeCompletedTasks << "/" << totalTasks << "            " << std::flush;
+            
             {
-                std::lock_guard<std::mutex> lock(queueMtx);
-                if (!queue.empty()) {
-                    data = std::move(queue.front());
-                    queue.pop();
-                    hasData = true;
+                std::lock_guard<std::mutex> lock(taskMtx);
+                if (completedTasks == numSteps * repetitions) {
+                    stats.saveToCSV(path + "/engine_paralelo.csv");
+                    glfwSetWindowShouldClose(Engine::getWindow().getGLFWwindow(), true);
                 }
-            }
-
-            if (hasData) {
-                stats.addEntry("Engine Par", "Tempo Geração", data.time);
-                statsSetter(stats, "Engine Par", data.config);
-
-                for (auto& mesh : activeMeshes) renderer.removeMesh(mesh);
-                activeMeshes.clear();
-
-                auto mesh = std::make_shared<Mesh>(data.v, data.i, shader, GL_TRIANGLES);
-                renderer.addMesh(mesh);
-                activeMeshes.push_back(mesh);
             }
         }
     };
-
+    
     Engine::loop(config);
 
-    running = false;
-    if (generator.joinable()) generator.join();
-    Engine::terminate();
-
-    stats.saveToCSV(folderPath + "/stats.csv");
+    ifcg::Engine::terminate();
 }

@@ -82,7 +82,7 @@ public:
 
         if (data.empty()) return;
 
-        file << "Algoritmo";
+        file << "Grupo";
         const auto& firstGroupMetrics = data.begin()->second;
         for (const auto& m : firstGroupMetrics) {
             file << "," << m.first;

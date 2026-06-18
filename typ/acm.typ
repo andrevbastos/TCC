@@ -284,9 +284,8 @@ Embora o uso de `std::map` envolva mais alocações dinâmicas do que um vetor c
 Para analisar o impacto dos algoritmos, foram selecionadas métricas que avaliam tanto a eficiência computacional quanto a qualidade da solução encontrada:
 
 - *Tempo de Extração:* Mede o intervalo total gasto para converter o mapa de ruído em uma malha de triângulos, sendo uma métrica crítica para a fluidez do sistema.
-- *Responsividade (FPS):* A taxa de quadros por segundo da aplicação é monitorada para observar como a geração assíncronas da malha permite manter a fluidez da renderização na thread principal.
-- *Consumo de Memória:* Mede a quantidade de memória RAM utilizada durante a execução dos algoritmos, sendo uma métrica importante para avaliar a eficiência do uso de recursos.
 - *Eficiência do Cache:* Avalia a taxa de acertos e falhas no cache da CPU via ferramenta `perf stat` do Linux, fornecendo insights sobre a localidade de referência dos algoritmos e seu impacto no desempenho.
+- *Responsividade (FPS):* A taxa de quadros por segundo da aplicação é monitorada para observar como a geração assíncronas da malha permite manter a fluidez da renderização na thread principal.
 
 Além dessas métricas, o sistema permite registrar parâmetros de configuração do ruído, facilitando a correlação entre a complexidade da malha e o custo de renderização. As possíveis variações de configuração incluem:
 
@@ -397,16 +396,16 @@ Para o modo BP (Bench Parallel), o `TaskMaster` distribui as repetições do exp
 
 == Controle de Recursos do Sistema Operacional
 
-Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, o `TaskMaster` adota estratégias de controle de recursos em nível de software. A principal estratégia é a afinidade implícita de threads e a limitação do pool de trabalhadores. Ao limitar o número de threads ao total de núcleos físicos menos um, reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre os trabalhadores e o motor de renderização.
+Para garantir um ambiente isolado e minimizar interferências externas, o sistema operacional foi configurado para reduzir a influência de processos em segundo plano. Um script de inicialização foi criado para desativar serviços desnecessários e ajustar a política de escalonamento da CPU e  configurar o sistema para operar em modo _performance_. 
 
-Além disso, o uso de `std::stop_token` permite um cancelamento cooperativo de tarefas. Se a aplicação precisar ser encerrada ou se uma tarefa se tornar obsoleta (por exemplo, uma malha de um setor que não está mais no campo de visão), o sistema pode sinalizar a interrupção de forma segura, evitando desperdício de ciclos de CPU em processamentos que não serão mais utilizados.
+Além disso, todo os testes de benchmark (BS e BP) foram conduzidos no ambiente TTY (sem interface gráfica), garantindo que a GPU não fosse utilizada para renderização de janelas ou efeitos visuais do sistema operacional durante os testes. Essa abordagem assegura que os resultados obtidos reflitam com precisão o desempenho da arquitetura concorrente implementada, sem interferências externas.
 
 = Resultados e Discussão
 == Impacto na Responsividade da Main Thread
 == Análise de Desempenho da Geração de Malhas
-== Uso de Memória e Eficiência do Cache
+== Eficiência do Cache
 
 = Conclusão
 
-// Estilo da bibliografia atualizado para o formato da ACM
+
 #bibliography("referencias_acm.bib", title: "Referências", style: "association-for-computing-machinery") 

@@ -679,7 +679,7 @@ Certas tarefas possuem criticidade superior a outras. Para gerenciar essa dispar
   caption: [Diagrama de Thread Pool e filas multinível],
   supplement: "Figura",
 )[
-  #image("./images/thread_pool.svg", width: 100%)
+  #image("./images/thread_pool.svg", width: 75%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
@@ -693,9 +693,34 @@ Diferente de ponteiros brutos, a implementação adotará exclusivamente referê
 Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção do motor do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
 
 == Arquitetura do Motor Gráfico (IFCG)
+
+O motor gráfico desenvolvido para este estudo, denominado IFCG (Instituto Federal Catarinense/Computação Gráfica), foi projetado para ser uma plataforma de redenrização flexível para a implementação e avaliação dos algoritmos de pathfinding. A arquitetura do IFCG foi cuidadosamente planejada para garantir que os testes sejam realizados em um ambiente gráfico realista, mas simples, permitindo a coleta de dados precisos sobre o desempenho dos algoritmos em cenários tridimensionais complexos.
+
+Ele é composto por diversos módulos, cada um responsável por uma parte específica do processo de renderização e gerenciamento de recursos gráficos. A seguir, serão detalhados os principais componentes da arquitetura do motor gráfico e como eles se relacionam para criar um ambiente de teste eficiente para os algoritmos de pathfinding.
+
 === Aplicação de conceitos
+
+Para lidar com a complexidade inerente à renderização gráfica e ao gerenciamento de recursos, a arquitetura do IFCG foi projetada utilizando princípios de design de software e padrões de projeto. A aplicação desses conceitos é fundamental para garantir que o código seja uma simplificação das chamadas do OpenGL, mantendo a flexibilidade e a capacidade de extensão necessárias para futuras implementações e otimizações.
+
+Como o coração do motor foi desenvolvida uma classe `Engine`, que é responsável por gerenciar o ciclo de renderização, as chamadas ao OpenGL e a interação com a janela. Essa classe encapsula toda a lógica do ciclo de renderização e fornece uma interface simples para a criação de cenários de teste, permitindo que os algoritmos de pathfinding sejam avaliados em diferentes condições e configurações.
+
+O padrão _Singleton_ foi aplicado na criação de instâncias do `Engine`, garantindo um controle centralizado sobre os recursos gráficos e a renderização. Isso evita conflitos e mantém a consistência do ambiente de renderização, permitindo que diferentes partes do sistema acessem o motor gráfico de forma segura e coordenada.
+
+Seguindo os conceitos de #cite(<learnopengl>, form: "prose"), foi desenvolvido uma classe `Mesh`, que representa uma malha 3D e encapsula os dados necessários para renderizá-la, como vértices, normais, coordenadas de textura e índices. Essa classe também gerencia os _buffers_ VBO, EBO e VAO, garantindo que a malha seja renderizada de forma eficiente e correta.
+
+A classe `Shader` @learnopengl foi implementada para gerenciar os programas de sombreamento (shaders) utilizados na renderização das malhas. Ela encapsula a criação, compilação e vinculação dos shaders. Essa classe permite a leitura de arquivos de extensão `glsl`, que contêm o código dos shaders, e fornece métodos para definir uniformes e atributos de vértice, facilitando a personalização da aparência das malhas renderizadas.
+
+=== Componentes do Motor Gráfico
+
+Para organizar a arquitetura do motor gráfico, foram definidos diversos módulos, cada um responsável por uma parte específica do processo de renderização e gerenciamento de recursos gráficos. A seguir, serão detalhados os principais componentes da arquitetura do motor gráfico e como eles se relacionam para criar um ambiente de teste eficiente para os algoritmos de pathfinding.
+
++ Window: Essa classe é um _wrapper_ para a biblioteca GLFW, responsável por criar e gerenciar a janela de renderização. Ela encapsula a criação do contexto OpenGL, o gerenciamento de eventos de entrada (como teclado e mouse) e a configuração das propriedades da janela, como tamanho, título e modo de exibição.
+
++ Renderer: Essa classe é responsável por gerenciar o ciclo de renderização, incluindo a configuração do estado do OpenGL, a vinculação dos _buffers_ e a emissão dos comandos de desenho. Ela também gerencia a ordem de renderização das malhas, garantindo que os objetos sejam desenhados na ordem correta e com as propriedades visuais desejadas.
+
++ Input: Essa classe é responsável por gerenciar a entrada do usuário, processando eventos de teclado e mouse. Ela fornece métodos para adicionar funções de _callback_ personalizadas, permitindo que a aplicação reaja a eventos de entrada de forma flexível e eficiente.
+
 === Estrutura de Renderização e Gerenciamento de Recursos
-A implementação do IFCG foi estruturada utilizando os princípios da programação orientada a objetos, para facilitar a organização do código, a reutilização de componentes e a manutenção do sistema. Além disso, foram aplicados diversos padrões de projeto para garantir a modularidade, flexibilidade e escalabilidade do código.
 
 O padrão _Composite_ @gamma1994design foi utilizado para representar a hierarquia de objetos na infraestrutura gráfica, onde uma malha complexa pode ser composta por várias sub-malhas, e cada sub-malha pode ser tratada da mesma forma. Toda base de malha (_MeshBase_) contém sua própria matriz de modelo, que é responsável por armazenar as transformações de posição, rotação e escala da malha. Então as classes de malha (_Mesh_) e malha composta (_MeshTree_) herdam dessa base, permitindo que sejam tratadas de forma uniforme, independentemente de serem malhas simples ou compostas.
 
@@ -711,9 +736,11 @@ O padrão _Composite_ @gamma1994design foi utilizado para representar a hierarqu
 
 Com essa arquitetura, o motor de renderização pode desenhar tanto malhas simples quanto compostas utilizando a mesma interface. Assim, permitindo criar cenários complexos com complexidade reduzida e mantendo a flexibilidade para adicionar novos tipos de malhas ou componentes gráficos no futuro.
 
-O padrão _Singleton_ foi aplicado na criação de instâncias do motor gráfico principal, garantindo um controle centralizado sobre os recursos gráficos e a renderização. Isso evita conflitos e mantém a consistência do ambiente de renderização, permitindo que diferentes partes do sistema acessem o motor gráfico de forma segura e coordenada.
+Isso permite que o `Renderer` é capaz de percorrer a hierarquia de malhas e renderizar cada uma delas de forma eficiente, aplicando as transformações apropriadas e garantindo que a cena seja exibida corretamente na janela de renderização. 
 
-=== Motor de Renderização e seus Componentes
+Uma fila de malhas é mantida pelo `Renderer`, permitindo que as malhas sejam adicionadas e removidas dinamicamente durante a execução do programa. Essa fila é processada a cada ciclo de renderização, garantindo que todas as malhas sejam desenhadas na ordem correta e com as propriedades visuais desejadas.
+
+Para gerenciar a renderização foi desenvolvido um sistema de loop de renderização ajustado a partir de configurações pré-definidas. Isso é, foi desenvolvido um _struct_ `LoopConfig` que contém parâmetros como taxa de atualização desejada, limites de tempo de renderização e opções de funções _lambda_ para serem executadas em momentos diferentes do ciclo de renderização. O `Renderer` utiliza essas configurações para controlar fluxo do motor flexívelmente.
 
 == Implementação da Estrutura de Grafos
 === Representação de Grafos Direcionados e Não Direcionados
@@ -751,7 +778,7 @@ Para os testes de estresse, o sistema é configurado para gerar e processar cent
 Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, a arquitetura adota estratégias de controle de recursos em nível de software. Ao limitar o pool de trabalhadores ao total de núcleos físicos menos um, reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre as _threads_ operárias e o motor de renderização. Além disso, o uso do `std::stop_token` permite o cancelamento cooperativo de tarefas obsoletas, evitando o desperdício de ciclos de CPU em processamentos que não serão mais utilizados.
 
 == Desenho Experimental e Coleta de Dados
-A coleta de dados foi projetada para avaliar a eficiência da arquitetura paralela e o impacto computacional dos algoritmos em terrenos de complexidade variável.
+A coleta de dados foi projetada para avaliar o impacto computacional dos algoritmos em terrenos de complexidade variável. 
 
 === Ambiente de Teste
 O hardware utilizado para os testes consiste em um processador de 12ª geração Intel Core i5-1235U (12 _threads_, frequência máxima de 4.40 GHz) e 16 GB de memória RAM. A aceleração gráfica foi provida por uma GPU integrada Intel Iris Xe Graphics. 
@@ -773,17 +800,17 @@ Além das métricas, o sistema registra os parâmetros de configuração do terr
 - *Persistência:* Refere-se à variação de altura e irregularidade do relevo, definindo a inclinação das faces da malha.
 
 === Execução dos Testes e Registro dos Resultados
+
 O experimento utiliza uma bateria de testes organizada em três eixos principais de variação: escala, lacunaridade e persistência. A aquisição dos dados estatísticos é realizada de forma paralelizada para otimizar o tempo total de experimentação e garantir que o motor gráfico permaneça responsivo.
 
 O fluxo de execução é gerenciado pelo `TaskMaster`, que agrupa as tarefas de cada repetição do experimento:
 1. *Geração do Mapa (Alta Prioridade):* O mapa de ruído de Perlin é gerado na fila `Priority::High`.
-2. *Construção do Grafo (Média Prioridade):* A extração da estrutura de dados para busca ocorre na fila `Priority::Medium`.
+2. *Construção do Grafo e Malha (Média Prioridade):* A extração da estrutura de dados para busca ocorre na fila `Priority::Medium`.
 3. *Exportação de Dados (Baixa Prioridade):* O salvamento das representações visuais (PNG) é feito na fila `Priority::Low` por ser uma operação de I/O lenta.\
 
-A _main thread_ utiliza um mecanismo de sincronização baseado em `std::condition_variable` para aguardar a conclusão de um lote completo de processamento (passo do experimento). Somente após todos os grafos estarem prontos e alocados, a _thread_ principal executa os algoritmos de busca (A\*, Dijkstra, etc.) e registra os tempos de execução, garantindo que a medição de performance não sofra ruído devido à contenção de recursos do processamento paralelo.
+A _main thread_ utiliza um mecanismo de sincronização baseado em `std::condition_variable` para aguardar a conclusão de um lote completo de processamento (passo do experimento). Somente após todos os grafos estarem prontos e alocados, a _thread_ principal executa os algoritmos de busca (A\*, Dijkstra, etc.) e registra os dados estatísticos, garantindo que a medição de performance não sofra ruído devido à contenção de recursos do processamento paralelo.
 
-=== Análise Estatística e Visual dos Resultados
-Os resultados armazenados em memória são exportados para arquivos CSV (_Comma-Separated Values_), permitindo o processamento posterior em ferramentas de análise. A avaliação final incluirá a comparação entre o pipeline sequencial (_baseline_) e a solução concorrente, utilizando gráficos de dispersão e boxplots para visualizar a distribuição dos tempos de execução e a variação da taxa de quadros conforme a carga de processamento aumenta.
+= RESULTADOS
 
 = CRONOGRAMA
 

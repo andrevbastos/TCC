@@ -13,6 +13,8 @@
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
+#include <fstream>
+#include <unistd.h>
 
 #include "ray_cast.hpp"
 #include "noise_gen.hpp"
@@ -31,6 +33,22 @@ struct Color {
         return {r * f, g * f, b * f, a};
     };
 };
+
+inline double getMemoryUsageMB() {
+    std::ifstream statm("/proc/self/statm");
+    if (!statm.is_open()) return 0.0;
+
+    unsigned long size, resident, share, text, lib, data, dt;
+    statm >> size >> resident >> share >> text >> lib >> data >> dt;
+
+    long pageSize = sysconf(_SC_PAGESIZE);
+    return (double)(resident * pageSize) / (1024.0 * 1024.0);
+}
+
+inline double getMeshDataSizeMB(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
+    size_t totalBytes = (vertices.capacity() * sizeof(Vertex)) + (indices.capacity() * sizeof(GLuint));
+    return (double)totalBytes / (1024.0 * 1024.0);
+}
 
 std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, float maxZ, Color color = {1.0f, 1.0f, 1.0f, 1.0f});
 std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color);

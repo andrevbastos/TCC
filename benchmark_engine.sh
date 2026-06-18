@@ -60,7 +60,7 @@ do
     mkdir -p /home/andre/projects/tcc/results/perf
     perf stat -e cache-misses,cache-references,L1-dcache-load-misses,LLC-load-misses,branches,branch-misses \
         -o /home/andre/projects/tcc/results/perf/parallel.log \
-        /home/andre/projects/tcc/build/bin/pad bench paralelo &
+        /home/andre/projects/tcc/build/bin/pad engine paralelo &
     PAD_PID=$!
     wait $PAD_PID 
 
@@ -73,9 +73,12 @@ do
 
     taskset -c 2 perf stat -e cache-misses,cache-references,L1-dcache-load-misses,LLC-load-misses,branches,branch-misses \
         -o /home/andre/projects/tcc/results/perf/sequential.log \
-        /home/andre/projects/tcc/build/bin/pad bench sequencial &
+        /home/andre/projects/tcc/build/bin/pad engine sequencial &
     PAD_PID=$!
     wait $PAD_PID
+
+    mkdir -p /home/andre/facul/programacao-de-alto-desempenho/dados/$i
+    mv /home/andre/projects/tcc/results/* /home/andre/facul/programacao-de-alto-desempenho/dados/$i
 done
 
 echo -e "\n==> Testes concluídos com sucesso!"
