@@ -280,25 +280,13 @@ O estudo será conduzido em partes, tanto à renderização de malhas 3D e imple
 */ 
 
 = INTRODUÇÃO
-/*
-*1º Parágrafo (Contextualização e Fundamentação).*
-Introduza a evolução da inteligência artificial aplicada à busca de caminhos (pathfinding). Utilize Russell e Norvig (2013) para definir algoritmos de busca clássicos e emende com Pardede et al. (2022) para contextualizar o avanço e a aplicação crítica dessas técnicas no desenvolvimento de ambientes interativos e jogos.
-*/
+A busca de caminhos (ou _pathfinding_) é um dos campos mais tradicionais da Inteligência Artificial aplicada, evoluindo a partir dos algoritmos de busca clássicos em grafos. Como definem #cite(<russell_norvig>, form: "prose"), os métodos clássicos de busca estruturam problemas em termos de estados, ações e custos, visando encontrar caminhos entre um ponto de partida e um objetivo por meio da exploração sistemática do espaço de busca. Ao longo das últimas décadas, essa fundamentação teórica deixou de ser puramente abstrata e passou a ser aplicada diretamente na computação interativa. Conforme apontam #cite(<pathfinding_game_dev>, form: "prose"), os algoritmos de busca tornaram-se componentes cruciais para o desenvolvimento de jogos modernos e simulações em tempo real, nos quais personagens controlados por computador precisam navegar por cenários dinâmicos de forma autônoma e inteligente.
 
-/*
-*2º Parágrafo (O Problema e a Complexidade).*
-Disserte sobre o salto de complexidade ao migrar do 2D para o 3D. Apresente a "lacuna" onde algoritmos costumam ser testados em ambientes isolados. Apoie-se em Gurung (2019) para falar sobre malhas de navegação (NavMeshes) e em Smołka et al. (2019) para explicar as instabilidades e necessidades de adaptação (como as falhas matemáticas e funções de smoothing) em engines 3D reais.
-*/
+No entanto, a transição das simulações bidimensionais (2D) para os ambientes tridimensionais (3D) gerou um grande salto na complexidade computacional dos algoritmos. Há na literatura científica uma lacuna metodológica significativa, na qual a maioria dos algoritmos de busca é testada e avaliada isoladamente em cenários planos ou ideais, ignorando as restrições físicas de um ambiente real. No espaço 3D real, é preciso considerar a variação de altura, inclinação do relevo e obstáculos tridimensionais complexos. Conforme discutido por #cite(<a_star_modification>, form: "prose"), a navegação em engines 3D reais traz problemas práticos de instabilidade e inconsistências matemáticas nos cálculos de distância. Isso exige o desenvolvimento de funções de suavização (_smoothing_) e modificações nos algoritmos heurísticos tradicionais para garantir que os caminhos gerados sejam tanto realistas quanto viáveis fisicamente.
 
-/*
-*3º Parágrafo (A Proposta).*
-Declare o objetivo central do estudo: uma análise estatística e comparativa focada em métricas quantitativas (como tempo de execução, uso de memória e overheads), desenvolvendo uma solução construída do zero.
-*/
+Este estudo propõe uma análise estatística e comparativa com foco no desempenho de diferentes algoritmos de busca heurística em malhas 3D acidentadas. O objetivo principal é medir métricas de eficiência computacional, como tempo de execução em microssegundos, consumo absoluto de memória RAM e overhead de processamento sob concorrência. Para garantir controle total sobre as variáveis de teste e isolar o impacto do hardware e das chamadas ao sistema operacional, o experimento adota uma infraestrutura de desenvolvimento própria. Tanto o motor de renderização (denominado IFCG) quanto as estruturas de dados de grafos e algoritmos foram implementados do zero em linguagem C++, permitindo extrair métricas de desempenho livres das interferências comuns de engines comerciais.
 
-/*
-*4º Parágrafo (Estado da Arte e Fronteira).*
-Referencie trabalhos recentes para mostrar que seu estudo está atualizado. Cite Madushanka e Madushanka (2026) para introduzir a relevância do processamento multithread em ambientes dinâmicos, e Nobes et al. (2022) para demonstrar que a expansão do Jump Point Search (JPS) para três dimensões é um tópico de pesquisa ativo e de alto interesse.
-*/
+A otimização de algoritmos de busca em ambientes tridimensionais dinâmicos permanece na fronteira da pesquisa científica na área de computação. Trabalhos recentes, como o de #cite(<a_star_multithreaded>, form: "prose"), destacam a importância e a necessidade do processamento concorrente (_multithreading_) para calcular caminhos em tempo real sem prejudicar a responsividade visual do motor gráfico. Além disso, a adaptação de técnicas eficientes baseadas em grades uniformes para o espaço volumétrico, como a expansão tridimensional do algoritmo _Jump Point Search_ (JPS) estudada por #cite(<jps_3d>, form: "prose"), demonstra que o desenvolvimento de heurísticas espaciais avançadas é um tema ativo e de grande interesse para aplicações de grande escala.
 
 = JUSTIFICATIVA
 Com este capítulo, pretende-se justificar a relevância e a necessidade do estudo proposto, destacando a importância de uma análise estatística detalhada dos algoritmos de pathfinding em malhas 3D, especialmente considerando as complexidades e desafios dos ambientes reais.
@@ -396,8 +384,45 @@ Uma vez que os algoritmos de pathfinding operam sobre estruturas de grafos para 
 Segundo #cite(<rodacki_grafos>, form: "prose"), um grafo é uma estrutura de dados composta por um conjunto de vértices (ou nós) e um conjunto de arestas (ou ligações) que conectam esses vértices. Os grafos podem ser direcionados, onde as arestas têm uma direção específica, ou não direcionados, onde as arestas não possuem direção. A representação de grafos pode ser feita de diversas formas, como listas de adjacência, matrizes de adjacência ou listas de arestas, cada uma com suas vantagens e desvantagens em termos de eficiência e uso de memória.
 
 === Definição e Propriedades dos Grafos
+Um grafo é uma forma de representar conexões entre diferentes pontos. Basicamente, ele é composto por dois elementos principais: um conjunto de *vértices* (também chamados de nós), que são os pontos em si, e um conjunto de *arestas* (ou ligações), que são as linhas que conectam esses vértices. No contexto deste estudo, cada vértice pode representar uma posição ou uma célula em uma malha 3D, enquanto as arestas indicam os caminhos possíveis entre essas posições.
+
+As arestas podem ter *pesos*, que são valores numéricos associados a elas. Esse peso pode indicar o "custo" de percorrer aquela ligação, como a distância física, o tempo gasto, ou a dificuldade de travessia (por exemplo, subir uma colina íngreme). O conceito de *adjacência* se refere a vértices que estão diretamente conectados por uma aresta, e um *caminho* é uma sequência de vértices adjacentes que leva de um ponto inicial a um destino @rodacki_grafos. Essas propriedades são fundamentais para os algoritmos de busca que visam encontrar as melhores rotas.
+
 === Grafos Direcionados e Não Direcionados
+A natureza das arestas em um grafo define se ele é *direcionado* ou *não direcionado*. Em um grafo *não direcionado*, se existe uma aresta entre dois vértices A e B, significa que o caminho pode ser percorrido tanto de A para B quanto de B para A, com o mesmo custo (ou seja, a aresta (A, B) é idêntica à aresta (B, A)). Pense em uma estrada de mão dupla em um terreno plano.
+
+Já em um grafo *direcionado*, a aresta tem um sentido específico. Uma aresta de A para B não implica necessariamente que existe uma aresta de B para A, ou que o custo de retorno seja o mesmo. Isso é particularmente relevante em ambientes 3D, onde o custo de subir uma rampa íngreme pode ser muito diferente (e maior) do que descer a mesma rampa, ou até mesmo haver obstáculos que permitem passagem em apenas um sentido.
+
 === MST (_Minimum Spanning Tree_)
+Uma _Minimum Spanning Tree_ (MST), ou Árvore Geradora Mínima, é um subgrafo de um grafo original que conecta todos os vértices do grafo sem formar nenhum ciclo, e cuja soma dos pesos de todas as suas arestas é a menor possível @rodacki_grafos. Em outras palavras, é a forma mais "econômica" de conectar todos os pontos.
+
+Para o propósito deste trabalho, algoritmos de construção de MST, como o algoritmo de Kruskal, são de grande utilidade para a *geração procedural de labirintos*. Ao aplicar esses algoritmos sobre uma grade de possíveis conexões (representando as células do labirinto como vértices e as paredes como arestas com pesos aleatórios), é possível criar labirintos "perfeitos", onde existe um único caminho entre quaisquer dois pontos. Esses labirintos servem como cenários de teste complexos e controláveis para avaliar o desempenho dos diferentes algoritmos de pathfinding em ambientes 3D.
+
+== Algoritmos de Busca Heurística
+
+Na área de estudo de grafos, existe uma grande concentração de pesquisas em algoritmos de busca heurística, que são técnicas que utilizam informações adicionais (heurísticas) para guiar a busca por um caminho mais eficiente no grafo. Esses algoritmos são amplamente utilizados em jogos e simulações para encontrar rotas entre pontos em um ambiente tridimensional.
+
+=== Dijkstra
+O algoritmo de Dijkstra é um dos métodos mais fundamentais para encontrar o caminho mais curto entre dois vértices em um grafo com arestas de pesos não negativos. Segundo #cite(<rodacki_grafos>, form: "prose"), o algoritmo funciona explorando sistematicamente todos os caminhos possíveis a partir de um vértice inicial, mantendo uma lista de distâncias mínimas conhecidas para cada nó. Ele utiliza uma fila de prioridade para sempre expandir o nó com a menor distância acumulada, garantindo que, ao chegar no destino, o caminho encontrado seja de fato o mais curto. Por sua natureza exaustiva, o Dijkstra é garantidamente ótimo, mas pode ser computacionalmente custoso em grafos muito grandes, pois "olha para todos os lados" antes de decidir a direção final.
+
+=== Heurísticas
+Diferente do Dijkstra, que explora o grafo de forma cega, a busca heurística utiliza informações extras para tentar "adivinhar" qual direção é mais promissora. Uma heurística é, essencialmente, uma estimativa do custo restante para chegar ao destino #cite(<astar>). 
+
+Um exemplo clássico é a *Distância Euclidiana* (a linha reta entre dois pontos). Em um mapa 3D, se soubermos as coordenadas do ponto atual $(x_1, y_1, z_1)$ e do destino $(x_2, y_2, z_2)$, podemos calcular a distância direta entre eles. Embora essa distância ignore obstáculos como paredes ou montanhas, ela serve como um guia excelente para o algoritmo priorizar nós que estão fisicamente mais próximos do objetivo, reduzindo drasticamente o número de vértices que precisam ser analisados.
+
+=== A\*
+O algoritmo A\* (A-Star) é uma evolução do Dijkstra que incorpora o uso de heurísticas para aumentar a eficiência da busca. Ele avalia cada nó utilizando uma função de custo $f(n) = g(n) + h(n)$, onde:
+
+- $g(n)$ é o custo real acumulado do ponto de partida até o nó atual $n$.
+- $h(n)$ é o valor da heurística (a estimativa do custo de $n$ até o destino).
+\
+#v(-1.5em)
+Ao combinar o progresso real com a estimativa futura, o A\* consegue focar a busca na direção do objetivo, evitando explorar áreas do grafo que claramente não levam ao caminho mais curto #cite(<astar>). Se a heurística utilizada for "admissível" (ou seja, nunca superestimar o custo real), o A\* garante encontrar o caminho ótimo, unindo a precisão do Dijkstra com a velocidade de uma busca direcionada.
+
+=== Jump Point Search (JPS)
+O _Jump Point Search_ (JPS) é uma otimização do algoritmo A\* específica para grades uniformes (como as malhas de navegação). Em vez de analisar cada vizinho imediato de um nó (passo a passo), o JPS "pula" grandes áreas vazias do grafo que não oferecem mudanças de direção interessantes #cite(<jps_3d>). 
+
+Ele identifica pontos críticos chamados _Jump Points_ — locais onde a presença de um obstáculo força o algoritmo a considerar uma nova direção. Ao saltar diretamente entre esses pontos, o JPS reduz significativamente o número de operações na fila de prioridade e o uso de memória, sendo frequentemente ordens de grandeza mais rápido que o A\* tradicional em ambientes com grandes espaços abertos, mantendo a mesma garantia de encontrar o caminho mais curto.
 
 == Computação Gráfica
 Por causa da necessidade de controle total sobre a infraestrutura gráfica e a implementação dos algoritmos, optou-se por desenvolver um montor gráfica do zero, denominada IFCG#footnote[Disponível em: #link("https://github.com/andrevbastos/IFCG"). Acesso em: 22 mai. 2026.] (Instituto Federal Catarinense/Computação Gráfica). Esta decisão foi motivada pela necessidade de um ambiente de teste personalizado, que permita a coleta de dados em condições controladas e a aplicação de otimizações específicas para os algoritmos de pathfinding.
@@ -644,13 +669,6 @@ Após obter o peso suavizado $S(w)$, o algoritmo realiza a interpolação linear
 \
 $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
 
-== Algoritmos de Busca Heurística
-=== Dijkstra
-=== Heurísticas
-=== A\*
-=== Jump Point Search (JPS)
-=== Theta\*
-
 == Concorrência e Paralelismo
 A evolução do hardware moderno, com o aumento do número de núcleos de processamento, tornou o paralelismo uma ferramenta essencial para manter a responsividade em aplicações gráficas e intensivas em dados.
 
@@ -669,10 +687,13 @@ O `std::condition_variable_any` é uma ferramenta de sincronização que permite
 Conforme explica #cite(<ladeira_sincronizacao>, form: "prose"), o padrão Monitor é uma implementação de alto nível para controle de sincronização. Ele encapsula tanto os dados quanto os métodos que operam sobre esses dados, utilizando mecanismos de bloqueio (_mutexes_) para garantir exclusão mútua e variáveis de condição para coordenar a execução das threads. A adoção do padrão Monitor visa prevenir condições de corrida (_race conditions_) entre as rotinas assíncronas de processamento e a _main thread_, garantindo a integridade dos recursos compartilhados como os dados da malha e do grafo.
 
 === _Task Scheduler_
-Um _Task Scheduler_ é um componente responsável por gerenciar a execução de tarefas concorrentes. Ele mantém uma fila de tarefas pendentes e um conjunto de threads (_thread pool_) que processam essas tarefas em paralelo @ladeira_threads. O objetivo é otimizar o uso dos recursos do sistema, garantindo que as tarefas de extração e construção de dados sejam executadas de forma eficiente sem bloquear o loop principal da aplicação.
+O _Task Scheduler_ (Agendador de Tarefas) da aplicação centraliza o gerenciamento de todas as rotinas concorrentes que não envolvem renderização. O seu papel principal é evitar o travamento da thread principal (onde roda a interface e o contexto OpenGL) através da delegação de processamento intensivo para um pool de threads trabalhadoras que operam em paralelo #cite(label("williams2019c++"), form:"normal"). No contexto deste projeto, as tarefas delegadas incluem a modelagem de ruído de Perlin, a leitura e decodificação de mapas de altura, a triangulação física de malhas 3D e a posterior extração do grafo lógico necessário para o cálculo das rotas.
 
 === Fila Multinível
-Certas tarefas possuem criticidade superior a outras. Para gerenciar essa disparidade, o escalonador implementa filas multinível, onde as tarefas são categorizadas por prioridade. As tarefas de alta prioridade (como a geração de configurações de ruído) são processadas antes das tarefas de média prioridade (como a extração do grafo), enquanto tarefas de baixa prioridade (como a exportação de logs e imagens para disco) são executadas apenas quando houver folga no pool de trabalhadores.
+Como as tarefas executadas pelo agendador possuem tempos de processamento e níveis de importância diferentes para o usuário, o sistema utiliza filas multinível ordenadas por prioridade.
+- As tarefas de alta prioridade (`Priority::High`) são reservadas para etapas cruciais que desbloqueiam as fases seguintes do pipeline, como a definição dos parâmetros criação e a geração dos ruídos.
+- As tarefas de média prioridade (`Priority::Medium`) compreendem o processamento estrutural mais longo, que envolve a triangulação geométrica e a extração do grafo.
+- As tarefas de baixa prioridade (`Priority::Low`) englobam processos de escrita em disco (I/O) utilizando a biblioteca `stb_image_write`, como o salvamento de imagens png dos mapas gerados. Por dependerem da latência física do sistema de armazenamento, essas operações rodam apenas quando não há tarefas computacionais prioritárias na fila, minimizando a contenção por barramento e memória.
 
 \
 #figure(
@@ -685,9 +706,55 @@ Certas tarefas possuem criticidade superior a outras. Para gerenciar essa dispar
 ] \
 
 === Segurança de Memória e Compartilhamento de Estado
-O uso de ponteiros brutos do C++ em um ambiente de programação concorrente pode levar a problemas de segurança de memória gravíssimos, como condições de corrida e falhas de segmentação (SIGSEGV). Uma vez que as threads trabalhadoras operam sobre os dados compartilhados, é crucial garantir que esses dados permaneçam válidos durante toda a execução das tarefas.
+A execução simultânea de algoritmos de busca e rotinas de geração procedural em múltiplas threads operárias traz riscos críticos de corrupção de memória. Se uma thread trabalhadora tentar ler ou varrer os nós de um grafo (composto por objetos `Vertex3D` e vetores de adjacência) no exato instante em que a thread principal deleta, substitui ou recria o cenário tridimensional, ocorre um erro de ponteiro solto (dangling pointer) que causa o encerramento do programa por falha de segmentação (erro `SIGSEGV`).
 
-Diferente de ponteiros brutos, a implementação adotará exclusivamente referências e _smart pointers_ (como `std::shared_ptr` ou `std::unique_ptr`). As referências garantem acesso a objetos não nulos, enquanto os _smart pointers_ gerenciam automaticamente a vida útil dos recursos. Um `std::shared_ptr` permite que múltiplos objetos compartilhem a propriedade de um recurso, garantindo sua destruição apenas quando a última referência for liberada, assegurando que o grafo permaneça válido durante toda a execução paralela.
+Para evitar a ocorrência de condições de corrida (race conditions) e vazamento de recursos sem introduzir cópias pesadas de dados na memória RAM, a infraestrutura abandona o uso de ponteiros brutos na comunicação entre threads. Em vez disso, o grafo lógico é compartilhado por meio de ponteiros inteligentes do tipo `std::shared_ptr<common::lwGraph<Vertex3D>>`. Quando uma tarefa de busca de caminhos é inserida no `TaskMaster`, ela recebe uma cópia do `std::shared_ptr`, o que incrementa o contador de referências do recurso. Dessa maneira, mesmo que a thread principal delete a representação visual da malha ou inicie uma nova simulação, o bloco de memória do grafo em execução permanece válido até que a thread operária termine seu processamento e libere o ponteiro, garantindo total isolamento e segurança. As referências constantes (como `const Vertex3D&`) são reservadas apenas para acessos de leitura locais dentro de escopos bem controlados onde a validade temporal do objeto é garantida por design.
+
+= TRABALHOS RELACIONADOS
+
+Este capítulo apresenta uma análise comparativa detalhada entre a proposta deste trabalho  e os principais estudos correlatos da literatura recente que realizam análises estatísticas e _benchmarks_ de algoritmos de _pathfinding_.
+
+== Johansson (2024)
+No trabalho intitulado _Adapting Pathfinding Algorithms for 3D Environments: Performance Analysis and Real-World Applications_, #cite(<johansson2024adapting>, form: "prose") realiza uma avaliação de desempenho em termos de tempo de execução e consumo de memória dos algoritmos Dijkstra e A\* (utilizando as heurísticas Euclidiana e Manhattan) adaptados para ambientes tridimensionais.
+
+Contudo, o estudo apresenta limitações de escopo, focando quase que exclusivamente em ambientes estruturados por *Voxels* (grades de blocos uniformes e cúbicos), e a execução dos testes ocorre de forma puramente sequencial e padrão. O diferencial crítico utilizando deste estudo frente a este trabalho reside em dois pontos principais:
+
+1. *Topologia Geométrica:* Enquanto o estudo citado limita-se à rigidez ortogonal dos voxels, o gerador procedural deste estudo utiliza Ruído de Perlin e processamento de mapas de altura para extrair malhas contínuas e acidentadas. Isso eleva a complexidade do cálculo heurístico ao exigir navegação sobre relevos realistas, rampas e curvas suaves.
+2. *Diversidade Algorítmica:* Estende-se a análise para algoritmos focados em otimização de espaço aberto e relaxação de linha de visão (_Any-Angle Pathfinding_), incorporando o *Theta\** e o *Jump Point Search (JPS)*, indo muito além do escopo básico de Dijkstra e A\*.
+
+== Grid Maps Benchmark (2023)
+O artigo _A Comparison of Pathfinding Algorithm for Code Optimization on Grid Maps_, publicado na IJACSA #cite(<ijacsa2023comparison>), realiza uma comparação estatística direta (tempo de CPU em microssegundos e contagem de nós expandidos) entre a trindade clássica de busca: A\*, JPS e Theta\*.
+
+A principal limitação deste estudo é que os experimentos são restritos a matrizes bidimensionais planas (_2D Grid Maps_). Além disso, a execução dos algoritmos ocorre de forma síncrona e linear, avaliando buscas isoladas em cenários estáticos. Em contrapartida, os diferenciais deste estudo são:
+
+1. *A Terceira Dimensão Físico-Espacial:* Exige a readequação volumétrica tridimensional real das heurísticas (como a distância diagonal/Chebyshev adaptada e a distância Euclidiana 3D), lidando com a complexidade geométrica do eixo Z.
+2. *Arquitetura Concorrente sob Estresse:* O _benchmark_ pulveriza a execução simultânea das buscas espaciais em múltiplas _threads_ operárias através da biblioteca `jthread` e de filas multinível orientadas a eventos.
+3. *Rigor e Segurança de Memória:* Para suportar esse ambiente de alto estresse concorrente sem mascarar os tempos de CPU com travamentos ou condições de corrida, a infraestrutura implementada utiliza ponteiros inteligentes (`shared_ptr` e `unique_ptr`), garantindo métricas puras de hardware.
+
+== Matriz de Diferenciação Técnica
+A tabela a seguir consolida as lacunas da literatura e destaca as contribuições metodológicas do motor IFCG.
+
+#figure(
+  caption: [Matriz de diferenciação entre a proposta e trabalhos relacionados],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (1fr, 1.4fr, 1fr, 1fr),
+    stroke: none,
+    align: (left, left, left, left),
+    table.hline(y: 0, stroke: 1pt),
+    table.hline(y: 1, stroke: 0.5pt),
+    [*Critério*], [*Proposta (IFCG)*], [*Johansson (2024)*], [*Benchmark (2023)*],
+    [Dimensão Espacial], [Malhas 3D volumétricas], [Voxels (blocos 3D)], [Grades 2D planas],
+    [Geometria], [Contínua e procedural (Perlin)], [Cubos fixos \ (discretos)], [Matrizes planas],
+    [Algoritmos], [Dijkstra, A\* (e modificações), JPS, Theta\*, LazyTheta\*], [A\* e Dijkstra], [A\*, JPS, Theta\*],
+    [Arquitetura], [Multi-threaded (`jthread`)], [Sequencial/Padrão], [Sequencial/Padrão],
+    [Ambiente / Carga], [Renderização 3D em tempo real sob concorrência], [Execução sequencial isolada], [Execução sequencial isolada],
+    table.hline(stroke: 1pt)
+  )
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]
+]
 
 = METODOLOGIA
 Esta seção detalha a metodologia adotada para a realização da pesquisa, explicando como os algoritmos de pathfinding e a infraestrutura gráfica serão implementados e testados. Este projeto foi conduzido como uma pesquisa experimental de caráter quantitativo, sendo que a implementação da infraestrutura gráfica e dos algoritmos de pathfinding ocorreu em paralelo à coleta e análise de dados. A abordagem experimental permitirá a avaliação do desempenho dos algoritmos em condições controladas, enquanto a construção do motor do zero garantirá um ambiente de teste personalizado e otimizado para as necessidades específicas deste estudo.
@@ -744,21 +811,39 @@ Para gerenciar a renderização foi desenvolvido um sistema de loop de renderiza
 
 == Implementação da Estrutura de Grafos
 === Representação de Grafos Direcionados e Não Direcionados
-=== Implementação de Algoritmos de Busca em Grafos
+=== Algoritmos de Pathfinding
 === Otimizações e Estruturas de Dados Auxiliares
 
 == Geração e Processamento dos Cenários
+A capacidade de testar os algoritmos em uma grande variedade de mapas exige a adoção de um fluxo bem definido para a construção procedural dos terrenos, sua conversão para malhas de renderização e, mais importante, a extração de dados matemáticos para a navegação.
+
 === Geração de Malhas 3D Complexas
+Os cenários utilizados no estudo são gerados por duas abordagens complementares: a importação de mapas de altura pré-renderizados (imagens em escala de cinza, carregadas utilizando a biblioteca `stb_image`) e a geração puramente procedural baseada em Ruído de Perlin. 
+
+A geração procedural opera instanciando um mapa bidimensional $(x, y)$ onde o algoritmo de ruído calcula uma elevação base. Esse valor é multiplicado por um fator global de intensidade, produzindo a coordenada tridimensional final do vértice $(x, y, z)$. Todas essas posições são agrupadas sequencialmente em _buffers_ de memória para compor a malha tridimensional (`Mesh`) que o motor IFCG utilizará para a renderização visual do ambiente.
+
 === Processamento de Malhas e Extração de Grafos
+Para que um algoritmo de busca possa atravessar esse cenário, é necessário derivar uma representação lógica a partir dos vértices físicos. Esse processo de "extração de grafo" varre cada ponto do cenário em formato de grade e tenta conectá-lo aos seus vizinhos (adjacência horizontal, vertical e diagonal).
+
+O diferencial nesta etapa é a limitação por inclinação. A conexão entre dois vértices (a aresta) só é considerada válida se a diferença absoluta de altura entre eles ($|z_2 - z_1|$) for menor ou igual a um limite de transposição (`heightLimit`). Esse parâmetro simula a capacidade física de uma entidade escalar um obstáculo, tornando encostas muito íngremes e penhascos intransponíveis. Uma vez validada a conexão, o custo dessa aresta é assinalado como a distância Eucltidiana 3D real enre os dois pontos, refletindo o peso natural da elevação.
+
 === Configuração de Cenários de Teste e Parâmetros
+O desenho experimental prevê que os testes sejam automatizados em sequências de estresse parametrizado, definindo três eixos de configuração centrais:
+- *Escala:* Varia progressivamente o tamanho (largura e profundidade) da malha e, por consequência, o número absoluto de nós a serem expandidos pelos algoritmos.
+- *Lacunaridade:* Altera a frequência do Ruído de Perlin. Uma frequência mais alta cria terrenos mais esburacados, com "ruídos" intensos e obstáculos constantes, o que eleva a dificuldade heurística e bloqueia linhas de visão diretas (desafiando algoritmos como o Theta\* e o JPS).
+- *Persistência:* Manipula a amplitude das funções de ruído, modificando a "suavidade" do terreno. Variações bruscas na persistência intensificam as elevações, forçando interrupções constantes pela trava física do `heightLimit`.
 
-== Implementação dos Algoritmos e Sistema Concorrente
-=== Implementação de Algoritmos de Pathfinding
-=== Adaptação para Ambientes 3D
+Tais parâmetros são injetados diretamente na configuração de geração procedural a cada iteração de teste, assegurando amostragem abrangente para análises estatísticas.
+
+== Implementação do Sistema Concorrente
+
+=== Adaptação para Ambientes de Renderização
+Para viabilizar a execução de simulações interativas sem prejuízo à taxa de quadros e à fluidez visual, o sistema de concorrência foi adaptado para contornar as limitações de acesso do OpenGL. O motor gráfico IFCG opera sob estrição de contexto gráfico de _thread_ única, no qual o contexto de renderização é vinculado a uma única _thread_ ativa (_thread_ principal). Qualquer tentativa de invocar funções do OpenGL ou manipular estruturas de dados de GPU (tais como _VAOs_ e _VBOs_) a partir de _threads_ secundárias resulta em comportamento indefinido ou no encerramento abrupto do programa por violações de acesso à memória (erros `SIGSEGV`).
+
+A adaptação implementada realiza um desacoplamento completo entre o fluxo de renderização e quaisquer tarefas secundárias. A geração de ruído, o processamento de mapas de altura e a extração do grafo adjacência são executados de maneira puramente assíncrona. Essas tarefas não possuem dependências ou chamadas diretas ao OpenGL. Uma vez que o processamento do terreno e a extração do grafo são concluídos, os dados são sincronizados com a _thread_ principal. Esta se encarrega de efetuar as chamadas de alocação e atualização de _buffers_ na GPU dentro do ciclo síncrono de renderização, garantindo a integridade do contexto OpenGL e mantendo estável a taxa de quadros por segundo da visualização tridimensional.
+
 === Implementação de Multithreading e Testes de Estresse
-Para viabilizar a arquitetura da IFCG sem comprometer o desempenho, o ciclo principal de renderização e todas as chamadas ao OpenGL foram isolados na _thread_ principal. Simultaneamente, a execução pesada dos processos de geração de terreno e extração de grafos ocorre em _threads_ operárias concorrentes gerenciadas pelo `TaskMaster`.
-
-O `TaskMaster` foi implementado como um escalonador que mantém três filas de prioridade (`High`, `Medium` e `Low`) protegidas por um monitor. O número de threads trabalhadoras é determinado dinamicamente pelo sistema através de `std::thread::hardware_concurrency()`. Para evitar a saturação completa dos núcleos do processador e garantir que a _main thread_ (responsável pela renderização e interface) permaneça responsiva, o sistema reserva um núcleo, instanciando $N-1$ threads trabalhadoras. Estas threads são implementadas como objetos `std::jthread`, aproveitando o comportamento RAII para garantir que sejam finalizadas corretamente na destruição do escalonador.
+A orquestração das tarefas em segundo plano é gerenciada pela classe `TaskMaster`, desenvolvida como um escalonador de tarefas concorrente baseado em filas de prioridade multinível (`High`, `Medium` e `Low`) e um _thread pool_ dinâmico. O construtor do `TaskMaster` consulta a capacidade física do processador por meio de `std::thread::hardware_concurrency()`, instanciando $N-1$ _threads_ operárias (onde $N$ é o total de núcleos lógicos disponíveis) para resguardar a capacidade de processamento da _thread_ principal e evitar travamentos na interface gráfica do usuário. As _threads_ trabalhadoras são implementadas como objetos `std::jthread` (introduzidos no padrão C++20), que utilizam o comportamento RAII para garantir que sejam finalizadas corretamente na destruição do escalonador.
 
 \
 #figure(
@@ -768,22 +853,27 @@ O `TaskMaster` foi implementado como um escalonador que mantém três filas de p
   #image("./images/task_master.png", width: 100%)
 ]\
 
-O método `addTask` é o ponto de entrada para a submissão de tarefas. Utilizando modelos de programação (_templates_) e metaprogramação em tempo de compilação (`if constexpr`), o método é capaz de aceitar funções que recebem ou não um `std::stop_token`. Isso confere flexibilidade ao sistema, permitindo que tarefas de longa duração verifiquem periodicamente se uma interrupção foi solicitada, enquanto tarefas curtas e simples podem ser executadas sem essa complexidade adicional.
+O método `addTask` é o ponto de entrada para a submissão de tarefas concorrentes. Utilizando modelos de programação (_templates_) e metaprogramação em tempo de compilação (`if constexpr`), juntamente com o traço de tipo `std::is_invocable_v`, o método diferencia funções que aceitam um `std::stop_token` daquelas que não requerem controle de cancelamento, envolvendo estas últimas em um adaptador (_wrapper_). Isso confere flexibilidade ao sistema, permitindo que tarefas de longa duração verifiquem periodicamente se uma interrupção foi solicitada, enquanto tarefas curtas e simples podem ser executadas sem essa complexidade adicional.
 
-Cada thread trabalhadora executa um loop contínuo que aguarda por novas tarefas utilizando uma `std::condition_variable_any`. A lógica de seleção de tarefas prioriza sempre as filas de maior importância: o trabalhador verifica sequencialmente as filas `High`, `Medium` e `Low`, extraindo a primeira tarefa disponível na fila de maior prioridade encontrada. Mesmo que um lock tenha sido adquirido, a função `wait` da variável condicional é projetada para liberá-lo enquanto a thread está bloqueada, permitindo que a _main thread_ adicione novas tarefas sem contenção desnecessária. Quando a thread operária é acordada, o lock é automaticamente re-adquirido para a extração segura da tarefa.
+Cada thread operária executa um loop contínuo que aguarda por novas tarefas utilizando uma `std::condition_variable_any`. A lógica de seleção de tarefas prioriza sempre as filas de maior importância: o trabalhador verifica sequencialmente as filas 0 (`High`), 1 (`Medium`) e 2 (`Low`), extraindo a primeira tarefa disponível na fila de maior prioridade encontrada. Mesmo que um lock tenha sido adquirido por meio de `std::unique_lock<std::mutex>`, a função `wait` da variável condicional libera o lock enquanto a thread está bloqueada, permitindo que a _main thread_ adicione novas tarefas concorrentes sem contenção desnecessária. Quando a thread operária é acordada, o lock é automaticamente re-adquirido para a extração segura da tarefa.
 
-Para os testes de estresse, o sistema é configurado para gerar e processar centenas de malhas sequencialmente em múltiplos núcleos, permitindo medir a escalabilidade da arquitetura e a eficácia das filas de prioridade em manter a responsividade da interface durante picos de carga de processamento.
+Para monitoramento e testes de estresse do _thread pool_, o `TaskMaster` incorpora a função de escrita `drawWorkers()`. Protegida por um semáforo de exclusão mútua (`printMtx`), ela atualiza e imprime no console o estado de cada _thread_ trabalhadora (usando os caracteres `H`, `M`, `L` e `-` para representar atividades de alta, média, baixa prioridade ou ociosidade, respectivamente), oferecendo _feedback_ visual instantâneo e contínuo durante a execução em lote das simulações.
 
 === Controle de Recursos do Sistema Operacional
-Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, a arquitetura adota estratégias de controle de recursos em nível de software. Ao limitar o pool de trabalhadores ao total de núcleos físicos menos um, reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre as _threads_ operárias e o motor de renderização. Além disso, o uso do `std::stop_token` permite o cancelamento cooperativo de tarefas obsoletas, evitando o desperdício de ciclos de CPU em processamentos que não serão mais utilizados.
+Para garantir que a execução paralela não comprometa a estabilidade do sistema ou a fluidez da interface gráfica, a arquitetura adota estratégias rigorosas de controle de recursos em nível de software e hardware. Ao limitar o pool de trabalhadores ao total de núcleos físicos menos um ($N-1$), reduz-se o custo de trocas de contexto (_context switching_) e a disputa por cache L3 entre as _threads_ operárias e o motor de renderização. Além disso, o suporte ao cancelamento cooperativo via `std::stop_token` permite interromper de forma imediata tarefas obsoletas, evitando o desperdício de ciclos de CPU em processamentos desnecessários.
+
+Adicionalmente, a fim de obter medições estatísticas limpas durante as baterias de testes estatísticos, a aplicação realiza o controle de afinidade de CPU por meio de chamadas de baixo nível do sistema operacional (utilizando `pthread_setaffinity_np` envelopado na função `pinThreadToCore`). Enquanto as tarefas de geração do mapa de ruído e construção do grafo ocorrem concorrentemente sob o gerenciamento do `TaskMaster` em múltiplos núcleos, a _main thread_ sincroniza a conclusão do lote de processamento e vincula sua execução estritamente a um núcleo de processador isolado (como o núcleo 2) para executar os algoritmos de busca (A\*, Dijkstra e JPS). Esse isolamento de afinidade evita flutuações e ruído causados pelo agendador do sistema operacional, blindando os benchmarks estatísticos contra perturbações dinâmicas de concorrência.
+
 
 == Desenho Experimental e Coleta de Dados
 A coleta de dados foi projetada para avaliar o impacto computacional dos algoritmos em terrenos de complexidade variável. 
 
 === Ambiente de Teste
-O hardware utilizado para os testes consiste em um processador de 12ª geração Intel Core i5-1235U (12 _threads_, frequência máxima de 4.40 GHz) e 16 GB de memória RAM. A aceleração gráfica foi provida por uma GPU integrada Intel Iris Xe Graphics. 
+A avaliação empírica do sistema foi executada em um computador pessoal com processador Intel Core i5-1235U de 12ª geração. Esse processador possui uma arquitetura híbrida contendo 10 núcleos físicos (2 núcleos de alta performance e 8 núcleos de alta eficiência) que totalizam 12 threads lógicas de execução, operando com frequência de clock máxima de 4,40 GHz e 12 MB de memória cache. O sistema possui 16 GB de memória RAM DDR4 operando a 3200 MHz em canal duplo (dual-channel). A renderização das malhas 3D e a rasterização do motor gráfico foram processadas por uma GPU integrada Intel Iris Xe Graphics rodando a uma frequência dinâmica máxima de 1,20 GHz.
 
-O sistema operacional utilizado foi Arch Linux (Kernel 6.15.9). Todo o código-fonte foi desenvolvido obedecendo estritamente ao padrão C++20 e compilado utilizando a coleção de compiladores GNU (GCC). Para avaliar a máxima performance dos algoritmos, o binário final foi gerado utilizando a flag de otimização de tempo de execução `-O3` (`Release`), juntamente com diretrizes rigorosas de compilação (`-Wall`, `-Wextra`, `-Wpedantic` e `-Werror`). A renderização foi construída sobre OpenGL 4.6 e GLFW 3.4.
+Em termos de software, os benchmarks foram realizados sob o sistema operacional Arch Linux rodando o Kernel estável 6.15.9. Para reduzir perturbações externas nos testes de performance, o agendador de energia do processador foi configurado manualmente para o modo de desempenho máximo (`performance`), mantendo os clocks elevados e estáveis. O código-fonte foi desenvolvido no padrão C++20 (`-std=c++20`) e compilado com o GNU Compiler Collection (GCC) versão 14.1. 
+
+Para extrair o máximo desempenho do hardware nos testes comparativos, o binário final foi construído utilizando a flag de otimização agressiva de velocidade de execução `-O3` no perfil de lançamento (`Release`), além de parâmetros estritos de compilação que garantem a segurança do código (`-Wall`, `-Wextra`, `-Wpedantic`, `-Werror`). A renderização gráfica foi programada sobre a especificação do OpenGL versão 4.6 (Core Profile), usando a biblioteca GLFW 3.4 para o controle de janelas e contexto gráfico, e a biblioteca GLM 1.0.3 para o processamento algébrico de matrizes e vetores tridimensionais.
 
 === Configuração dos Testes e Métricas Coletadas
 Para analisar o desempenho, foram selecionadas métricas que avaliam tanto a eficiência computacional quanto a qualidade da solução e a estabilidade do sistema:
@@ -794,10 +884,7 @@ Para analisar o desempenho, foram selecionadas métricas que avaliam tanto a efi
 - *Eficiência do Cache:* Analisa a taxa de acertos e falhas na CPU, fornecendo _insights_ sobre a localidade de referência dos algoritmos.
 - *Métricas de Busca:* Incluem o número de nós expandidos e o custo total do caminho para validar a otimalidade.
 
-Além das métricas, o sistema registra os parâmetros de configuração do terreno que influenciam a complexidade da busca:
-- *Escala:* Refere-se à dimensão do mapa, influenciando diretamente o volume de dados e o tempo de construção do grafo.
-- *Lacunaridade:* Indica a densidade de obstáculos e a frequência das variações no mapa de ruído.
-- *Persistência:* Refere-se à variação de altura e irregularidade do relevo, definindo a inclinação das faces da malha.
+Com essas métricas, será possível realizar uma análise abrangente do desempenho dos algoritmos de pathfinding em diferentes cenários, identificando as condições sob as quais cada algoritmo se destaca ou apresenta limitações. Como resultado, espera-se fornecer recomendações práticas para a escolha de algoritmos em aplicações de navegação tridimensional em tempo real para diferentes circunstâncias.
 
 === Execução dos Testes e Registro dos Resultados
 
@@ -810,7 +897,11 @@ O fluxo de execução é gerenciado pelo `TaskMaster`, que agrupa as tarefas de 
 
 A _main thread_ utiliza um mecanismo de sincronização baseado em `std::condition_variable` para aguardar a conclusão de um lote completo de processamento (passo do experimento). Somente após todos os grafos estarem prontos e alocados, a _thread_ principal executa os algoritmos de busca (A\*, Dijkstra, etc.) e registra os dados estatísticos, garantindo que a medição de performance não sofra ruído devido à contenção de recursos do processamento paralelo.
 
+Para garantir um ambiente de teste com o mínimo de interferências externas, certas configurações do sistema são ajustadas. Um shell script é utilizado para configurar a afinidade de CPU do processo, limitando-o a um subconjunto específico de núcleos para evitar interferências de outros processos do sistema operacional. Além disso, o sistema é configurado para minimizar a interferência de serviços em segundo plano, garantindo que os dados coletados reflitam o desempenho real dos algoritmos sob as condições controladas do experimento. 
+
 = RESULTADOS
+
+
 
 = CRONOGRAMA
 
