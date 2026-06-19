@@ -145,7 +145,7 @@
 // INSTANCIAÇÃO DO MODELO COM O CONTEÚDO DO ARTIGO
 #show: acm_sigconf.with(
   title: "Arquitetura Concorrente em C++20 para Geração Procedural e Renderização de Malhas 3D",
-  short-title: "Geração e Renderização de Malhas 3D",
+  short-title: "Geração e Renderização Concorrente de Malhas 3D",
   authors: (
     (
       name: "André Vitor Bastos de Macêdo",
