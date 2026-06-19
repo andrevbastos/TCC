@@ -76,6 +76,9 @@ do
         /home/andre/projects/tcc/build/bin/pad bench sequencial &
     PAD_PID=$!
     wait $PAD_PID
+
+    mkdir -p /home/andre/facul/programacao-de-alto-desempenho/bench/$i
+    mv /home/andre/projects/tcc/results/* /home/andre/facul/programacao-de-alto-desempenho/bench/$i
 done
 
 echo -e "\n==> Testes concluídos com sucesso!"

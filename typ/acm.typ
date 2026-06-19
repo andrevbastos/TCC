@@ -396,16 +396,216 @@ Para o modo BP (Bench Parallel), o `TaskMaster` distribui as repetições do exp
 
 == Controle de Recursos do Sistema Operacional
 
-Para garantir um ambiente isolado e minimizar interferências externas, o sistema operacional foi configurado para reduzir a influência de processos em segundo plano. Um script de inicialização foi criado para desativar serviços desnecessários e ajustar a política de escalonamento da CPU e  configurar o sistema para operar em modo _performance_. 
+Para garantir um ambiente isolado e obter um sistema quiescente, livre de ruído experimental @jain1991art, o sistema operacional foi configurado para reduzir a influência de processos em segundo plano. Um script de inicialização foi criado para desativar serviços desnecessários e ajustar a política de escalonamento da CPU e configurar o sistema para operar em modo _performance_. 
 
-Além disso, todo os testes de benchmark (BS e BP) foram conduzidos no ambiente TTY (sem interface gráfica), garantindo que a GPU não fosse utilizada para renderização de janelas ou efeitos visuais do sistema operacional durante os testes. Essa abordagem assegura que os resultados obtidos reflitam com precisão o desempenho da arquitetura concorrente implementada, sem interferências externas.
+Além disso, todos os testes de benchmark (BS e BP) foram conduzidos no ambiente TTY (sem interface gráfica), garantindo que a GPU não fosse utilizada para renderização de janelas ou efeitos visuais do sistema operacional durante os testes. Essa abordagem assegura que os resultados obtidos reflitam com precisão o desempenho da arquitetura concorrente implementada, conforme preconizado pelas boas práticas de medição de sistemas computacionais @lilja2000measuring.
 
-= Resultados e Discussão
-== Impacto na Responsividade da Main Thread
-== Análise de Desempenho da Geração de Malhas
-== Eficiência do Cache
+Após os ajustes no sistema, os testes são executados 5 vezes alternativamente, ou seja um após o outro, com 10 segundos de espera entre cada execução para garantir que o sistema esteja estabilizado e que os resultados sejam consistentes.
+
+
+= Resultados
+
+O desempenho dos algoritmos foi avaliado com base nas métricas de tempo de extração, eficiência do cache e responsividade (FPS). Os resultados obtidos demonstram uma melhoria significativa no desempenho quando a arquitetura concorrente é utilizada, especialmente em cenários de alta complexidade.
+
+== Tratamento de dados
+
+Mesmo rodando o algoritmo de forma isolada em linha de comando, interrupções temporárias do sistema operacional, oscilações na frequência da CPU (thermal throttling) ou pequenos atrasos de alocação de memória podem gerar picos isolados de latência (outliers) @mytkowicz2009producing.
+Para tratar esses pontos de dados discrepantes de forma matematicamente rigorosa (como recomendado para relatórios acadêmicos), implementamos o método da Amplitude Interquartílica (IQR) @bussab2017estatistica:
+- *Detecção*: Para cada configuração de teste (mesma escala/oitava e mesmo modo), calculou-se a amplitude interquartílica. Valores de tempo fora do intervalo das amostras foram classificados como outliers.
+- *Imputação de valores*: Os outliers detectados foram substituídos pela *mediana* do seu respectivo grupo. Isso preserva o tamanho amostral original ($N = 100$) e a tendência central, mas estabiliza o desvio padrão e o erro residual, garantindo que o modelo da ANOVA atenda ao pressuposto de homogeneidade de variância.
+
+== Comparação de benchmark
+
+Para os testes de benchmark, os modos BS e BP foram comparados para avaliar o impacto do processamento paralelo na geração das malhas. Os dados foram analisados utilizando ANOVA de dois fatores com nível de significância $alpha = 0,05$, considerando a Escala e o Número de Oitavas como fatores independentes @montgomery2017design. A análise relevou diferenças estatisticamente significativas entre os modos de execução, com o modo BP apresentando tempos de extração consistentemente menores em todas as configurações testadas.
+A análise estatística foi conduzida utilizando ANOVA de dois fatores, com nível de significância $alpha = 0,05$. O teste de Tukey foi aplicado para identificar diferenças significativas entre os grupos @montgomery2017design.
+
++ *Tempo de Geração vs. Escala (Tamanho da Malha):*
+  Para malhas pequenas de $100 times 100$ vértices, o modo Sequencial obteve média de 25,41 ms contra 55,32 ms do modo Paralelo. Em malhas maiores de $1000 times 1000$ vértices, o tempo sequencial elevou-se para 2.295,97 ms, enquanto o paralelo registrou 4.859,25 ms. O speedup individual médio é medido em aproximadamente 0,46x e 0,47x, evidenciando que o processamento paralelo de uma única tarefa é cerca de duas vezes mais lento que o sequencial.
+
++ *Tempo de Geração vs. Oitavas (Complexidade do Ruído):*
+  Com 1 oitava de ruído, a média do modo Sequencial foi de 131,01 ms contra 295,96 ms do modo Paralelo (speedup de 0,44x). Com a complexidade máxima de 10 oitavas, as médias foram de 605,42 ms e 1.192,29 ms, respectivamente, resultando em um speedup de 0,51x.
+\
+
+#figure(
+  table(
+    columns: (1fr, 1.7fr, 1.7fr, 1fr),
+    align: (center, right, right, right),
+    stroke: 0.5pt + luma(150),
+    fill: (x, y) => if y == 0 { rgb("#eef2f7") } else { none },
+    [*Escala*], [*Seq. Médio (ms)*], [*Par. Médio (ms)*], [*Speedup*],
+    [100x100], [25,41 ± 0,05], [55,32 ± 2,11], [0,46x],
+    [200x200], [98,52 ± 0,16], [216,95 ± 8,85], [0,45x],
+    [300x300], [218,54 ± 0,18], [477,07 ± 20,19], [0,46x],
+    [400x400], [380,11 ± 0,28], [808,81 ± 32,80], [0,47x],
+    [500x500], [585,75 ± 0,33], [1241,59 ± 51,58], [0,47x],
+    [600x600], [842,92 ± 0,41], [1792,47 ± 75,83], [0,47x],
+    [700x700], [1132,59 ± 0,69], [2396,33 ± 100,96], [0,47x],
+    [800x800], [1483,53 ± 0,87], [3182,91 ± 137,72], [0,47x],
+    [900x900], [1871,30 ± 1,08], [3967,01 ± 168,51], [0,47x],
+    [1000x1000], [2295,97 ± 0,78], [4859,25 ± 207,72], [0,47x],
+  ),
+  caption: [Benchmark do tempo de geração de malha em função da escala.],
+) <tab:escala_pure>
+
+#figure(
+  table(
+    columns: (1fr, 1.7fr, 1.7fr, 1fr),
+    align: (center, right, right, right),
+    stroke: 0.5pt + luma(150),
+    fill: (x, y) => if y == 0 { rgb("#eef2f7") } else { none },
+    [*Oitavas*], [*Seq. Médio (ms)*], [*Par. Médio (ms)*], [*Speedup*],
+    [1], [131,01 ± 0,28], [295,96 ± 10,75], [0,44x],
+    [2], [176,00 ± 0,12], [387,60 ± 12,80], [0,45x],
+    [3], [222,53 ± 0,11], [496,05 ± 19,30], [0,45x],
+    [4], [270,30 ± 0,17], [586,36 ± 21,92], [0,46x],
+    [5], [320,57 ± 0,23], [688,34 ± 27,81], [0,47x],
+    [6], [374,70 ± 0,27], [808,35 ± 35,60], [0,46x],
+    [7], [433,60 ± 0,32], [895,33 ± 40,17], [0,48x],
+    [8], [491,28 ± 0,34], [995,85 ± 48,09], [0,49x],
+    [9], [548,77 ± 0,33], [1089,94 ± 52,81], [0,50x],
+    [10], [605,42 ± 0,39], [1192,29 ± 57,34], [0,51x],
+  ),
+  caption: [Benchmark do tempo de geração de malha em função das oitavas de ruído.],
+) <tab:oitavas_pure>
+\
+
+A aparente contradição da versão paralela ser mais lenta para processar uma única malha (latência da tarefa) é explicada ao analisar o tempo total necessário para processar o lote completo de testes (vazão ou _throughput_). Enquanto o lote completo no modo Sequencial levou 250,32 segundos para ser concluído, o modo Paralelo finalizou todo o trabalho em apenas 46,69 segundos — representando um *speedup global de 5,35x*.
+
+Essa diferença de comportamento entre a latência unitária e a vazão global deve-se ao fato do `TaskMaster` distribuir as diferentes repetições do benchmark concorrentemente entre os núcleos físicos da CPU. Embora cada thread sofra com o _overhead_ de organização e sincronização, a execução paralela de múltiplas tarefas independentes maximiza o uso do processador.
+
+Fisicamente, a perda de desempenho individual nas execuções paralela é justificada pela disputa por recursos de memória. Os dados coletados utilizando contadores de hardware (`perf`) apontam que o modo Sequencial apresentou uma taxa de erro de cache (_cache misses_) de $30,93%$, enquanto o modo Paralelo subiu para $36,48%$. A execução simultânea de múltiplas threads de geração de malha força a CPU a realizar acessos frequentes à memória RAM física. Isso resulta em um aumento significativo de _cache misses_, o que explica a queda de desempenho individual. Enquanto o ganho global de vazão é evidenciado pela redução drástica do tempo total necessário para processar o lote completo de malhas.
+
+=== Variabilidade
+
+A análise de variabilidade dos tempos obtidos em cada execução revela grandes diferenças no comportamento de ambos os modos. No modo Sequencial, a dispersão dos dados é quase inexistente, com desvio padrão de apenas 3,99 ms no cenário de escala de $1000 times 1000$ vértices. Visualmente, isso se traduz em boxplots extremamente achatados, indicando alta previsibilidade. Como a execução ocorre de forma linear e ininterrupta em um único núcleo (neste caso o núcleo 2, para evitar interrupções de sistema), os tempos permanecem constantes sob as mesmas condições.
+
+Por outro lado, o modo Paralelo exibe uma dispersão alta, com o desvio padrão atingindo 1.059,81 ms para o mesmo tamanho de malha de $1000 times 1000$. Esse comportamento se reflete em caixas amplas nos boxplots, como ilustrado em @fig:escala_boxplot_s e  @fig:escala_boxplot_p. Fisicamente, essa instabilidade é causada pela concorrência com o controle do sistema operacional. O agendamento dinâmico de threads do `TaskMaster` entre diferentes núcleos da CPU introduz latências causadas por concorrência de barramento de memória, trocas de contexto (_context switching_) e atrasos na aquisição de locks da sincronização. Consequentemente, o tempo de conclusão de cada simulação individual difere de acordo com o estado da CPU e do escalonador do SO.
+
+#figure(
+    image("images/plot_escala_boxplot_sequencial.png", width: 100%),
+  caption: [Dispersão do tempo de geração por escala no modo Sequencial.],
+) <fig:escala_boxplot_s>
+
+#figure(
+    image("images/plot_escala_boxplot_paralelo.png", width: 100%),
+  caption: [Dispersão do tempo de geração por escala no modo Paralelo.],
+) <fig:escala_boxplot_p>
+
+=== Análise Estatística
+
+Para avaliar de forma cientificamente se as diferenças observadas entre os tempos médios de geração dos modos Sequencial e Paralelo são estatisticamente significativas, realizou-se uma análise baseada em testes de hipóteses:
+- *Hipótese Nula ($H_0$):* Não há diferença significativa nas médias dos tempos de geração entre os modos Sequencial e Paralelo para uma mesma configuração de parâmetros.
+- *Hipótese Alternativa ($H_1$):* Há uma diferença estatisticamente significativa entre as médias de tempo de geração dos modos.
+\
+#v(-1.5em)
+Primeiramente, aplicou-se a Análise de Variância de Duas Vias (_Two-Way ANOVA_) para avaliar a influência isolada do modo de execução (Sequencial ou Paralelo), do valor do parâmetro (Escala ou Oitavas) e sua interação @montgomery2017design:
+- *Experimento de Escala:* Revelou efeitos muitos significativos para todos os fatores. O fator modo de execução obteve $text("p-valor") < 0,001$, o fator Escala registrou $text("p-valor") < 0,001$ e a interação entre ambos alcançou $text("p-valor") < 0,001$.
+- *Experimento de Oitavas:* Também demonstrou significância estatística. O fator Modo registrou $text("p-valor") < 0,001$, o fator Oitavas registrou $text("p-valor") < 0,001$, enquanto o fator de interação obteve $text("p-valor") < 0,001$.
+\
+#v(-1.5em)
+A forte significância estatística da interação ($text("p-valor") < 0,001$) em ambos os experimentos aponta que a diferença de desempenho entre os modos Sequencial e Paralelo depende diretamente do nível do parâmetro avaliado. Para isolar essas diferenças específicas em cada nível, aplicou-se o teste pós-hoc de Tukey @montgomery2017design.
+
+No experimento de Escala, constatou-se que para grids pequenos de $100 times 100$ ($text("p-valor") = 1,00$) e $200 times 200$ ($text("p-valor") = 0,79$), *a diferença entre os modos não é estatisticamente significativa*. Nesses cenários, os dois algoritmos comportam-se de forma equivalente. Porém, a partir da escala $300 times 300$ até a escala máxima de $1000 times 1000$, a hipótese nula $H_0$ foi consistentemente rejeitada ($text("p-valor") < 0,05$), provando estatísticamente o atraso provocado pelo processamento paralelo de malhas individuais.
+
+No experimento de Oitavas, a diferença foi significativa em todas as oitavas (de 1 a 10), com a rejeição da hipótese nula ocorrendo de forma estável ($text("p-valor") < 0,001$) para todos os cenários de complexidade.
+
+== Desempenho no motor gráfico
+
+Com a integração do `TaskMaster` ao motor gráfico, o impacto do processamento paralelo na fluidez da renderização foi avaliado através da métrica de FPS (Frames Per Second). Os resultados indicam que, mesmo com o aumento da latência individual para a geração de cada malha, a arquitetura concorrente permite que a thread principal mantenha uma taxa de quadros estável, evitando quedas bruscas de FPS e travamentos visíveis.
+
+Nos testes a taxa de quadros por segundo foi limitada a 60 FPS para garantir uma experiência fluida. O modo Sequencial, ao bloquear a thread principal durante a geração da malha, resultou em quedas significativas de FPS, especialmente em configurações de alta complexidade (grids maiores e mais oitavas). Em contraste, o modo Paralelo conseguiu manter a taxa de quadros estável em 60 FPS, mesmo com o aumento da latência de geração, demonstrando a eficácia da arquitetura concorrente em isolar a thread de renderização das tarefas pesadas de processamento.
+
+Ao analisar o comportamento do gerador de malhas integrado ao laço principal de renderização da engine, observam-se padrões de desempenho diferentes quanto à responsividade e à latência de geração:
+
++ *Desempenho por Escala (Tamanho da Malha):*
+  Para malhas de $100 times 100$ vértices, a geração em modo Sequencial ocupa a thread principal por 25,6 ms, limitando a renderização a 39 FPS. O modo Paralelo necessita de 49,8 ms para gerar a malha, mas a engine mantém-se estável a 60 FPS. Com grids de $200 times 200$, o tempo sequencial sobe para 99,0 ms e a taxa cai para 10 FPS, gerando engasgos visíveis. O paralelo consome 179,9 ms, mas sustenta a renderização, ainda, a 60 FPS. Na escala máxima de $1000 times 1000$, o modo Sequencial bloqueia a thread de renderização por 2,29 segundos resultando em 0,44 FPS, enquanto o Paralelo consome 3,89 segundos de computação secundária mantendo a fluidez estável a 60 FPS.
+
++ *Desempenho por Oitavas (Complexidade do Ruído):*
+  Com 1 oitava de ruído, a latência de 131,0 ms no modo Sequencial reduz o jogo a 7,61 FPS, contra 60 FPS no modo Paralelo (computação de 235,3 ms). Sob complexidade máxima de 10 oitavas, o modo Sequencial desaba para 1,65 FPS (605,4 ms de latência), enquanto o Paralelo sustenta os mesmos 60 FPS, demandando 1.042,8 ms de tempo de CPU em segundo plano.
+
+Os dados obtidos na engine gráfica para as variações de escala e de oitavas de ruído estão consolidados na @tab:engine_escala e na @tab:engine_oitavas, respectivamente.
+
+#figure(
+  table(
+    columns: (1fr, 1.5fr, 1.2fr, 1.5fr, 1.2fr),
+    align: (center, right, right, right, right),
+    stroke: 0.5pt + luma(150),
+    fill: (x, y) => if y == 0 { rgb("#fdf8f5") } else { none },
+    [*Escala*], [*Seq. Tempo (ms)*], [*Seq. FPS*], [*Par. Tempo (ms)*], [*Par. FPS*],
+    [100x100], [25,6], [39], [49,8], [60],
+    [200x200], [99,0], [10], [179,9], [60],
+    [300x300], [218,2], [4,57], [411,5], [60],
+    [400x400], [380,0], [2,63], [703,3], [60],
+    [500x500], [585,3], [1,71], [1071,0], [60],
+    [600x600], [842,4], [1,19], [1511,0], [60],
+    [700x700], [1131,7], [0,88], [2045,3], [60],
+    [800x800], [1481,8], [0,67], [2658,7], [60],
+    [900x900], [1871,7], [0,53], [3333,7], [60],
+    [1000x1000], [2295,0], [0,44], [3897,5], [60],
+  ),
+  caption: [Tempo de processamento e taxa de quadros (FPS) em função da escala na engine gráfica.],
+) <tab:engine_escala>
+
+#figure(
+  table(
+    columns: (1fr, 1.5fr, 1.2fr, 1.5fr, 1.2fr),
+    align: (center, right, right, right, right),
+    stroke: 0.5pt + luma(150),
+    fill: (x, y) => if y == 0 { rgb("#fdf8f5") } else { none },
+    [*Oitavas*], [*Seq. Tempo (ms)*], [*Seq. FPS*], [*Par. Tempo (ms)*], [*Par. FPS*],
+    [1], [131,0], [7,61], [235,3], [60],
+    [2], [176,3], [5,67], [308,5], [60],
+    [3], [222,5], [4,49], [402,6], [60],
+    [4], [270,4], [3,70], [511,6], [60],
+    [5], [320,2], [3,12], [581,9], [60],
+    [6], [374,1], [2,67], [689,4], [60],
+    [7], [433,1], [2,31], [804,4], [60],
+    [8], [490,7], [2,04], [907,6], [60],
+    [9], [548,0], [1,82], [1010,8], [60],
+    [10], [605,4], [1,65], [1042,8], [60],
+  ),
+  caption: [Tempo de processamento e taxa de quadros (FPS) em função das oitavas de ruído na engine gráfica.],
+) <tab:engine_oitavas>
+
+A dispersão do FPS obtido durante a simulação por escala pode ser observada na @fig:engine_escala_fps_boxplot_sequencial e na @fig:engine_escala_fps_boxplot_paralelo. Os gráficos contrastam a instabilidade e a perda acentuada de FPS do modo sequencial sob cargas altas com a estabilidade do modo paralelo no limite físico do motor gráfico.
+
+#figure(
+  image("images/plot_engine_escala_fps_boxplot_sequencial.png", width: 85%),
+  caption: [Dispersão da taxa de quadros (FPS) por escala no modo Sequencial na engine gráfica.],
+) <fig:engine_escala_fps_boxplot_sequencial>
+
+#figure(
+  image("images/plot_engine_escala_fps_boxplot_paralelo.png", width: 85%),
+  caption: [Dispersão da taxa de quadros (FPS) por escala no modo Paralelo na engine gráfica.],
+) <fig:engine_escala_fps_boxplot_paralelo>
+\
+
+Cabe notar uma particularidade de visualização na @fig:engine_escala_fps_boxplot_paralelo: embora os limites dos diagramas de caixa (_whiskers_) e do corpo da caixa aparentem cobrir uma grande área da escala vertical, isso é um artefato visual decorrente do ajuste automático de escala do eixo vertical no _software_ de plotagem. Como a variação real do FPS no modo paralelo é quase nula (na ordem de $10^(-1)$ a $10^(-2)$ FPS), o eixo vertical foi ampliado em um intervalo microscópico.
+
+Essa variação quase inexistente de FPS para a maioria das escalas ocorre porque a transferência de malhas pequenas para a GPU consome tempo desprezível da thread principal. Contudo, na escala máxima de $1000 times 1000$ vértices, a malha possui cerca de um milhão de vértices. O envio desse grande volume de dados de vértices é  processado obrigatoriamente pela thread principal de renderização. O _upload_ desse buffer de dados no momento em que a malha fica pronta consome alguns milissegundos do tempo limite do quadro, explicando o desvio padrão de $0,56$ FPS e as oscilações entre $57,8$ e $60,8$ FPS. 
+
+=== O Paradoxo da Responsividade
+
+Embora o modo paralelo resulte em uma maior latência absoluta para concluir uma única tarefa (como visto anteriormente), a delegação desse processamento a threads secundárias pelo `TaskMaster` impede o bloqueio do laço de renderização principal. Assim, para aplicações gráficas interativas em tempo real, a estabilidade e a responsividade mostram-se mais importantes que o tempo bruto de execução do algoritmo de forma isolada.
+
+=== Métricas de Cache na Engine
+
+Os contadores físicos de CPU coletados via `perf` durante a execução junto ao motor gráfico corroboram as conclusões do benchmark isolado a respeito da disputa por recursos de memória. No modo Sequencial, a taxa de _cache misses_ registrou 32,77%. Sob a execução do modo Paralelo, essa taxa subiu para 41,54%. Essa diferença reforça a explicação de que o processamento paralelo de múltiplas tarefas simultâneas aumenta significativamente a pressão sobre o subsistema de memória, resultando em um aumento substancial de _cache misses_. No entanto, mesmo com essa penalidade de desempenho individual, a arquitetura concorrente do `TaskMaster` permite que a aplicação mantenha uma experiência fluida e responsiva, além de alavancar o desempenho de gerações em massa.
+
+=== Análise Estatística
+
+Para consolidar as conclusões observadas no motor gráfico, aplicou-se a Análise de Variância (ANOVA) de duas vias sobre a taxa de quadros e o tempo de geração. A análise confirmou que o modo de execução possui efeito altamente significativo no tempo de processamento ($text("p-valor") < 0,001$). O fator modo de execução (Sequencial ou Paralelo) também apresentou impacto estatístico massivo especificamente sobre a taxa de quadros $text("p-valor") < 0,001$). 
+
+Por fim, o teste pós-hoc de Tukey corroborou que a melhoria de FPS obtida pela arquitetura concorrente é estatisticamente significativa em todas as escalas e oitavas avaliadas com $text("p-valor") < 0,001$, validando cientificamente a eficácia da solução paralela.
 
 = Conclusão
 
+Este trabalho apresentou uma arquitetura concorrente assíncrona baseada no padrão _Task Scheduler_, implementada em C++20 através da classe `TaskMaster`, para solucionar o gargalo de processamento na geração procedural de terrenos e extração de malhas tridimensionais integradas a motores gráficos baseados em OpenGL. O foco principal foi garantir a responsividade e a estabilidade da taxa de quadros (FPS) ao delegar tarefas intensivas para threads secundárias.
+
+Os resultados experimentais revelaram um comportamento interessante. Embora a latência individual para a geração de uma única malha tenha aumentado no modo paralelo devido à disputa por recursos de memória e a um incremento nas falhas de cache (_cache misses_ de 30,93% para 36,48%), o ganho global de vazão foi massivo, com um _speedup_ global de 5,35x no processamento em lote. No motor gráfico, enquanto a abordagem sequencial inviabilizou a renderização ao bloquear a _main thread_ por mais de 2 segundos em malhas densas (atingindo 0,44 FPS), a arquitetura proposta sustentou de forma consistente o limite físico de 60 FPS da aplicação. As análises estatísticas por ANOVA de duas vias e teste pós-hoc de Tukey comprovaram com alta significância ($text("p-valor") < 0,001$) a eficácia da paralelização.
+
+Do ponto de vista de engenharia de software, o uso dos recursos modernos do C++20, como `std::jthread`, `std::stop_token` e ponteiros inteligentes, mostrou-se fundamental. Estes mecanismos simplificaram o gerenciamento do ciclo de vida das threads e garantiram a segurança de memória contra condições de corrida e travamentos, demonstrando que a concorrência moderna em C++ reduz substancialmente a complexidade do código e o risco de vazamentos de recursos.
+
+Como trabalhos futuros, sugere-se a investigação de técnicas de transferência de dados mais eficientes para a GPU para mitigar o _overhead_ observado no envio de buffers muito grandes da _main thread_, utilizando instanceamento (_Instancing_). Adicionalmente, propõe-se explorar a migração dos algoritmos de geração de ruído e extração de geometria diretamente para a GPU, avaliando o ganho de desempenho em comparação com a arquitetura concorrente baseada em CPU proposta neste artigo.
 
 #bibliography("referencias_acm.bib", title: "Referências", style: "association-for-computing-machinery") 

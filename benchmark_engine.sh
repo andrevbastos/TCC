@@ -77,8 +77,8 @@ do
     PAD_PID=$!
     wait $PAD_PID
 
-    mkdir -p /home/andre/facul/programacao-de-alto-desempenho/dados/$i
-    mv /home/andre/projects/tcc/results/* /home/andre/facul/programacao-de-alto-desempenho/dados/$i
+    mkdir -p /home/andre/facul/programacao-de-alto-desempenho/engine/$i
+    mv /home/andre/projects/tcc/results/* /home/andre/facul/programacao-de-alto-desempenho/engine/$i
 done
 
 echo -e "\n==> Testes concluídos com sucesso!"
