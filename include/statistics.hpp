@@ -15,6 +15,7 @@
 #include <graph/util/dijkstra.hpp>
 #include <graph/util/a_star.hpp>
 #include <graph/util/jps.hpp>
+#include <graph/util/theta_star.hpp>
 #include <graph/util/node_data.hpp>
 
 #include "statistics.hpp"

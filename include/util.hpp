@@ -88,6 +88,27 @@ inline float calculatePathCostLW(const std::vector<int>& path, const common::lwG
     return totalCost;
 }
 
+inline std::vector<int> reconstructPathLW(const std::vector<int>& path, int width) {
+    std::vector<int> fullPath;
+    if (path.empty()) return fullPath;
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        int curr = path[i];
+        int next = path[i + 1];
+        int x1 = curr % width, y1 = curr / width;
+        int x2 = next % width, y2 = next / width;
+        int dx = (x2 > x1) ? 1 : (x2 < x1 ? -1 : 0);
+        int dy = (y2 > y1) ? 1 : (y2 < y1 ? -1 : 0);
+        int x = x1, y = y1;
+        while (x != x2 || y != y2) {
+            fullPath.push_back(y * width + x);
+            if (x != x2) x += dx;
+            if (y != y2) y += dy;
+        }
+    }
+    fullPath.push_back(path.back());
+    return fullPath;
+}
+
 inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;

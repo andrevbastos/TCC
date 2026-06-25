@@ -16,6 +16,7 @@
 #include <ifcg/graphics/meshTree.hpp>
 #include <ifcg/graphics/primitives/sphere.hpp>
 
+#include <functional>
 #include "statistics.hpp"
 #include "task.hpp"
 #include "util.hpp"
@@ -232,9 +233,121 @@ int main(int argc, char* argv[]) {
             newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model)); 
         };
 
+        auto thetaStarFunc = [graph, width, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter, heightLimit]() {
+            int visitedNodes = 0;
+            auto chebyshevHeuristic = [&](const auto& a, const auto& b) -> float {
+                visitedNodes++;
+                return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
+            };
+            std::function<bool(int, int)> los = [&](int start, int end) -> bool {
+                int w = width;
+                int x0 = start % w;
+                int y0 = start / w;
+                int x1 = end % w;
+                int y1 = end / w;
+                int dx = std::abs(x1 - x0);
+                int dy = std::abs(y1 - y0);
+                int sx = (x0 < x1) ? 1 : -1;
+                int sy = (y0 < y1) ? 1 : -1;
+                int err = dx - dy;
+                int x = x0;
+                int y = y0;
+                float lastZ = graph->getVertexData(start).z;
+                while (true) {
+                    int currentId = y * w + x;
+                    float currentZ = graph->getVertexData(currentId).z;
+                    if (std::abs(currentZ - lastZ) > heightLimit) {
+                        return false;
+                    }
+                    lastZ = currentZ;
+                    if (x == x1 && y == y1) {
+                        break;
+                    }
+                    int e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y += sy;
+                    }
+                }
+                return true;
+            };
+            auto startTime = std::chrono::high_resolution_clock::now();
+            auto rawPath = util::lwThetaStar<Vertex3D>(*graph, startId, endId, chebyshevHeuristic, los);
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> elapsed = endTime - startTime;
+            
+            auto path = reconstructPathLW(rawPath, width);
+            if (path.empty()) {
+                std::cout << "Theta Star: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
+                return;
+            }
+            int currentPathIdx;
+            {
+                std::lock_guard<std::mutex> lock(meshesMutex);
+                (*pathCounter)++;
+                currentPathIdx = *pathCounter;
+            }
+            stats->addEntry("Theta Star", "Tempo de Execução", elapsed.count());
+            stats->addEntry("Theta Star", "Custo do Caminho", calculatePathCostLW(path, *graph));
+            stats->addEntry("Theta Star", "Número de Nós Expandidos", visitedNodes);
+            stats->makeCSV("../results/statistics");
+            
+            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {1.0f, 0.5f, 0.0f, 1.0f});
+            auto model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
+            std::lock_guard<std::mutex> lock(meshesMutex);
+            newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));
+        };
+
+        auto jpsFunc = [graph, width, height, startId, endId, stats, &meshesMutex, &newMeshesQueue, pathCounter, heightLimit]() {
+            std::vector<unsigned int> gridData(width * height, 1);
+            common::lwGrid grid(width, height, gridData);
+            auto validator = [&](int fromId, int toId) {
+                const auto& fromData = graph->getVertexData(fromId);
+                const auto& toData = graph->getVertexData(toId);
+                return std::abs(fromData.z - toData.z) <= heightLimit;
+            };
+            util::JumpPointSearchLw jps(grid, validator);
+            auto jpsHeuristic = [](const util::Vertex2D& a, const util::Vertex2D& b) -> double {
+                return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
+            };
+            auto startTime = std::chrono::high_resolution_clock::now();
+            auto rawPath = jps.find(startId, endId, jpsHeuristic);
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<float> elapsed = endTime - startTime;
+            
+            auto path = reconstructPathLW(rawPath, width);
+            if (path.empty()) {
+                std::cout << "JPS: Nenhum caminho encontrado de " << startId << " para " << endId << std::endl;
+                return;
+            }
+            int currentPathIdx;
+            {
+                std::lock_guard<std::mutex> lock(meshesMutex);
+                (*pathCounter)++;
+                currentPathIdx = *pathCounter;
+            }
+            stats->addEntry("JPS", "Tempo de Execução", elapsed.count());
+            stats->addEntry("JPS", "Custo do Caminho", calculatePathCostLW(path, *graph));
+            stats->addEntry("JPS", "Número de Nós Expandidos", 0);
+            stats->makeCSV("../results/statistics");
+            
+            auto [pathVertices, pathIndices] = createMeshDataFromLwPath(*graph, path, {1.0f, 0.0f, 1.0f, 1.0f});
+            auto model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(0.0f, 0.5f * currentPathIdx, 0.0f));
+            std::lock_guard<std::mutex> lock(meshesMutex);
+            newMeshesQueue.push(std::make_tuple(pathVertices, pathIndices, GL_LINES, model));
+        };
+
         tm.addTask(aStarFunc, Priority::Medium);
         tm.addTask(aStarModFunc, Priority::Medium);
         tm.addTask(dijkstraFunc, Priority::Medium);
+        tm.addTask(thetaStarFunc, Priority::Medium);
+        tm.addTask(jpsFunc, Priority::Medium);
     };
     
     auto& camera {renderer.getCamera()};
@@ -254,9 +367,6 @@ int main(int argc, char* argv[]) {
         }
 
         tm.addTask(createScene, Priority::High);
-
-        camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
-        camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
     });
 
     input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
