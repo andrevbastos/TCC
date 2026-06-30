@@ -347,14 +347,14 @@
     \end{tikzpicture}
 \end{frame}}
 
-\begin{frame}{Resultados Parciais --- Experimento de Escala}
+\begin{frame}{Resultados Parciais}
     \begin{columns}
         \begin{column}{0.5\textwidth}
             \footnotesize
             \textbf{Análise do Tempo de Execução (ms):}
             \begin{itemize}
                 \item \textbf{A* Modificado:} Apresentou o pior desempenho em grandes dimensões, atingindo $13816.9 \text{ ms}$ em malhas de $800\times800$ vértices.
-                \item \textbf{JPS:} Mais eficiente em escalas menores, porém degradou nas maiores ($4175.0 \text{ ms}$ em $800\times800$). Isso decorre de buscas longas e sem pontos de salto em relevos suaves.
+                \item \textbf{JPS:} Mais eficiente em escalas menores, porém degradou nas maiores ($4175.0 \text{ ms}$ em $800\times800$).
                 \item \textbf{A* e Theta*:} Mantiveram-se mais consistentes ao longo do crescimento da escala.
             \end{itemize}
         \end{column}
@@ -365,22 +365,9 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{Resultados Parciais --- Análise Estatística}
-    \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \footnotesize
-            \textbf{Validação Estatística (ANOVA + Tukey):}
-            \begin{itemize}
-                \item A ANOVA de duas vias confirmou que a escolha do Algoritmo, da Escala e sua interação possuem relevância estatística sobre o tempo ($p \approx 0$).
-                \item O teste pós-hoc de Tukey HSD ratificou a significância estatística das diferenças nas escalas maiores ($p < 0.05$).
-                \item \textbf{Lacunaridade e Relevo:} Em alta frequência de relevo (lacunaridade $\ge 2.0$), o JPS superou amplamente os demais (médias de $2.4 \text{ ms}$).
-            \end{itemize}
-        \end{column}
-        \begin{column}{0.5\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{figuras/plot_escala_nos_tendencia.png}
-        \end{column}
-    \end{columns}
+\begin{frame}{Resultados Parciais}
+    \centering
+    \includegraphics[width=\textwidth]{figuras/plot_escala_tempo_tendencia.png}
 \end{frame}
 
 \begin{frame}{Resultados Esperados}
@@ -388,8 +375,8 @@
         \item Distinguir melhores algoritmos para cada modelo geométrico e tipo de cenário:
         \begin{itemize}
             \item Dijkstra com pior tempo de execução (baseline).
-            \item JPS com melhor tempo em áreas planas.
-            \item Theta* com melhor qualidade de caminhos (any-angle).
+            \item JPS com melhor tempo em áreas com menos obstáculos.
+            \item Theta* com melhor qualidade de caminhos.
         \end{itemize}
         \vspace{1em}
         \item Validar a influência da escala e dificuldade de terreno no tempo de execução de algoritmos de busca:

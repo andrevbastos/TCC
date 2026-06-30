@@ -5,5 +5,5 @@
 \beamer@sectionintoc {5}{Referencial Teórico}{8}{0}{5}
 \beamer@sectionintoc {6}{Metodologia}{17}{0}{6}
 \beamer@sectionintoc {7}{Resultados e Próximos Passos}{25}{0}{7}
-\beamer@sectionintoc {8}{Conclusão}{28}{0}{8}
-\beamer@sectionintoc {9}{Referências}{29}{0}{9}
+\beamer@sectionintoc {8}{Conclusão}{30}{0}{8}
+\beamer@sectionintoc {9}{Referências}{31}{0}{9}

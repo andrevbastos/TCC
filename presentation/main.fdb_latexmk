@@ -1,13 +1,13 @@
 # Fdb version 4
-["biber main"] 1782416714.89648 "main.bcf" "main.bbl" "main" 1782843693.22113 0
-  "main.bcf" 1782843693.11641 110281 cedcc8a508ce1ee4197db8c378d58eb8 "pdflatex"
+["biber main"] 1782416714.89648 "main.bcf" "main.bbl" "main" 1782853966.74619 0
+  "main.bcf" 1782853966.64439 110281 cedcc8a508ce1ee4197db8c378d58eb8 "pdflatex"
   "referencias.bib" 1782416714.82248 8368 c82978e218df3c4510733df1a2e0a94a ""
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1782843690.33771 "/home/andre/projects/tcc/presentation/main.tex" "main.pdf" "main" 1782843693.22147 0
-  "/home/andre/projects/tcc/presentation/main.tex" 1782843690.05641 18417 7aa5ea036cde6dae6d6b6886a0ca515d ""
+["pdflatex"] 1782853963.28472 "/home/andre/projects/tcc/presentation/main.tex" "main.pdf" "main" 1782853966.74648 0
+  "/home/andre/projects/tcc/presentation/main.tex" 1782853963.35639 19436 1f54f61202dfa90249e2316f53ca6cec ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1775415801 1408 5937f58aa508ea2cea4901c07d10f5fe ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/times/psyro.tfm" 1775415801 1544 23a042a74981a3e4b6ce2e350e390409 ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/times/ptmb7t.tfm" 1775415801 2172 fd0c924230362ff848a33632ed45dc23 ""
@@ -31,6 +31,7 @@
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmssbx10.tfm" 1775415801 1272 e2d13f0df30bf3ad990bb9d028e37f34 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmssi10.tfm" 1775415801 1520 ca2bb4b78ac9800bd686e30c6d19ef95 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmssi8.tfm" 1775415801 1500 7f49257eca65a87057f17452e9fe3ef5 ""
+  "/usr/share/texmf-dist/fonts/tfm/public/cm/cmssi9.tfm" 1775415801 1524 db4bb1dddb7b51420776d94a5c70c2a5 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm" 1775415801 1124 6c73e740cf17375f03eec0ee63599741 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm" 1775415801 768 1321e9409b4137d6fb428ac9dc956269 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmtt8.tfm" 1775415801 768 d7b9a2629a0c353102ad947dc9221d49 ""
@@ -260,15 +261,16 @@
   "figuras/perlin_high_freq.png" 1782411514.17939 259813 170362568feeb0f1099fa996846c5a96 ""
   "figuras/perlin_high_freq_amp.png" 1782411514.18339 276534 8dae0c2799799eef3d2e540d1558a6e8 ""
   "figuras/pixel_to_vertex.png" 1782400296.6804 108441 bd577c824a08e5db17607609d1c5435d ""
+  "figuras/plot_escala_tempo_tendencia.png" 1782853674.72838 166532 0ee06cc00ebf9ce3476592a79556736c ""
   "figuras/task_master.png" 1782411514.18339 9107 91ec43a6d8c42a3e99d134fc86a5a8de ""
   "figuras/vertices.png" 1782398887.69027 3302 f318a92be0f77b07d3e82e6ed5890524 ""
-  "main.aux" 1782843693.11241 10234 39a4034a6d8541a6582a3577ee92f16e "pdflatex"
+  "main.aux" 1782853966.64039 10490 ccb34a4c4b3f328faf0083cbfc5f9b74 "pdflatex"
   "main.bbl" 1782416716.37848 26356 2324521945ff42afedd6188a13ac4e89 "biber main"
-  "main.nav" 1782843693.11641 4409 723e70a776283ef1aded9296c3f3207f "pdflatex"
-  "main.out" 1782843691.27641 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "main.run.xml" 1782843693.11641 2347 db0655072542d8035b549226babcdbb3 "pdflatex"
-  "main.tex" 1782843690.05641 18417 7aa5ea036cde6dae6d6b6886a0ca515d ""
-  "main.toc" 1782843693.11641 466 82265ceea12e9b4141834bc77a69c99a "pdflatex"
+  "main.nav" 1782853966.64439 4593 17430f4c798494da98321fb6f388803f "pdflatex"
+  "main.out" 1782853964.44439 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "main.run.xml" 1782853966.64439 2347 db0655072542d8035b549226babcdbb3 "pdflatex"
+  "main.tex" 1782853963.35639 19436 1f54f61202dfa90249e2316f53ca6cec ""
+  "main.toc" 1782853966.64439 466 92005d0da81da0f6f47181e29ecca204 "pdflatex"
   (generated)
   "main.aux"
   "main.bcf"
