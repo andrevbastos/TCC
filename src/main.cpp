@@ -35,11 +35,8 @@ int main() {
     const float heightLimit = 2.5f;
 
     std::unordered_map<std::string, AlgFunc> algorithms = {
-        {"Dijkstra", [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW) {
-            return util::lwAStar<Vertex3D>(graph, startId, endId, [](const Vertex3D&, const Vertex3D&) { return 0.0f; });
-        }},
-        {"A Star Mod", util::lwAStarMod<Vertex3D>},
         {"A Star", util::lwAStar<Vertex3D>},
+        {"A Star Mod", util::lwAStarMod<Vertex3D>},
         {"Theta Star", [heightLimit](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW heuristic) {
             int width = graph.getOrder();
             for (int i = 0; i < graph.getOrder(); ++i) {

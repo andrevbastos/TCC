@@ -1,508 +1,137 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   width="195.50992mm"
-   height="201.22272mm"
-   viewBox="0 0 195.50992 201.22272"
-   version="1.1"
-   id="svg1"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <defs
-     id="defs1">
-    <marker
-       style="overflow:visible"
-       id="marker41"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1"
-       markerHeight="1"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path41" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" width="100%" height="100%">
+  <defs>
+    <!-- Arrowhead marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#4B5563" />
     </marker>
-    <marker
-       style="overflow:visible"
-       id="Triangle"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1"
-       markerHeight="1"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path135" />
-    </marker>
-    <linearGradient
-       id="swatch1">
-      <stop
-         style="stop-color:#000000;stop-opacity:1;"
-         offset="0"
-         id="stop1" />
-    </linearGradient>
-    <marker
-       style="overflow:visible"
-       id="marker41-4"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1"
-       markerHeight="1"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path41-2" />
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="marker41-6"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1"
-       markerHeight="1"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path41-8" />
-    </marker>
-    <marker
-       style="overflow:visible"
-       id="marker41-2"
-       refX="0"
-       refY="0"
-       orient="auto-start-reverse"
-       markerWidth="1"
-       markerHeight="1"
-       viewBox="0 0 1 1"
-       preserveAspectRatio="xMidYMid">
-      <path
-         transform="scale(0.5)"
-         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
-         d="M 5.77,0 -2.88,5 V -5 Z"
-         id="path41-28" />
-    </marker>
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.1" />
+    </filter>
   </defs>
-  <g
-     id="layer1"
-     transform="translate(-75.494537,-24.858231)">
-    <rect
-       style="opacity:1;fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32"
-       width="37.312191"
-       height="14.698741"
-       x="133.75647"
-       y="25.108231"
-       ry="6.1237569" />
-    <text
-       xml:space="preserve"
-       style="font-size:7.05556px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="152.77037"
-       y="35.046406"
-       id="text31"><tspan
-         id="tspan31"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05556px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="152.77037"
-         y="35.046406">Process</tspan></text>
-    <path
-       style="opacity:1;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.503647;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 99.055984,95.918529 V 197.08834"
-       id="path43" />
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0"
-       width="46.622887"
-       height="14.640928"
-       x="75.744537"
-       y="82.408607"
-       ry="6.0996709" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="99.413811"
-       y="92.317879"
-       id="text31-1"><tspan
-         id="tspan31-6"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="99.413811"
-         y="92.317879">Main Thread</tspan></text>
-    <rect
-       style="opacity:1;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect41"
-       width="81.616806"
-       height="55.894886"
-       x="164.96675"
-       y="82.5784"
-       ry="0" />
-    <rect
-       style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect41-0"
-       width="81.814079"
-       height="20.439785"
-       x="111.50553"
-       y="145.68852"
-       ry="0" />
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2"
-       width="25.412739"
-       height="14.770159"
-       x="115.30512"
-       y="148.52338"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="128.36932"
-       y="158.4973"
-       id="text31-1-5"><tspan
-         id="tspan31-6-0"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="128.36932"
-         y="158.4973">Task 1</tspan></text>
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2-3"
-       width="25.412739"
-       height="14.770159"
-       x="144.41513"
-       y="148.69778"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="157.47931"
-       y="158.67169"
-       id="text31-1-5-5"><tspan
-         id="tspan31-6-0-1"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="157.47931"
-         y="158.67169">Task 2</tspan></text>
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-1"
-       width="61.535175"
-       height="14.661678"
-       x="175.00754"
-       y="87.587685"
-       ry="6.1083159" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="206.133"
-       y="97.46788"
-       id="text31-1-2"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="206.133"
-         y="97.46788"
-         id="tspan45">Worker Thread 1</tspan></text>
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-1-0"
-       width="61.535175"
-       height="14.661678"
-       x="175.00754"
-       y="105.34181"
-       ry="6.1083159" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="206.133"
-       y="115.26688"
-       id="text31-1-2-7"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="206.133"
-         y="115.26688"
-         id="tspan42">Worker Thread 2</tspan></text>
-    <path
-       style="opacity:1;fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.485957;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Triangle)"
-       d="M 152.41255,39.806972 V 52.243823"
-       id="path33" />
-    <circle
-       style="opacity:1;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-       id="path34"
-       cx="152.41255"
-       cy="68.732796"
-       r="8.3600922" />
-    <path
-       style="opacity:1;fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-       d="m 152.41255,68.732791 5.91148,5.911476 -11.82295,-11.822953"
-       id="path37" />
-    <path
-       style="opacity:1;fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-       d="m 152.41255,68.732791 5.91148,-5.911477 -11.82296,11.822953"
-       id="path38" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:0.5;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-       x="152.41255"
-       y="58.061428"
-       id="text38"><tspan
-         id="tspan38"
-         style="font-size:5.64444px;fill:#000000;fill-opacity:1;stroke-width:0.2;stroke-dasharray:none"
-         x="152.41255"
-         y="58.061428">Thread creation</tspan></text>
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.5, 3;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 144.05246,68.732791 H 98.805984"
-       id="path39" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.5, 3;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 206.01913,68.732792 H 160.77265"
-       id="path39-6" />
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.499999, 1.5;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker41)"
-       d="M 99.055984,68.482791 V 78.486419"
-       id="path40" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.499999, 2.99999;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker41-4)"
-       d="M 205.77516,68.482792 V 78.48642"
-       id="path40-7" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.60464px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="205.77515"
-       y="132.02737"
-       id="text41"><tspan
-         id="tspan41"
-         style="stroke-width:1;stroke-dasharray:none"
-         x="205.77515"
-         y="132.02737">. . .</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.60464px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="181.61964"
-       y="159.50861"
-       id="text41-4"><tspan
-         id="tspan41-0"
-         style="stroke-width:1;stroke-dasharray:none"
-         x="181.61964"
-         y="159.50861">. . .</tspan></text>
-    <rect
-       style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect41-3"
-       width="29.453461"
-       height="20.974184"
-       x="84.329247"
-       y="100.80656"
-       ry="0" />
-    <text
-       xml:space="preserve"
-       style="font-size:5.64444px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="99.055984"
-       y="109.613"
-       id="text31-1-8"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="99.055984"
-         y="109.613"
-         id="tspan43">Submit</tspan><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="99.055984"
-         y="116.73389"
-         id="tspan44">Task</tspan></text>
-    <path
-       style="opacity:1;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker41)"
-       d="m 205.77517,140.49447 v 6.38343"
-       id="path47" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="107.4668"
-       y="135.86774"
-       id="text47"><tspan
-         id="tspan47"
-         style="fill:#000000;fill-opacity:1;stroke-width:0.2;stroke-dasharray:none"
-         x="107.4668"
-         y="135.86774">push</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="212.11353"
-       y="150.34514"
-       id="text48"><tspan
-         id="tspan48"
-         style="stroke-width:0.2"
-         x="212.11353"
-         y="150.34514">pop</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="261.3035"
-       y="106.84247"
-       id="text49"><tspan
-         id="tspan49"
-         style="stroke-width:0.2"
-         x="261.3035"
-         y="106.84247">Thread</tspan><tspan
-         style="stroke-width:0.2"
-         x="261.3035"
-         y="114.77997"
-         id="tspan50">Pool</tspan></text>
-    <rect
-       style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect41-0-8"
-       width="81.814079"
-       height="20.439785"
-       x="111.50553"
-       y="166.12836"
-       ry="0" />
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2-4"
-       width="25.412739"
-       height="14.770159"
-       x="115.30514"
-       y="168.96318"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="128.36932"
-       y="178.9371"
-       id="text31-1-5-1"><tspan
-         id="tspan31-6-0-4"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="128.36932"
-         y="178.9371">Task 1</tspan></text>
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2-3-3"
-       width="25.412739"
-       height="14.770159"
-       x="144.41513"
-       y="169.1376"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="157.47931"
-       y="179.1115"
-       id="text31-1-5-5-9"><tspan
-         id="tspan31-6-0-1-8"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="157.47931"
-         y="179.1115">Task 2</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.60464px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="181.61964"
-       y="179.94843"
-       id="text41-4-8"><tspan
-         id="tspan41-0-0"
-         style="stroke-width:1;stroke-dasharray:none"
-         x="181.61964"
-         y="179.94843">. . .</tspan></text>
-    <rect
-       style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect41-0-8-8"
-       width="81.814079"
-       height="20.439785"
-       x="111.50553"
-       y="186.56816"
-       ry="0" />
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2-4-3"
-       width="25.412739"
-       height="14.770159"
-       x="115.30512"
-       y="189.40298"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="128.36932"
-       y="199.37691"
-       id="text31-1-5-1-4"><tspan
-         id="tspan31-6-0-4-8"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="128.36932"
-         y="199.37691">Task 1</tspan></text>
-    <rect
-       style="fill:#bfbfbf;fill-opacity:1;stroke:#000000;stroke-width:0.37077;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect32-0-2-3-3-4"
-       width="25.412739"
-       height="14.770159"
-       x="144.41513"
-       y="189.57741"
-       ry="6.1535106" />
-    <text
-       xml:space="preserve"
-       style="font-size:6.35px;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-       x="157.47931"
-       y="199.55132"
-       id="text31-1-5-5-9-9"><tspan
-         id="tspan31-6-0-1-8-9"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;stroke-width:0.2;stroke-dasharray:none"
-         x="157.47931"
-         y="199.55132">Task 2</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.60464px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="181.61964"
-       y="200.38821"
-       id="text41-4-8-2"><tspan
-         id="tspan41-0-0-5"
-         style="stroke-width:1;stroke-dasharray:none"
-         x="181.61964"
-         y="200.38821">. . .</tspan></text>
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.496487;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 205.77516,197.03805 1e-5,-50.16015"
-       id="path50" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Arial;-inkscape-font-specification:Arial;text-align:center;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="152.41255"
-       y="217.68999"
-       id="text51"><tspan
-         id="tspan51"
-         style="stroke-width:0.2;stroke-dasharray:none"
-         x="152.41255"
-         y="217.68999">Multilevel</tspan><tspan
-         style="stroke-width:0.2;stroke-dasharray:none"
-         x="152.41255"
-         y="225.62749"
-         id="tspan52">Queues</tspan></text>
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker41)"
-       d="M 109.51505,196.78805 H 98.95579"
-       id="path52" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker41-6)"
-       d="M 109.5007,176.34825 H 99.10579"
-       id="path52-8" />
-    <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker41-2)"
-       d="M 109.50565,156.10838 H 98.85579"
-       id="path52-9" />
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 193.31961,155.90842 h 12.45556"
-       id="path53" />
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 193.31961,176.34825 h 12.45555"
-       id="path54" />
-    <path
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 193.31961,196.78805 h 12.45555"
-       id="path55" />
+
+  <style>
+    .title { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: bold; }
+    .subtitle { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; fill: #4B5563; }
+    .label { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #1F2937; text-anchor: middle; }
+    .task-text { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; fill: #1F2937; text-anchor: middle; }
+    .arrow-text { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; fill: #4B5563; font-weight: bold; text-anchor: middle; }
+  </style>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#FFFFFF" rx="8" />
+
+  <!-- Main Thread Group -->
+  <g transform="translate(40, 140)" filter="url(#shadow)">
+    <rect width="160" height="90" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2" />
+    <text x="80" y="32" class="label">Thread Principal</text>
+    <text x="80" y="50" class="subtitle" text-anchor="middle">(Interface / OpenGL)</text>
+    <text x="80" y="68" class="subtitle" text-anchor="middle" font-size="10px" fill="#2563EB">Envia tarefas p/ filas</text>
+  </g>
+
+  <!-- Connection: Main Thread to Queue Splitter -->
+  <path d="M 200 185 L 230 185" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <!-- Splitter Line -->
+  <path d="M 230 85 L 230 295" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <!-- Arrows to Queues -->
+  <path d="M 230 85 L 260 85" fill="none" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 230 185 L 260 185" fill="none" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 230 295 L 260 295" fill="none" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <text x="220" y="185" class="arrow-text" transform="rotate(-90 220 185)">Enfileirar (Push)</text>
+
+  <!-- Filas Multinível Group -->
+  <!-- Fila 1: Alta Prioridade -->
+  <g transform="translate(270, 45)" filter="url(#shadow)">
+    <rect width="250" height="80" rx="6" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.5" />
+    <text x="12" y="22" class="title" fill="#991B1B">Fila 1: Alta Prioridade</text>
+    <text x="12" y="37" class="subtitle" fill="#991B1B" font-size="10px">Geração de Ruído / Parâmetros</text>
+    <!-- Task A -->
+    <g transform="translate(15, 45)">
+      <rect width="90" height="26" rx="4" fill="#FCA5A5" stroke="#EF4444" stroke-width="1" />
+      <text x="45" y="17" class="task-text" font-weight="bold" fill="#7F1D1D">Gerar Ruído</text>
+    </g>
+    <!-- Task B -->
+    <g transform="translate(115, 45)">
+      <rect width="110" height="26" rx="4" fill="#FCA5A5" stroke="#EF4444" stroke-width="1" />
+      <text x="55" y="17" class="task-text" font-weight="bold" fill="#7F1D1D">Parâmetros Criação</text>
+    </g>
+  </g>
+
+  <!-- Fila 2: Média Prioridade -->
+  <g transform="translate(270, 145)" filter="url(#shadow)">
+    <rect width="250" height="80" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5" />
+    <text x="12" y="22" class="title" fill="#92400E">Fila 2: Média Prioridade</text>
+    <text x="12" y="37" class="subtitle" fill="#92400E" font-size="10px">Triangulação &amp; Extração do Grafo</text>
+    <!-- Task C -->
+    <g transform="translate(15, 45)">
+      <rect width="100" height="26" rx="4" fill="#FDE047" stroke="#D97706" stroke-width="1" />
+      <text x="50" y="17" class="task-text" font-weight="bold" fill="#78350F">Triangulação 3D</text>
+    </g>
+    <!-- Task D -->
+    <g transform="translate(125, 45)">
+      <rect width="100" height="26" rx="4" fill="#FDE047" stroke="#D97706" stroke-width="1" />
+      <text x="50" y="17" class="task-text" font-weight="bold" fill="#78350F">Extração Grafo</text>
+    </g>
+  </g>
+
+  <!-- Fila 3: Baixa Prioridade -->
+  <g transform="translate(270, 255)" filter="url(#shadow)">
+    <rect width="250" height="80" rx="6" fill="#F0FDF4" stroke="#10B981" stroke-width="1.5" />
+    <text x="12" y="22" class="title" fill="#065F46">Fila 3: Baixa Prioridade</text>
+    <text x="12" y="37" class="subtitle" fill="#065F46" font-size="10px">Escrita em Disco / I/O</text>
+    <!-- Task E -->
+    <g transform="translate(15, 45)">
+      <rect width="95" height="26" rx="4" fill="#A7F3D0" stroke="#059669" stroke-width="1" />
+      <text x="47.5" y="17" class="task-text" font-weight="bold" fill="#064E3B">Escrita Disco</text>
+    </g>
+    <!-- Task F -->
+    <g transform="translate(120, 45)">
+      <rect width="110" height="26" rx="4" fill="#A7F3D0" stroke="#059669" stroke-width="1" />
+      <text x="55" y="17" class="task-text" font-weight="bold" fill="#064E3B">Salvar Imagem PNG</text>
+    </g>
+  </g>
+
+  <!-- Connection: Queues to Thread Pool Merger -->
+  <path d="M 520 85 L 550 85" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <path d="M 520 185 L 550 185" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <path d="M 520 295 L 550 295" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <!-- Merger Line -->
+  <path d="M 550 85 L 550 295" fill="none" stroke="#9CA3AF" stroke-width="2" />
+  <!-- Arrow to Thread Pool -->
+  <path d="M 550 185 L 580 185" fill="none" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)" />
+  
+  <text x="562" y="185" class="arrow-text" transform="rotate(-90 562 185)">Consome (Pop)</text>
+
+  <!-- Thread Pool Group -->
+  <g transform="translate(590, 45)" filter="url(#shadow)">
+    <!-- Container -->
+    <rect width="170" height="290" rx="8" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4 4" />
+    <text x="85" y="25" class="label">Pool de Threads</text>
+    <text x="85" y="40" class="subtitle" text-anchor="middle">(Threads Trabalhadoras)</text>
+
+    <!-- Thread 1 -->
+    <g transform="translate(15, 55)">
+      <rect width="140" height="60" rx="6" fill="#FFFFFF" stroke="#4B5563" stroke-width="1" />
+      <circle cx="20" cy="30" r="6" fill="#EF4444" /> <!-- Red status = Working on High Priority -->
+      <text x="35" y="24" class="label" text-anchor="start" font-size="11px">Thread 1 (Ativa)</text>
+      <text x="35" y="41" class="subtitle" text-anchor="start" font-size="10px" fill="#B91C1C">Gerando Ruído...</text>
+    </g>
+
+    <!-- Thread 2 -->
+    <g transform="translate(15, 130)">
+      <rect width="140" height="60" rx="6" fill="#FFFFFF" stroke="#4B5563" stroke-width="1" />
+      <circle cx="20" cy="30" r="6" fill="#F59E0B" /> <!-- Yellow status = Working on Medium Priority -->
+      <text x="35" y="24" class="label" text-anchor="start" font-size="11px">Thread 2 (Ativa)</text>
+      <text x="35" y="41" class="subtitle" text-anchor="start" font-size="10px" fill="#B45309">Triangulando 3D...</text>
+    </g>
+
+    <!-- Thread 3 -->
+    <g transform="translate(15, 205)">
+      <rect width="140" height="60" rx="6" fill="#FFFFFF" stroke="#4B5563" stroke-width="1" />
+      <circle cx="20" cy="30" r="6" fill="#10B981" /> <!-- Green status = Idle / Waiting -->
+      <text x="35" y="24" class="label" text-anchor="start" font-size="11px">Thread 3 (Ociosa)</text>
+      <text x="35" y="41" class="subtitle" text-anchor="start" font-size="10px" fill="#047857">Aguardando tarefas</text>
+    </g>
   </g>
 </svg>

@@ -690,12 +690,13 @@ Filas multiníveis ordenadas por prioridades são utilizadas para escalonar tare
 - As tarefas de média prioridade compreendem o processamento estrutural mais longo, envolvendo a triangulação geométrica e a extração do grafo.
 - As tarefas de baixa prioridade englobam processos de escrita e entrada/saída (I/O) em disco, como o salvamento de imagens ou dados de mapas gerados. Por dependerem da latência do sistema de armazenamento, essas operações executam preferencialmente quando não há tarefas prioritárias, minimizando a contenção de memória.
 
+// Melhorar figura (3 niveis e exemplos de tasks)
 \
 #figure(
   caption: [Diagrama de Thread Pool e filas multinível],
   supplement: "Figura",
 )[
-  #image("./images/thread_pool.svg", width: 50%)
+  #image("./images/thread_pool.svg", width: 85%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] \
@@ -955,12 +956,56 @@ Entre as metas alcançadas, destaca-se o desenvolvimento completo do motor gráf
 
 Os testes iniciais mostraram que a estrutura desenvolvida funciona conforme esperado. O sistema consegue simular cenários acidentados em tempo real através do OpenGL e executar múltiplos benchmarks em paralelo sem travar a interface visual e sem corromper a memória. Isso prova que as decisões de arquitetura de software tomadas no início do projeto foram corretas, gerando uma base sólida para as próximas etapas.
 
-Futuramente, os esforços serão direcionados para o desenvolvimento de técnicas avançadas de representação espacial e a exploração de novos algoritmos. O objetivo será expandir o sistema para suportar:
+== Resultados Experimentais Parciais
+
+Para validar a implementação dos algoritmos de busca e coletar dados iniciais, foi desenvolvido um ambiente quiescente no sistema operacional. A coleta consistiu em 5 rodadas completas avaliando os algoritmos A\*, A\* Modificado, JPS e Theta\* sob a influência de variações de Escala, Lacunaridade e Persistência. As métricas de tempo de execução e contagem de nós expandidos foram salvas a cada passo e tratadas estatisticamente, com a remoção de outliers via intervalo interquartil (IQR) substituídos pela mediana dos respectivos grupos @jurandir.
+
+Os testes de escala revelaram comportamentos distintos de eficiência computacional. O algoritmo A\* Modificado apresentou o maior tempo médio nas maiores dimensões, alcançando $13816.90 " ms"$ para uma malha de $800 times 800$ vértices, indicando uma sensibilidade acentuada à estrutura do relevo em grandes escalas. Surpreendentemente, o JPS também apresentou degradação de desempenho em escalas elevadas na malha de altura ($4175.05 " ms"$), sendo estatisticamente mais lento que o A\* clássico ($1229.87 " ms"$). Esse comportamento inusitado decorre da frequência média do relevo que, na ausência de barreiras intransitáveis contínuas, força o JPS a percorrer longos caminhos na grade em busca de pontos de salto (_jump points_), gerando um custo de varredura superior ao dos métodos heurísticos tradicionais. Em contrapartida, em cenários de alta lacunaridade e relevos complexos (frequências de $2.00$ e $2.50$), o JPS mostrou-se extremamente rápido (médias de apenas $2.48 " ms"$), superando com larga marcante os demais algoritmos.
+
+Para corroborar a significância das diferenças observadas, aplicou-se a Análise de Variância (ANOVA) de duas vias, que confirmou a relevância do tipo de algoritmo, dos parâmetros do relevo e de sua interação sobre os tempos de execução ($p approx 0$). O teste pós-hoc de Tukey confirmou que as diferenças observadas entre os algoritmos nas maiores escalas e nas configurações extremas de lacunaridade são estatisticamente significativas ($p < 0.05$). Estes dados estatísticos preliminares encontram-se resumidos na @tab-escala-tempo, e as curvas de tendência de tempo e expansão de nós na maior escala são ilustradas na @fig-escala-tempo e na @fig-escala-nos.
+
+#figure(
+  caption: [Tempos de Execução médios para o experimento de Escala.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (1.2fr, 1.2fr, 1.2fr, 1.2fr, 1.2fr),
+    align: (center, right, right, right, right),
+    stroke: 0.5pt + luma(150),
+    fill: (x, y) => if y == 0 { rgb("#eef2f7") } else { none },
+    [*Escala*], [*A Star*], [*A Star Mod*], [*JPS*], [*Theta Star*],
+    [200x200], [0.74 ± 0.04], [0.68 ± 0.01], [0.41 ± 0.02], [0.71 ± 0.05],
+    [400x400], [119.94 ± 53.04], [221.47 ± 103.22], [2.01 ± 0.29], [225.19 ± 102.25],
+    [600x600], [635.33 ± 9.43], [3133.78 ± 138.62], [879.76 ± 437.05], [1180.66 ± 20.07],
+    [800x800], [1229.87 ± 13.74], [13816.90 ± 555.58], [4175.05 ± 208.36], [2403.11 ± 35.98],
+  )
+] <tab-escala-tempo>
+
+#figure(
+  caption: [Tendência de Tempo de Execução (ms) sob a variação de Escala do Terreno.],
+  supplement: "Figura",
+)[
+  #image("./images/plot_escala_tempo_tendencia.png", width: 75%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] <fig-escala-tempo>
+
+#figure(
+  caption: [Tendência de Nós Expandidos sob a variação de Escala do Terreno.],
+  supplement: "Figura",
+)[
+  #image("./images/plot_escala_nos_tendencia.png", width: 75%)
+  #v(0.5em)
+  #text(size: 10pt)[Fonte: Elaborado pelo autor.]
+] <fig-escala-nos>
+\
+#v(-1.5em)
+Futuramente pretende-se pesquisar e integrar novos algoritmos de busca de caminhos e ambiente de teste para ampliar o comparativo estatístico. Os esforços, principalmente, serão direcionados para o desenvolvimento de técnicas avançadas de representação espacial e a exploração de novos algoritmos de busca. O objetivo será expandir o sistema para suportar:
 - *NavMeshes* (Malhas de Navegação): permitindo a movimentação livre e contínua de entidades sobre superfícies 3D complexas.
 - *Octrees* (Árvores Octais): para o particionamento espacial tridimensional eficiente de ambientes de grande escala.
 - *Voxels* (Mapeamento Volumétrico): para representar terrenos volumétricos de forma flexível.
-
-Por fim, pretende-se pesquisar e integrar novos algoritmos de busca de caminhos para ampliar o comparativo estatístico nas novas estruturas espaciais.
+\
+#v(-1.5em)
 
 = RESULTADOS ESPERADOS
 
