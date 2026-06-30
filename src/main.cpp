@@ -28,11 +28,11 @@ struct TestConfig {
 };
 
 int main() {
-    const uint repetitions = 50;
+    const uint repetitions = 5;
     const uint numSteps = 4;
 
     const uint intensity = 100;
-    const float heightLimit = 5.0f;
+    const float heightLimit = 2.5f;
 
     std::unordered_map<std::string, AlgFunc> algorithms = {
         {"Dijkstra", [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW) {
@@ -190,7 +190,7 @@ int main() {
         auto paramSetter = config.paramSetter;
         auto statsSetter = config.statsSetter;
 
-        runTestsPar(
+        runTestsParClean(
             testName,
             algorithms,
             paramSetter,
