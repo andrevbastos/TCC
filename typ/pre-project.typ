@@ -149,6 +149,7 @@
   )
 
   set heading(numbering: "1.1")
+  set math.equation(numbering: "(1)")
   show heading: it => {
     set text(size: 12pt, weight: "bold")
     set block(above: 1.5em, below: 1.5em) 
@@ -332,11 +333,7 @@ A fundamentação teórica deste trabalho engloba conceitos fundamentais nas ár
 Para um ambiente de desenvolvimento robusto e eficiente, a escolha da pilha tecnológica é crucial. A seguir, são detalhados os principais componentes que compõem a base tecnológica deste estudo.
 
 === Linguagem de Programação
-A linguagem de programação C++20 caracteriza-se por sua eficiência, controle de baixo nível e ampla adoção na indústria de jogos e simulações, oferecendo recursos avançados para manipulação de memória, concorrência e otimização de desempenho.
-
-A adoção do C++20 destaca-se pela disponibilidade de bibliotecas e _frameworks_ que facilitam a implementação de estruturas de dados complexas, renderização gráfica e execução concorrente, além de permitir integração eficiente com APIs gráficas como OpenGL.
-
-Propicia um ambiente de desenvolvimento robusto e flexível, que viabiliza a aplicação de técnicas avançadas de otimização e o controle sobre os recursos computacionais de hardware.
+A linguagem de programação C++20 caracteriza-se por sua eficiência, controle de baixo nível e ampla adoção na indústria de jogos e simulações, oferecendo recursos avançados para manipulação de memória, concorrência e otimização de desempenho. A adoção do C++20 destaca-se pela disponibilidade de bibliotecas e _frameworks_ que facilitam a implementação de estruturas de dados complexas, renderização gráfica e execução concorrente, além de permitir integração eficiente com APIs gráficas como OpenGL.
 
 ==== Estruturas de Dados
 A representação de grafos, filas de prioridade e outras estruturas auxiliares necessárias para algoritmos de busca e motores gráficos é viabilizada pela biblioteca padrão do C++, a STL (_Standard Template Library_), que oferece uma variedade de contêineres e algoritmos otimizados para manipulação de dados. 
@@ -982,7 +979,7 @@ Para corroborar a significância das diferenças observadas, aplicou-se a Análi
 ] <tab-escala-tempo>
 
 #figure(
-  caption: [Tendência de Tempo de Execução (ms) sob a variação de Escala do Terreno.],
+  caption: [Tendência de Tempo de Execução sob a variação de Escala.],
   supplement: "Figura",
 )[
   #image("./images/plot_escala_tempo_tendencia.png", width: 75%)
@@ -991,7 +988,7 @@ Para corroborar a significância das diferenças observadas, aplicou-se a Análi
 ] <fig-escala-tempo>
 
 #figure(
-  caption: [Tendência de Nós Expandidos sob a variação de Escala do Terreno.],
+  caption: [Tendência de Nós Expandidos sob a variação de Escala.],
   supplement: "Figura",
 )[
   #image("./images/plot_escala_nos_tendencia.png", width: 75%)
