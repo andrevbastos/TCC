@@ -959,7 +959,9 @@ Para validar a implementação dos algoritmos de busca e coletar dados iniciais,
 
 Os testes de escala revelaram comportamentos distintos de eficiência computacional. O algoritmo A\* Modificado apresentou o maior tempo médio nas maiores dimensões, alcançando $13816.90 " ms"$ para uma malha de $800 times 800$ vértices, indicando uma sensibilidade acentuada à estrutura do relevo em grandes escalas. Surpreendentemente, o JPS também apresentou degradação de desempenho em escalas elevadas na malha de altura ($4175.05 " ms"$), sendo estatisticamente mais lento que o A\* clássico ($1229.87 " ms"$). Esse comportamento inusitado decorre da frequência média do relevo que, na ausência de barreiras intransitáveis contínuas, força o JPS a percorrer longos caminhos na grade em busca de pontos de salto (_jump points_), gerando um custo de varredura superior ao dos métodos heurísticos tradicionais. Em contrapartida, em cenários de alta lacunaridade e relevos complexos (frequências de $2.00$ e $2.50$), o JPS mostrou-se extremamente rápido (médias de apenas $2.48 " ms"$), superando com larga marcante os demais algoritmos.
 
-Para corroborar a significância das diferenças observadas, aplicou-se a Análise de Variância (ANOVA) de duas vias, que confirmou a relevância do tipo de algoritmo, dos parâmetros do relevo e de sua interação sobre os tempos de execução ($p approx 0$). O teste pós-hoc de Tukey confirmou que as diferenças observadas entre os algoritmos nas maiores escalas e nas configurações extremas de lacunaridade são estatisticamente significativas ($p < 0.05$). Estes dados estatísticos preliminares encontram-se resumidos na @tab-escala-tempo, e as curvas de tendência de tempo e expansão de nós na maior escala são ilustradas na @fig-escala-tempo e na @fig-escala-nos.
+Para corroborar a significância das diferenças observadas, aplicou-se a Análise de Variância (ANOVA) de duas vias, que confirmou a relevância do tipo de algoritmo, dos parâmetros do relevo e de sua interação sobre os tempos de execução ($p approx 0$). O teste pós-hoc de Tukey confirmou que as diferenças observadas entre os algoritmos nas maiores escalas e nas configurações extremas de lacunaridade são estatisticamente significativas ($p < 0.05$). Estes dados estatísticos preliminares encontram-se resumidos na @tab-escala-tempo, e as curvas de tendência de tempo e expansão de nós na maior escala são ilustradas na @fig-escala-tempo e na @fig-escala-nos. 
+\
+\
 
 #figure(
   caption: [Tempos de Execução médios para o experimento de Escala.],
@@ -982,7 +984,7 @@ Para corroborar a significância das diferenças observadas, aplicou-se a Análi
   caption: [Tendência de Tempo de Execução sob a variação de Escala.],
   supplement: "Figura",
 )[
-  #image("./images/plot_escala_tempo_tendencia.png", width: 75%)
+  #image("./images/plot_escala_tempo_tendencia.png", width: 50%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] <fig-escala-tempo>
@@ -991,7 +993,7 @@ Para corroborar a significância das diferenças observadas, aplicou-se a Análi
   caption: [Tendência de Nós Expandidos sob a variação de Escala.],
   supplement: "Figura",
 )[
-  #image("./images/plot_escala_nos_tendencia.png", width: 75%)
+  #image("./images/plot_escala_nos_tendencia.png", width: 50%)
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] <fig-escala-nos>
