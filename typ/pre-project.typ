@@ -1065,6 +1065,10 @@ O estágio atual do trabalho demonstra um progresso significativo e acima da mé
 
 Com a base técnica operacional, o foco do cronograma para as próximas etapas focará na modelagem estatística, geração de novos terrenos procedurais e a redação final. É esperado que este estudo contribua de forma relevante para a área de computação gráfica e inteligência artificial aplicada, fornecendo dados quantitativos empíricos que auxiliem na escolha e compreensão dos métodos de _pathfinding_ em ambientes 3D.
 
+= Agradecimentos
+
+Os autores declaram o uso do assistente de inteligência artificial Antigravity para revisão textual e ortográfica, estruturação conceitual das ideias e na formatação das tabelas deste artigo. Ressalta-se que toda a concepção do estudo, implementação do software, execução dos experimentos e análise científica contidas neste trabalho são de inteira responsabilidade dos autores.
+
 // =======================================================
 // ELEMENTOS PÓS-TEXTUAIS
 // =======================================================
