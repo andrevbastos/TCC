@@ -1,9 +1,0 @@
-\beamer@sectionintoc {1}{Introdução}{3}{0}{1}
-\beamer@sectionintoc {2}{Objetivos}{5}{0}{2}
-\beamer@sectionintoc {3}{Justificativa}{6}{0}{3}
-\beamer@sectionintoc {4}{Trabalhos Relacionados}{7}{0}{4}
-\beamer@sectionintoc {5}{Referencial Teórico}{8}{0}{5}
-\beamer@sectionintoc {6}{Metodologia}{17}{0}{6}
-\beamer@sectionintoc {7}{Resultados e Próximos Passos}{25}{0}{7}
-\beamer@sectionintoc {8}{Conclusão}{30}{0}{8}
-\beamer@sectionintoc {9}{Referências}{31}{0}{9}
