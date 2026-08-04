@@ -105,6 +105,7 @@ int main() {
             socklen_t addr_len = sizeof(client_addr);
             
             bool dataReceived = false;
+            bool colorReceived = false;
             int new_w = config.width;
             int new_h = config.height;
             float new_wave = static_cast<float>(config.wave);
@@ -114,6 +115,10 @@ int main() {
             unsigned int new_seed = config.seed;
             unsigned int new_octaves = config.octaves;
             float new_intensity = intensity;
+            
+            float new_r = terrainColor.r;
+            float new_g = terrainColor.g;
+            float new_b = terrainColor.b;
 
             while (true) {
                 ssize_t bytes = recvfrom(socket_fd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr*)&client_addr, &addr_len);
@@ -125,17 +130,39 @@ int main() {
                 std::string msg(buffer);
                 std::stringstream ss(msg);
                 
-                if (ss >> new_w >> new_h >> new_wave >> new_freq >> new_amp >> new_exp >> new_seed >> new_octaves >> new_intensity) {
+                // Tenta ler com os 3 floats adicionais de cor (R, G, B)
+                int temp_w, temp_h;
+                float temp_wave, temp_freq, temp_amp, temp_exp, temp_intensity, temp_r, temp_g, temp_b;
+                unsigned int temp_seed, temp_octaves;
+                
+                if (ss >> temp_w >> temp_h >> temp_wave >> temp_freq >> temp_amp >> temp_exp >> temp_seed >> temp_octaves >> temp_intensity >> temp_r >> temp_g >> temp_b) {
+                    new_w = temp_w; new_h = temp_h; new_wave = temp_wave; new_freq = temp_freq;
+                    new_amp = temp_amp; new_exp = temp_exp; new_seed = temp_seed; new_octaves = temp_octaves;
+                    new_intensity = temp_intensity;
+                    new_r = temp_r; new_g = temp_g; new_b = temp_b;
                     dataReceived = true;
+                    colorReceived = true;
+                }
+                // Fallback: tenta ler os 9 parâmetros tradicionais de ruído
+                else {
+                    std::stringstream ss_fallback(msg);
+                    if (ss_fallback >> temp_w >> temp_h >> temp_wave >> temp_freq >> temp_amp >> temp_exp >> temp_seed >> temp_octaves >> temp_intensity) {
+                        new_w = temp_w; new_h = temp_h; new_wave = temp_wave; new_freq = temp_freq;
+                        new_amp = temp_amp; new_exp = temp_exp; new_seed = temp_seed; new_octaves = temp_octaves;
+                        new_intensity = temp_intensity;
+                        dataReceived = true;
+                    }
                 }
             }
 
             if (dataReceived) {
+                bool colorChanged = colorReceived && (terrainColor.r != new_r || terrainColor.g != new_g || terrainColor.b != new_b);
+                
                 if (config.width != new_w || config.height != new_h ||
                     config.wave != static_cast<int>(new_wave) || config.freq != new_freq ||
                     config.amp != new_amp || config.exp != new_exp ||
                     config.seed != new_seed || config.octaves != new_octaves ||
-                    intensity != new_intensity) {
+                    intensity != new_intensity || colorChanged) {
                     
                     config.width = new_w;
                     config.height = new_h;
@@ -146,6 +173,11 @@ int main() {
                     config.seed = new_seed;
                     config.octaves = new_octaves;
                     intensity = new_intensity;
+                    
+                    if (colorReceived) {
+                        terrainColor = {new_r, new_g, new_b, 1.0f};
+                    }
+                    
                     needsUpdate = true;
                 }
             }

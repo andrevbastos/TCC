@@ -1042,15 +1042,14 @@ Espera-se que as análises de variância e os testes subsequentes de Tukey demon
     [Planejamento da Coleta de Dados e Análise Estatística], [Mai/2026 a Jun/2026],
     [Redação e Revisão do Pré-Projeto], [Abr/2026 a Jun/2026],
     [Defesa do Pré-Projeto], [Jun/2026],
-    [Implementação de NavMeshes e Otimização 3D], [Jul/2026 a Ago/2026],
+    [NavMeshes, Octotrees e Voxels], [Jul/2026 a Ago/2026],
     [Otimização de Concorrência e Testes de Estresse], [Ago/2026],
     [Implementações Específicas (D\* Lite, Busca Bidirecional, Lazy Theta\*)], [Ago/2026 a Set/2026],
     [Coleta Automatizada de Métricas e Dados], [Set/2026 a Out/2026],
     [Análise Estatística e Visual dos Resultados], [Out/2026 a Nov/2026],
     [Redação da Monografia Final], [Out/2026 a Nov/2026],
-    [Revisão e Entrega Final], [Nov/2026],
     [Defesa do TCC], [Dez/2026],
-    table.hline(y: 17, stroke: 1pt)
+    table.hline(y: 16, stroke: 1pt)
   )
   #v(0.5em)
   #text(size: 10pt)[Fonte: Elaborado pelo autor (2026).]

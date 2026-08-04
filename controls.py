@@ -7,11 +7,19 @@ import os
 UDP_IP = "127.0.0.1"
 UDP_PORT = 12345
 
+# Converte string hexadecimal (#ffffff) para floats RGB (0.0 a 1.0)
+def hex_to_rgb_floats(hex_str):
+    hex_str = hex_str.lstrip('#')
+    r = int(hex_str[0:2], 16) / 255.0
+    g = int(hex_str[2:4], 16) / 255.0
+    b = int(hex_str[4:6], 16) / 255.0
+    return r, g, b
+
 class TerrainControlsApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Controle de Terrenos")
-        self.root.geometry("420x840")
+        self.root.geometry("420x840") # Ajustado para o layout compacto sem presets
         self.root.configure(bg="#0b0b0c")
         self.root.resizable(False, False)
         
@@ -28,12 +36,17 @@ class TerrainControlsApp:
         self.var_octaves = tk.IntVar(value=3)
         self.var_intensity = tk.DoubleVar(value=100.0)
         
+        # Cor padrão inicial (Verde Oliva)
+        self.current_color = "#4caf50"
+        
         # Caminho da imagem temporária do preview
         self.preview_path = "build/noise_preview.png"
         self.zoomed_photo = None
         
+        self.palette_canvas_list = []
+        
         self.setup_ui()
-        self.send_parameters()
+        self.send_parameters() # Envia os valores iniciais
         
         # Inicia a escuta/leitura periódica da imagem de preview gerada pelo C++
         self.poll_preview()
@@ -49,7 +62,7 @@ class TerrainControlsApp:
         # Título
         title_label = tk.Label(
             self.center_frame, 
-            text="G E R A D O R  D E   T E R R E N O S", 
+            text="G E R A D O R  D E  T E R R E N O S", 
             font=("Helvetica", 10, "bold"), 
             bg="#0b0b0c", 
             fg="#ffffff"
@@ -59,15 +72,15 @@ class TerrainControlsApp:
         # Sliders
         self.create_slider(self.center_frame, "Resolução do Grid", self.var_width, 64, 512, is_int=True)
         self.create_slider(self.center_frame, "Comprimento de Onda", self.var_wave, 10, 500)
-        self.create_slider(self.center_frame, "Frequência Base", self.var_freq, 0.1, 10.0)
-        self.create_slider(self.center_frame, "Amplitude Base", self.var_amp, 0.1, 2.0)
-        self.create_slider(self.center_frame, "Expoente (Relevo)", self.var_exp, 0.5, 4.0)
+        self.create_slider(self.center_frame, "Frequência", self.var_freq, 0.1, 10.0)
+        self.create_slider(self.center_frame, "Amplitude", self.var_amp, 0.1, 2.0)
+        self.create_slider(self.center_frame, "Expoente", self.var_exp, 0.5, 4.0)
         self.create_slider(self.center_frame, "Oitavas", self.var_octaves, 1, 8, is_int=True)
         self.create_slider(self.center_frame, "Intensidade Vertical", self.var_intensity, 10, 300)
         
         # Separador 1
         separator = tk.Frame(self.center_frame, height=1, bg="#1a1a1e")
-        separator.pack(fill=tk.X, pady=15)
+        separator.pack(fill=tk.X, pady=12)
         
         # Seed e Reseed
         seed_frame = tk.Frame(self.center_frame, bg="#0b0b0c")
@@ -115,8 +128,41 @@ class TerrainControlsApp:
         
         # Separador 2
         separator2 = tk.Frame(self.center_frame, height=1, bg="#1a1a1e")
-        separator2.pack(fill=tk.X, pady=15)
+        separator2.pack(fill=tk.X, pady=12)
         
+        # --- Fileira de Cores Livres no Rodapé ---
+        palette_label = tk.Label(
+            self.center_frame, 
+            text="PALETA DE CORES", 
+            font=("Helvetica", 7, "bold"), 
+            bg="#0b0b0c", 
+            fg="#808085"
+        )
+        palette_label.pack(pady=(0, 5))
+        
+        palette_frame = tk.Frame(self.center_frame, bg="#0b0b0c")
+        palette_frame.pack(pady=3)
+        
+        # Cores predefinidas para a paleta rápida
+        palette_colors = ["#4caf50", "#735135", "#e6e6f2", "#0091ea", "#2e7d32"]
+        
+        for hex_color in palette_colors:
+            color_btn = tk.Canvas(
+                palette_frame, 
+                width=20, 
+                height=20, 
+                bg="#0b0b0c", 
+                highlightthickness=0, 
+                cursor="hand2"
+            )
+            color_btn.pack(side=tk.LEFT, padx=8)
+            # Desenha um círculo preenchido
+            color_btn.create_oval(2, 2, 18, 18, fill=hex_color, outline="#2a2a30", width=1, tags="circle")
+            
+            # Bind de clique
+            color_btn.bind("<Button-1>", lambda e, c=hex_color: self.select_color(c))
+            self.palette_canvas_list.append((hex_color, color_btn))
+            
         # Label do Título do Preview
         preview_title = tk.Label(
             self.center_frame, 
@@ -125,7 +171,7 @@ class TerrainControlsApp:
             bg="#0b0b0c", 
             fg="#808085"
         )
-        preview_title.pack(pady=(0, 5))
+        preview_title.pack(pady=(12, 5))
         
         # Container de Imagem do Preview com borda fina
         preview_border = tk.Frame(self.center_frame, bg="#1a1a1e", padx=1, pady=1)
@@ -137,14 +183,17 @@ class TerrainControlsApp:
             font=("Helvetica", 8),
             bg="#0b0b0c", 
             fg="#808085",
-            width=24,
+            width=36,
             height=12
         )
         self.preview_label.pack()
         
+        # Destaca a cor inicial (Verde Oliva)
+        self.highlight_color("#4caf50")
+        
     def create_slider(self, parent, label_text, var, from_val, to_val, is_int=False):
         frame = tk.Frame(parent, bg="#0b0b0c")
-        frame.pack(fill=tk.X, pady=6)
+        frame.pack(fill=tk.X, pady=5)
         
         label_frame = tk.Frame(frame, bg="#0b0b0c")
         label_frame.pack(fill=tk.X)
@@ -191,7 +240,7 @@ class TerrainControlsApp:
             length=350,
             sliderlength=14
         )
-        slider.pack(fill=tk.X, pady=(3, 0))
+        slider.pack(fill=tk.X, pady=(2, 0))
         
         initial_val = var.get()
         val_label.config(text=f"{initial_val}" if is_int else f"{initial_val:.2f}")
@@ -200,15 +249,26 @@ class TerrainControlsApp:
         new_seed = random.randint(0, 999999)
         self.var_seed.set(new_seed)
         self.send_parameters()
+                
+    def select_color(self, hex_color):
+        self.current_color = hex_color
+        self.highlight_color(hex_color)
+        self.send_parameters()
+
+    def highlight_color(self, active_hex):
+        for hex_color, canvas in self.palette_canvas_list:
+            canvas.delete("border")
+            if hex_color == active_hex:
+                # Desenha uma borda branca de destaque ao redor do círculo ativo
+                canvas.create_oval(1, 1, 19, 19, outline="#ffffff", width=1.5, tags="border")
 
     def poll_preview(self):
-        # Tenta carregar a imagem gerada pelo C++ do disco de forma não-bloqueante
         if os.path.exists(self.preview_path):
             try:
                 # Carrega o PNG de tamanho fixo 256x256 salvo pelo C++
                 photo = tk.PhotoImage(file=self.preview_path)
                 
-                # Atualiza a label para exibir a imagem no tamanho real fixo
+                # Exibe a imagem de tamanho constante
                 self.preview_label.config(image=photo, text="", width=0, height=0)
                 self.zoomed_photo = photo # Mantém a referência na memória
             except Exception:
@@ -233,8 +293,11 @@ class TerrainControlsApp:
         octaves = self.var_octaves.get()
         intensity = self.var_intensity.get()
         
-        # Envia parâmetros ao C++
-        msg = f"{w} {h} {wave:.4f} {freq:.4f} {amp:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f}"
+        # Converte a cor hexadecimal atual em floats R, G, B
+        r, g, b = hex_to_rgb_floats(self.current_color)
+        
+        # Envia parâmetros ao C++ com cor R, G, B no fim
+        msg = f"{w} {h} {wave:.4f} {freq:.4f} {amp:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f} {r:.3f} {g:.3f} {b:.3f}"
         try:
             self.sock.sendto(msg.encode(), (UDP_IP, UDP_PORT))
         except Exception:

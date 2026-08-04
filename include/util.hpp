@@ -118,7 +118,6 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwP
         
         const auto& data = graph.getVertexData(nodeId);
         
-        // Swap Y and Z: data.x, data.z, data.y
         vertices.emplace_back(data.x, data.z, data.y, color.r, color.g, color.b, color.a);
         
         if (i < path.size() - 1) {
@@ -141,7 +140,6 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwG
         
         float decay = std::max(0.5f, data.z / maxZ);
         Color vColor = color * decay;
-        // Swap Y and Z: data.x, data.z, data.y
         vertices.emplace_back(data.x, data.z, data.y, vColor.r, vColor.g, vColor.b, color.a);
     }
 
@@ -216,7 +214,6 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromNoi
             float decay = std::max(0.5f, noise[currentId]);
             Color vColor = color * decay;
 
-            // Swap Y and Z: x, z, y
             vertices.emplace_back(x, z, y, vColor.r, vColor.g, vColor.b, color.a);
         }
     }
