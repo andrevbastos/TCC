@@ -10,29 +10,26 @@ if(TARGET ifcg_core)
     target_compile_options(ifcg_core PRIVATE -Wno-error)
 endif()
 
-# Itera sobre cada arquivo e cria um executável dinamicamente
-foreach(SOURCE_FILE ${TCC_SOURCES})
-    # Obtém o nome do arquivo sem a extensão
-    get_filename_component(EXE_NAME ${SOURCE_FILE} NAME_WE)
+# Cria o executável para o main.cpp
+add_executable(main main.cpp)
 
-    # Define o nome do alvo como o nome do executável
-    set(TARGET_NAME ${EXE_NAME})
+# Linka com os cores das bibliotecas importadas via FetchContent
+target_link_libraries(main PRIVATE 
+    ifcg_core 
+    graph_core 
+)
 
-    # Cria o executável para o arquivo atual
-    add_executable(${TARGET_NAME} ${SOURCE_FILE})
+# Inclui os headers do projeto
+target_include_directories(main PRIVATE "${PROJECT_SOURCE_DIR}/include")
 
-    # Linka com os cores das bibliotecas importadas via FetchContent
-    target_link_libraries(${TARGET_NAME} PRIVATE 
-        ifcg_core 
-        graph_core 
-    )
+# Cria o executável para o terrain_viewer.cpp
+add_executable(terrain_viewer terrain_viewer.cpp)
 
-    # Inclui os headers do projeto
-    target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+# Linka com os cores das bibliotecas importadas via FetchContent
+target_link_libraries(terrain_viewer PRIVATE 
+    ifcg_core 
+    graph_core 
+)
 
-    # Copia recursos da engine ifcg para o diretório de build de cada executável (Essencial para Shaders)
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${ifcg_SOURCE_DIR}/resources $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
-    )
-endforeach()
+# Inclui os headers do projeto
+target_include_directories(terrain_viewer PRIVATE "${PROJECT_SOURCE_DIR}/include")

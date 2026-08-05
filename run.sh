@@ -31,6 +31,4 @@ trap cleanup EXIT INT TERM
 # 3. Executa o visualizador C++ de terrenos de dentro da pasta build/ (necessário para os shaders)
 echo -e "\e[1;32m[C++]\e[0m Iniciando o visualizador de terrenos 3D..."
 cd build
-./bin/terrain_viewer
-
-
+./terrain_viewer

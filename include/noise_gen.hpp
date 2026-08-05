@@ -4,6 +4,8 @@
 #include <vector>
 #include <fstream>
 #include <filesystem>
+#include <cerrno>
+#include <cstring>
 
 #include "stb_image_write.h"
 
@@ -118,6 +120,6 @@ void saveNoiseAsPNG(const std::string& filename, const std::vector<float>& noise
 
     fs::create_directories(fs::path(filename).parent_path());
     if (!stbi_write_png(filename.c_str(), width, height, 1, imageData.data(), width)) {
-        std::cerr << "Failed to save noise map as PNG: " << filename << std::endl;
+        std::cerr << "Failed to save noise map as PNG: " << filename << " (" << std::strerror(errno) << ")" << std::endl;
     }
 }
