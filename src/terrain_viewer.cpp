@@ -1,6 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
 #include <iostream>
 #include <vector>
 #include <string>
@@ -11,10 +8,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-
 #include <ifcg/ifcg.hpp>
 #include <ifcg/graphics/mesh.hpp>
-#include "util.hpp"
+
+#include "core/util.hpp"
 
 int setupUDPSocket(int port) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);

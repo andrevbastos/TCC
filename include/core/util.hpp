@@ -16,8 +16,8 @@
 #include <fstream>
 #include <unistd.h>
 
-#include "ray_cast.hpp"
-#include "noise_gen.hpp"
+#include "core/noise_gen.hpp"
+#include "transvoxel/transvoxel.hpp"
 #include "stb_image.h"
 
 using namespace ifcg;
@@ -50,26 +50,6 @@ inline double getMeshDataSizeMB(const std::vector<Vertex>& vertices, const std::
     return (double)totalBytes / (1024.0 * 1024.0);
 }
 
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, float maxZ, Color color = {1.0f, 1.0f, 1.0f, 1.0f});
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color);
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromHeightmap(const char* imagePath, float intensity, Color color = {1.0f, 1.0f, 1.0f, 1.0f});
-std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromNoise(
-    const std::vector<float>& noise, 
-    const int width, 
-    const int height, 
-    float intensity, 
-    Color color = {1.0f, 1.0f, 1.0f, 1.0f}
-);
-
-std::tuple<std::shared_ptr<common::lwGraph<Vertex3D>>, int, int> createLwGraphFromHeightmap(const char* imagePath, int intensity, float heightLimit);
-std::shared_ptr<common::lwGraph<Vertex3D>> createlwGraphFromNoise(
-    const std::vector<float>& data, 
-    const int width, 
-    const int height, 
-    float heightLimit, 
-    int intensity
-);
-
 inline float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
     if (path.size() < 2) return 0.0; 
     
@@ -86,7 +66,7 @@ inline float calculatePathCostLW(const std::vector<int>& path, const common::lwG
         }
     }
     return totalCost;
-}
+};
 
 inline std::vector<int> reconstructPathLW(const std::vector<int>& path, int width) {
     std::vector<int> fullPath;
@@ -107,7 +87,7 @@ inline std::vector<int> reconstructPathLW(const std::vector<int>& path, int widt
     }
     fullPath.push_back(path.back());
     return fullPath;
-}
+};
 
 inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color) {
     std::vector<Vertex> vertices;
@@ -128,7 +108,7 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwP
     }
 
     return {vertices, indices};
-}
+};
 
 inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwGraph(const common::lwGraph<Vertex3D>& graph, float maxZ, Color color) {
     std::vector<Vertex> vertices;
@@ -157,7 +137,7 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromLwG
     }
 
     return {vertices, indices};
-}
+};
 
 inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromHeightmap(const char* imagePath, float intensity, Color color) {
     int width, height, channels;
@@ -239,7 +219,7 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromNoi
     }
 
     return {vertices, indices};
-}
+};
 
 inline std::shared_ptr<common::lwGraph<Vertex3D>> createlwGraphFromNoise(const std::vector<float>& data, const int width, const int height, float heightLimit, int intensity) {
     auto graph = std::make_shared<undirected::lwGraph<Vertex3D>>(width * height);
@@ -280,7 +260,7 @@ inline std::shared_ptr<common::lwGraph<Vertex3D>> createlwGraphFromNoise(const s
     }
 
     return graph;
-}
+};
 
 inline std::tuple<std::shared_ptr<common::lwGraph<Vertex3D>>, int, int> createLwGraphFromHeightmap(const char* imagePath, int intensity, float heightLimit) {
     int startId = -1, endId = -1;
@@ -337,4 +317,263 @@ inline std::tuple<std::shared_ptr<common::lwGraph<Vertex3D>>, int, int> createLw
 
     stbi_image_free(data);  
     return {graph, startId, endId};
-}
+};
+
+inline std::pair<std::vector<Vertex>, std::vector<GLuint>> createMeshDataFromVoxel(
+    const NoiseConfig& noiseConfig, 
+    float intensity, 
+    Color color = {1.0f, 1.0f, 1.0f, 1.0f}
+) {
+    int width = noiseConfig.width;
+    int depth = noiseConfig.height;
+    int height = intensity;
+
+	auto noise {generateNoiseMap(noiseConfig)};
+    std::vector<uint> voxel{std::vector<uint>(height * width * depth, 0)};
+
+	for (uint z = 0; z < depth; ++z) {
+		for (uint x = 0; x < width; ++x) {
+			uint index = (z * width) + x;
+			int y = std::round(std::clamp(noise[index], 0.0f, 1.0f) * height);
+			for (uint i = 0; i < y; ++i) {
+				uint voxelIndex = x + (i * width) + (z * width * height);
+				voxel[voxelIndex] = 1;
+			}
+		}
+	}
+
+	std::vector<Vertex> vertices;
+	std::vector<GLuint> indices;
+
+	for (uint z = 0; z < depth; ++z) {
+		for (uint x = 0; x < width; ++x) {
+			for (uint y = 0; y < height; ++y) {
+				uint index = x + (y * width) + (z * width * height);
+				if (voxel[index] == 1) {
+					uint step{(uint)vertices.size()};
+
+					// Left neighbour
+					if (x == 0 || (x > 0 && voxel[index - 1] == 0)) {
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					};
+
+					// Right neighbour
+					if (x == width - 1 || (x < width - 1 && voxel[index + 1] == 0)) {
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					};
+
+					// Top neighbour
+					if (y == height - 1 || (y < height - 1 && voxel[index + width] == 0)) {
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					};
+
+					// Bottom neighbour
+					if (y == 0 || (y > 0 && voxel[index - width] == 0)) {
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					}
+
+					// Front neighbour
+					if (z == 0 || (z > 0 && voxel[index - (width * height)] == 0)) {
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, -0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, -0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					}
+
+					// Back neighbour
+					if (z == depth -1 || (z < depth - 1 && voxel[index + (width * height)] == 0)) {
+						vertices.push_back(Vertex{+0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+						vertices.push_back(Vertex{+0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, -0.5f + y, +0.5f + z, 0.6f, 0.3f, 0.0f, 1.0f});
+						vertices.push_back(Vertex{-0.5f + x, +0.5f + y, +0.5f + z, 0.25f, 0.8, 0.3f, 1.0f});
+
+						indices.push_back(step + 0);
+						indices.push_back(step + 1);
+						indices.push_back(step + 3);
+						indices.push_back(step + 1);
+						indices.push_back(step + 2);
+						indices.push_back(step + 3);
+
+						step += 4;
+					}
+				}
+			}
+		}
+	}
+
+	if (!vertices.empty() && !indices.empty()) {
+        return {vertices, indices};
+    }
+    return {{}, {}};
+};
+
+inline std::pair<std::pair<std::vector<Vertex>, std::vector<GLuint>>, std::pair<std::vector<Vertex>, std::vector<GLuint>>> createMeshDataFromMarchingCubes(
+    const NoiseConfig& noiseConfig, 
+    float intensity, 
+    Color color = {1.0f, 1.0f, 1.0f, 1.0f}
+) {
+    int width = noiseConfig.width;
+    int depth = noiseConfig.height;
+    int height = intensity;
+
+    std::vector<Vertex> corners {
+        Vertex{0.0f, 0.0f, 0.0f},
+        Vertex{1.0f, 0.0f, 0.0f},
+        Vertex{0.0f, 1.0f, 0.0f},
+        Vertex{1.0f, 1.0f, 0.0f},
+        Vertex{0.0f, 0.0f, 1.0f},
+        Vertex{1.0f, 0.0f, 1.0f},
+        Vertex{0.0f, 1.0f, 1.0f},
+        Vertex{1.0f, 1.0f, 1.0f}
+    };
+
+	std::vector<uint> voxel{std::vector<uint>(height * width * depth, 0)};
+	std::vector<uint> cell{std::vector<uint>((width - 1) * (height - 1) * (depth - 1), 0)};
+
+	auto noise {generateNoiseMap(noiseConfig)};
+
+	for (uint z = 0; z < depth; ++z) {
+		for (uint x = 0; x < width; ++x) {
+			uint noiseIndex = (z * width) + x;
+			uint y = (noise[noiseIndex] + 0.5f) * (height / 2.0f);
+			for (uint i = 0; i < y; ++i) {
+				uint voxelIndex = x + (i * width) + (z * width * height);
+				voxel[voxelIndex] = 1;
+			}
+		}
+	}
+
+	std::vector<Vertex> vertices;
+	std::vector<GLuint> indices;
+	std::vector<Vertex> verticesLines;
+	std::vector<GLuint> indicesLines;
+
+	uint step = 0;
+	for (uint z = 0; z < depth - 1; ++z) {
+		for (uint y = 0; y < height - 1; ++y) {
+			for (uint x = 0; x < width - 1; ++x) {
+				uint voxelIndex = x + (y * width) + (z * width * height);
+				uint cellIndex = x + (y * (width - 1)) + (z * (width - 1) * (height - 1));
+				std::vector<uint> cellCorners = {
+					voxelIndex,
+					voxelIndex + 1,
+					voxelIndex + width,
+					voxelIndex + width + 1,
+					voxelIndex + (width * height),
+					voxelIndex + (width * height) + 1,
+					voxelIndex + (width * height) + width,
+					voxelIndex + (width * height) + width + 1
+				};
+
+				for (int i = 0; i < 8; ++i) {
+					if (voxel[cellCorners[i]] == 1) {
+						cell[cellIndex] |= (1 << i);
+					}
+				}
+
+				uint caseIndex = cell[cellIndex];
+				if (caseIndex != 0 && caseIndex != 255) {
+					auto classIndex = regularCellClass[caseIndex];
+					auto cellData = regularCellData[classIndex];
+					auto vertexCount = cellData.GetVertexCount();
+					auto triangleCount = cellData.GetTriangleCount();
+
+					uint vertexOffset = vertices.size();
+
+					for (int i = 0; i < vertexCount; i++) {
+						auto edgeInfo = regularVertexData[caseIndex][i];
+						auto lowByte = edgeInfo & 0xFF;
+						auto a = lowByte >> 4;
+						auto b = lowByte & 0x0F;
+
+						auto pos = corners[a] % corners[b];
+						pos = pos + Vertex{(float)x, (float)y, (float)z};
+						vertices.push_back(pos);
+					}
+					for (int i = 0; i < (triangleCount * 3); i++) {
+						indices.push_back(vertexOffset + cellData.vertexIndex[i]);
+					}
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < vertices.size(); i++) {
+		verticesLines.push_back(vertices[i] - Vertex{0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f});
+	}
+
+	for (int i = 0; i < indices.size(); i+=3) {
+		auto a = indices[i];
+		auto b = indices[i + 1];
+		auto c = indices[i + 2];
+
+		indicesLines.push_back(a);
+		indicesLines.push_back(b);
+		indicesLines.push_back(b);
+		indicesLines.push_back(c);
+		indicesLines.push_back(c);
+		indicesLines.push_back(a);
+	}
+
+	if (!vertices.empty() && !indices.empty() && !verticesLines.empty() && !indicesLines.empty()) {
+        return {{vertices, indices}, {verticesLines, indicesLines}};
+    }
+    return {{{}, {}}, {{}, {}}};
+};

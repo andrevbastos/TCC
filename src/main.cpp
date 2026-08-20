@@ -1,6 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
 #include <iostream>
 #include <filesystem>
 #include <thread>
@@ -16,12 +13,14 @@
 #include <graph/util/jps.hpp>
 #include <graph/util/node_data.hpp>
 
-#include "statistics.hpp"
-#include "util.hpp"
-#include "task.hpp"
+#include "core/statistics.hpp"
+#include "core/util.hpp"
+#include "core/task.hpp"
 
 namespace fs = std::filesystem;
 
+void mcubes(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir);
+void voxel(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir);
 void noise(uint intensity, float heightLimit, NoiseConfig noiseConfig, const std::string& saveDir);
 void map(const char* imagePath, uint intensity, float heightLimit);
 void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
@@ -58,6 +57,32 @@ int main(int argc, char* argv[]) {
     noiseCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
     noiseCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
     noiseCmd->callback([&]() { noise(intensity, heightLimit, noiseConfig, path); });
+
+    auto voxelCmd = app.add_subcommand("voxel", "Executa o teste de voxel");
+    voxelCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
+    voxelCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("wave,-w,--wave", noiseConfig.wave, "Tamanho da onda")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("freq, -f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
+    voxelCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
+    voxelCmd->callback([&]() { voxel(intensity, noiseConfig, path); });
+
+    auto mcubesCmd = app.add_subcommand("mcubes", "Executa o teste de marching cubes");
+    mcubesCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
+    mcubesCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("wave,-w,--wave", noiseConfig.wave, "Tamanho da onda")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("freq, -f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
+    mcubesCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
+    mcubesCmd->callback([&]() { mcubes(intensity, noiseConfig, path); });
 
     auto mapCmd = app.add_subcommand("map", "Executa o teste de mapa");
     mapCmd->add_option("imagePath", path, "Caminho para a imagem do mapa")->check(CLI::ExistingFile)->required();
@@ -921,4 +946,72 @@ void stats(uint repetitions, uint steps, uint intensity, float heightLimit) {
 
         std::cout << std::endl;
     }
+};
+
+void voxel(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
+    using namespace ifcg;
+
+    srand(static_cast<unsigned>(time(NULL)));
+
+    Engine::init(1200, 800, "TCC");
+    Engine::setup3D();
+
+    auto& input {Engine::getInputHandler()};
+    auto& renderer {Engine::getRenderer()};
+	auto& camera {renderer.getCamera()};
+    GLuint shader {renderer.getShaderID()};
+	
+	input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera]() {
+        camera.setSpeed(0.5f);
+    });
+
+    auto [vertices, indices] = createMeshDataFromVoxel(noiseConfig, intensity);
+    
+    Mesh mesh(vertices, indices, shader, GL_TRIANGLES);
+    renderer.addMesh(std::make_shared<Mesh>(mesh));
+
+	LoopConfig config; 
+    Engine::loop(config);
+	Engine::terminate();
+};
+
+void mcubes(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
+        using namespace ifcg;
+
+    srand(static_cast<unsigned>(time(NULL)));
+
+    Engine::init(1200, 800, "TCC");
+    Engine::setup3D();
+
+    auto& input {Engine::getInputHandler()};
+    auto& renderer {Engine::getRenderer()};
+	auto& camera {renderer.getCamera()};
+    GLuint shader {renderer.getShaderID()};
+	
+	input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera]() {
+        camera.setSpeed(0.5f);
+    });
+
+    auto [meshData, linesData] = createMeshDataFromMarchingCubes(noiseConfig, intensity);
+    auto [vertices, indices] = meshData;
+    auto [lineVertices, lineIndices] = linesData;
+
+    Mesh mesh(vertices, indices, shader, GL_TRIANGLES);
+    renderer.addMesh(std::make_shared<Mesh>(mesh));
+
+    Mesh lines(lineVertices, lineIndices, shader, GL_LINES);
+    lines.translate(0.0f, 0.1f, 0.0f);
+    renderer.addMesh(std::make_shared<Mesh>(lines));
+
+	LoopConfig config; 
+    Engine::loop(config);
+	Engine::terminate();
 };

@@ -7,7 +7,7 @@
 #include <graph/undirected/lw_graph.hpp>
 #include <graph/util/kruskal.hpp>
 
-#include "util.hpp"
+#include "core/util.hpp"
 
 std::tuple<std::shared_ptr<MeshTree>, std::shared_ptr<common::lwGraph<Vertex3D>>, std::pair<int, int>> createSceneFromNoise(
     NoiseConfig config,

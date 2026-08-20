@@ -18,9 +18,8 @@
 #include <graph/util/theta_star.hpp>
 #include <graph/util/node_data.hpp>
 
-#include "statistics.hpp"
-#include "util.hpp"
-#include "task.hpp"
+#include "core/util.hpp"
+#include "core/task.hpp"
 
 class Statistics {
 public:

@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstring>
 
+#include "stb_image.h"
 #include "stb_image_write.h"
 
 namespace fs = std::filesystem;
