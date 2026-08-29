@@ -566,27 +566,29 @@ Ele identifica pontos críticos chamados _Jump Points_ — locais onde a presen�
 
 O algoritmo Theta\* é uma extensão do A\* que permite a busca de caminhos mais diretos em ambientes 3D, ao invés de se limitar a movimentos ortogonais ou diagonais em uma grade. Ele combina a eficiência do A\* com a capacidade de "ver" através de obstáculos, permitindo que o caminho seja ajustado dinamicamente para evitar curvas desnecessárias @nash2013anyangle.
 
-== Computação Gráfica
-A representação visual e espacial de cenários 3D demanda o emprego de técnicas de computação gráfica para renderização em tempo real. Motores de renderização personalizados possibilitam integrar simulações lógicas a uma visualização gráfica, otimizando o fluxo de dados conforme as necessidades da aplicação.
+== OpenGL API
 
-=== OpenGL API
-O OpenGL é uma API de gráficos 3D amplamente utilizada para renderização de gráficos em tempo real @learnopengl. A interface de programação de aplicações (API) OpenGL#footnote[https://www.opengl.org/] é consagrada na indústria para a renderização de gráficos 2D e 3D acelerados por hardware. Suas especificações oferecem baixo nível de abstração, permitindo controle direto sobre a GPU, gerenciamento de buffers e programação de shaders.
+O OpenGL#footnote[https://www.opengl.org/] é uma interface de programação de aplicações (API) de gráficos 3D amplamente utilizada para renderização de gráficos em tempo real @learnopengl. Consagrada na indústria para a renderização de gráficos 2D e 3D acelerados por hardware, suas especificações oferecem baixo nível de abstração, permitindo controle direto sobre a GPU, gerenciamento de buffers e programação de shaders.
 
-==== Malhas
+=== Malhas
 As malhas poligonais (ou _meshes_) constituem uma representação geométrica de superfícies em computação gráfica, nas quais a topologia do terreno é descrita por um conjunto de vértices, arestas e faces. Em simulações de navegação, essas malhas definem a superfície transitável sobre a qual as rotas são calculadas.
 
 Cada conjunto de vértices e arestas diferentes são armazenados em _buffers_ denominados VBO (Vertex Buffer Object) e EBO (Element Buffer Object), respectivamente, que são gerenciados pela GPU para renderização eficiente. Cada um desses _buffers_ é associado a um VAO (Vertex Array Object), que encapsula o estado necessário para renderizar a malha, incluindo as ligações dos _buffers_ e as configurações de atributos de vértice.
 
 O gerenciamento eficiente de tais estruturas de dados reduz a necessidade de transferências de dados entre CPU e GPU, mitigando gargalos de barramento. Como o contexto clássico do OpenGL possui restrições inerentes à concorrência multi-thread, a minimização dessas operações é crítica para manter taxas de quadros elevadas.
 
-==== Programação Orientada a Eventos e Funções de Retorno (_Callback_)
+=== Programação Orientada a Eventos e Funções de Retorno (_Callback_)
 Embora o OpenGL seja estritamente focado em tarefas de desenho e renderização, bibliotecas auxiliares como a GLFW realizam a integração com o sistema de janelas do sistema operacional e o processamento de periféricos. Essa abordagem viabiliza um modelo de programação orientada a eventos, no qual _callbacks_ tratam as ações de dispositivos de entrada.
 
-==== A Máquina de Estados e o Contexto OpenGL
-Para lidar com a renderização em si, o OpenGL opera como uma vasta máquina de estados. Todas as configurações e referências de dados ficam armazenadas no que é chamado de Contexto OpenGL. Dessa forma, para renderizar uma malha, é necessário configurar o estado da máquina de acordo com as características do objeto — como a vinculação dos _buffers_ VBO e EBO — antes de emitir os comandos de desenho para a GPU. Como mudanças excessivas de estado geram alto custo de processamento (_overhead_), o gerenciamento eficiente dos _buffers_ procura minimizar as trocas de estado e agrupar comandos sempre que possível, otimizando o tráfego de dados entre a CPU e a GPU.
+=== A Máquina de Estados e o Contexto OpenGL
+Para lidar com a renderização em si, o OpenGL opera como uma vasta máquina de estados. Todas as configurações e referências de dados ficam armazenadas no que é chamado de Contexto OpenGL. Dessa forma, para renderizar uma malha, é necessário configurar o estado da máquina de acordo com as características do objeto — como a vinculação dos _buffers_ VBO e EBO — antes de emitir os comandos de desenho para a GPU. 
 
-==== Concorrência e Isolamento de _Threads_
-Essa arquitetura baseada em contexto de estado impõe restrições rígidas à implementação de concorrência. O contexto do OpenGL é estritamente atrelado à _thread_ em que foi ativado, tipicamente a _thread_ principal. Tentativas de acessar ou modificar o estado da API gráfica a partir de múltiplas _threads_ simultaneamente causam violações de acesso à memória, resultando em falhas críticas de limite de endereço, como erros SIGSEGV. Por conseguinte, práticas de design isolam a renderização gráfica em uma única linha de processamento (normalmente a thread principal), enquanto o processamento computacional intensivo de dados não relacionados ao desenho é delegado a threads trabalhadoras paralelas (_worker threads_).
+Como mudanças excessivas de estado geram alto custo de processamento (_overhead_), o gerenciamento eficiente dos _buffers_ procura minimizar as trocas de estado e agrupar comandos sempre que possível, otimizando o tráfego de dados entre a CPU e a GPU.
+
+=== Concorrência e Isolamento de _Threads_
+Essa arquitetura baseada em contexto de estado impõe restrições rígidas à implementação de concorrência. O contexto do OpenGL é estritamente atrelado à _thread_ em que foi ativado, tipicamente a _thread_ principal. Tentativas de acessar ou modificar o estado da API gráfica a partir de múltiplas _threads_ simultaneamente causam violações de acesso à memória, resultando em falhas críticas de limite de endereço, como erros SIGSEGV. 
+
+Naturalmente, práticas de design isolam a renderização gráfica em uma única linha de processamento (normalmente a thread principal), enquanto o processamento computacional intensivo de dados não relacionados ao desenho é delegado a threads trabalhadoras paralelas (_worker threads_).
 
 == Geração de Cenários de Teste
 A geração procedural de terrenos engloba algoritmos para criação automatizada de malhas tridimensionais complexas e variadas, permitindo a geração de cenários sob condições e restrições parametrizadas. A geração procedural é uma técnica utilizada para criar conteúdo de forma automática, utilizando algoritmos que produzem resultados variados e complexos a partir de um conjunto de regras ou parâmetros.
@@ -781,19 +783,18 @@ Após obter o peso suavizado $S(w)$, o algoritmo realiza a interpolação linear
 \
 $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ \
 
+=== Ruídos 3D
+
+
 == Representações Geométricas
-
-Para a implementação de algoritmos de busca de caminhos em ambientes tridimensionais, é necessário representar o espaço de forma que seja possível determinar quais regiões são transitáveis e quais são obstáculos. Diferentes representações geométricas oferecem vantagens distintas em termos de precisão, eficiência e complexidade computacional.
-
-Algoritmos de busca heurística operam sobre grafos que representam o espaço de navegação. A escolha da representação geométrica influencia diretamente a construção do grafo e a eficiência da busca.
-
-=== Malha de Grade Regular
-Uma malha poligonizada (triangulada) construída sobre uma topologia cartesiana regular de vértices vizinhos. Neste modelo, cada célula da grade representa uma região do espaço, e as conexões entre células adjacentes formam as arestas do grafo. Essa abordagem é simples de implementar e eficiente para ambientes com obstáculos bem definidos, mas pode gerar caminhos subótimos devido à limitação de movimentos restritos às direções da grade.
-
-A implementação de uma malha de grade regular envolve a criação de uma grade tridimensional, onde cada elemento representa uma célula da grade. A passagem entre cada célula pode ser marcada como transitável ou não transitável com base na presença ou auxência de arestas.
-
 === Voxels
-=== Octrees
+=== Marching Cubes
+
+== Representações Navegáveis
+=== Grade Regular 2.5D
+=== Grade de Voxel
+=== Grafo de Vértices
+=== Grafo de Polígonos
 === NavMeshes
 
 == Concorrência e Paralelismo

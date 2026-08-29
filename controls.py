@@ -31,6 +31,7 @@ class TerrainControlsApp:
         # Caminho da imagem temporária do preview
         self.preview_path = "build/noise_preview.png"
         self.zoomed_photo = None
+        self.preview_mtime = None
         
         self.setup_ui()
         self.send_parameters()
@@ -205,12 +206,15 @@ class TerrainControlsApp:
         # Tenta carregar a imagem gerada pelo C++ do disco de forma não-bloqueante
         if os.path.exists(self.preview_path):
             try:
-                # Carrega o PNG de tamanho fixo 256x256 salvo pelo C++
-                photo = tk.PhotoImage(file=self.preview_path)
-                
-                # Atualiza a label para exibir a imagem no tamanho real fixo
-                self.preview_label.config(image=photo, text="", width=0, height=0)
-                self.zoomed_photo = photo # Mantém a referência na memória
+                mtime = os.path.getmtime(self.preview_path)
+                if mtime != self.preview_mtime:
+                    # Carrega o PNG salvo pelo C++ somente quando ele muda
+                    photo = tk.PhotoImage(file=self.preview_path)
+                    
+                    # Atualiza a label para exibir a imagem no tamanho real fixo
+                    self.preview_label.config(image=photo, text="", width=0, height=0)
+                    self.zoomed_photo = photo # Mantém a referência na memória
+                    self.preview_mtime = mtime
             except Exception:
                 pass
                 

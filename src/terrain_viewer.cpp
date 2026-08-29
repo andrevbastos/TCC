@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <utility>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
@@ -88,9 +89,9 @@ int main() {
     std::cout << "[Terrain] Gerando malha inicial de tamanho " << config.width << "x" << config.height << "..." << std::endl;
     std::vector<float> noiseMap = generateNoiseMap(config);
     saveNoiseAsPNG("./noise_preview.png", noiseMap, config.width, config.height);
-    auto [vertices, indices] = createMeshDataFromNoise(noiseMap, config.width, config.height, intensity, terrainColor);
+    auto [vertices, indices] = getMarchingCubeData(noiseMap, config.width, intensity, config.height, terrainColor);
     
-    std::shared_ptr<MeshBase> terrainMesh = std::make_shared<Mesh>(vertices, indices, shader, GL_TRIANGLES);
+    std::shared_ptr<MeshBase> terrainMesh = std::make_shared<Mesh>(std::move(vertices), std::move(indices), shader, GL_TRIANGLES);
     renderer.addMesh(terrainMesh);
 
     bool needsUpdate = false;
@@ -150,10 +151,10 @@ int main() {
             if (needsUpdate) {
                 std::vector<float> newNoiseMap = generateNoiseMap(config);
                 saveNoiseAsPNG("./noise_preview.png", newNoiseMap, config.width, config.height);
-                auto [newVertices, newIndices] = createMeshDataFromNoise(newNoiseMap, config.width, config.height, intensity, terrainColor);
+                auto [newVertices, newIndices] = getMarchingCubeData(newNoiseMap, config.width, intensity, config.height, terrainColor);
                 
                 if (!newVertices.empty()) {
-                    auto newMesh = std::make_shared<Mesh>(newVertices, newIndices, shader, GL_TRIANGLES);
+                    auto newMesh = std::make_shared<Mesh>(std::move(newVertices), std::move(newIndices), shader, GL_TRIANGLES);
                     renderer.removeMesh(terrainMesh);
                     renderer.addMesh(newMesh);
                     terrainMesh = newMesh;
@@ -171,6 +172,10 @@ int main() {
     };
 
     Engine::loop(loopConfig);
+
+    renderer.removeMesh(terrainMesh);
+    terrainMesh.reset();
+
     Engine::terminate();
 
     return 0;
