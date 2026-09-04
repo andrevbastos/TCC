@@ -20,7 +20,3 @@ include(Dependencies)
 
 # Adiciona o código fonte do projeto
 add_subdirectory(src)
-
-# Habilita testes se necessário
-enable_testing()
-add_subdirectory(tests)

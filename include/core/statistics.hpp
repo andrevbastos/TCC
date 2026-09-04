@@ -10,6 +10,7 @@
 #include <random>
 #include <vector>
 #include <map>
+#include <ifcg/components/task.hpp>
 #include <graph/common/lw_grid.hpp>
 #include <graph/common/lw_graph.hpp>
 #include <graph/util/dijkstra.hpp>
@@ -19,7 +20,6 @@
 #include <graph/util/node_data.hpp>
 
 #include "core/util.hpp"
-#include "core/task.hpp"
 
 class Statistics {
 public:

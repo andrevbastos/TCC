@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <CLI11/CLI11.hpp>
+#include <ifcg/components/task.hpp>
 #include <graph/common/lw_grid.hpp>
 #include <graph/common/lw_graph.hpp>
 #include <graph/util/dijkstra.hpp>
@@ -15,7 +16,6 @@
 
 #include "core/statistics.hpp"
 #include "core/util.hpp"
-#include "core/task.hpp"
 
 namespace fs = std::filesystem;
 
@@ -250,9 +250,6 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
     Engine::init(1200, 800, "TCC");
     Engine::setup3D();
-    
-    glEnable(GL_BLEND);                                                                             
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     auto& input {Engine::getInputHandler()};
     auto& renderer {Engine::getRenderer()};
@@ -270,84 +267,93 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
         camera.setSpeed(0.5f);
     });
 
-    TaskMaster tm;
-    std::mutex mtx;
-
-    std::queue<std::function<void()>> bodyQueue;
-
     std::shared_ptr<Mesh> geometryPtr = nullptr;
     std::shared_ptr<Mesh> navigationPtr = nullptr;
 
     bool isGenerating = false;
     auto generate = [&]() {
-        std::cout << "Gerando geometria." << std::endl;
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (isGenerating) {
-                return;
-            }
-            isGenerating = true;
+        if (isGenerating) {
+            return;
         }
 
-        tm.addTask([&]() {
-            std::cout << "Gerando mapa." << std::endl;
-            noiseConfig.seed = static_cast<unsigned int>(time(NULL));
-            auto noise = generateNoiseMap(noiseConfig);
-            auto [verticesGeo, indicesGeo] = getMarchingCubeData(noise, noiseConfig.width, intensity, noiseConfig.height, {0.42f, 0.42f, 0.48f, 1.0f});
+        isGenerating = true;
+        std::cout << "Gerando geometria." << std::endl;
 
-            std::lock_guard<std::mutex> lock(mtx);
-            bodyQueue.push([&, noise = std::move(noise), verticesGeo = std::move(verticesGeo), indicesGeo = std::move(indicesGeo)]() mutable {
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    if (geometryPtr) {
-                        std::cout << "Removendo geometria antiga." << std::endl;
-                        renderer.removeMesh(geometryPtr);
-                    }
-                    std::cout << "Adicionando nova geometria." << std::endl;
-                    geometryPtr = std::make_shared<Mesh>(std::move(verticesGeo), std::move(indicesGeo), shader, GL_TRIANGLES);
-                    renderer.addMesh(geometryPtr);
+        noiseConfig.seed = static_cast<unsigned int>(time(NULL));
+        const NoiseConfig currentConfig = noiseConfig;
+
+        struct GeometryResult {
+            std::vector<float> noise;
+            std::vector<Vertex> vertices;
+            std::vector<GLuint> indices;
+        };
+
+        Engine::runAsyncThenMain(
+            [currentConfig, intensity]() {
+                std::cout << "Gerando mapa." << std::endl;
+                auto noise = generateNoiseMap(currentConfig);
+                auto [verticesGeo, indicesGeo] = getMarchingCubeData(
+                    noise,
+                    currentConfig.width,
+                    intensity,
+                    currentConfig.height,
+                    {0.42f, 0.42f, 0.48f, 1.0f}
+                );
+
+                return GeometryResult {
+                    .noise = std::move(noise),
+                    .vertices = std::move(verticesGeo),
+                    .indices = std::move(indicesGeo)
+                };
+            },
+            [&, shader, intensity](GeometryResult result) mutable {
+                if (geometryPtr) {
+                    std::cout << "Removendo geometria antiga." << std::endl;
+                    renderer.removeMesh(geometryPtr);
                 }
 
-                std::cout << "Gerando navegação." << std::endl;
-                tm.addTask([&, noise = std::move(noise)]() {
-                    auto graph = undirected::lwGraph<Vertex3D>(1);
-                    {
-                        std::lock_guard<std::mutex> lock(mtx);
-                        // graph = createVoxelGraph(noise, noiseConfig.width, intensity, noiseConfig.height);
-                        // graph = createGrid3D(noise, noiseConfig.width, intensity, noiseConfig.height);
-                        // graph = createVertexToVertex(*geometryPtr);
-                        graph = createPolygonToPolygon(*geometryPtr);
-                    }
-                    auto [verticesNav, indicesNav] = getMeshFromGraph(graph, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+                std::cout << "Adicionando nova geometria." << std::endl;
+                geometryPtr = std::make_shared<Mesh>(std::move(result.vertices), std::move(result.indices), shader, GL_TRIANGLES);
+                renderer.addMesh(geometryPtr);
 
-                    std::lock_guard<std::mutex> lock(mtx);
-                    bodyQueue.push([&mtx, &navigationPtr, &renderer, &shader, verticesNav = std::move(verticesNav), indicesNav = std::move(indicesNav)]() mutable {       
-                            std::lock_guard<std::mutex> lock(mtx);
-                            if (navigationPtr) {
-                                std::cout << "Removendo navegação antiga." << std::endl;
-                                renderer.removeMesh(navigationPtr);
-                            }
-                            std::cout << "Adicionando nova navegação." << std::endl;
-                            navigationPtr = std::make_shared<Mesh>(std::move(verticesNav), std::move(indicesNav), shader, GL_LINES);
-                            navigationPtr->translate(0.0f, 0.2f, 0.0f);
-                            renderer.addMesh(navigationPtr);
-                    });
-                });
-            });
-        });
+                std::cout << "Gerando navegação." << std::endl;
+                Engine::runAsyncThenMain(
+                    [geometryPtr, intensity]() {
+                        // auto graph = createVoxelGraph(result.noise, currentConfig.width, intensity, currentConfig.height);
+                        // auto graph = createGrid3D(result.noise, currentConfig.width, intensity, currentConfig.height);
+                        // auto graph = createVertexToVertex(*geometryPtr);
+                        auto graph = createPolygonToPolygon(*geometryPtr);
+                        auto [verticesNav, indicesNav] = getMeshFromGraph(graph, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+
+                        return std::make_pair(std::move(verticesNav), std::move(indicesNav));
+                    },
+                    [&, shader](auto navData) mutable {
+                        auto [verticesNav, indicesNav] = std::move(navData);
+
+                        if (navigationPtr) {
+                            std::cout << "Removendo navegação antiga." << std::endl;
+                            renderer.removeMesh(navigationPtr);
+                        }
+
+                        std::cout << "Adicionando nova navegação." << std::endl;
+                        navigationPtr = std::make_shared<Mesh>(std::move(verticesNav), std::move(indicesNav), shader, GL_LINES);
+                        navigationPtr->translate(0.0f, 0.2f, 0.0f);
+                        renderer.addMesh(navigationPtr);
+
+                        isGenerating = false;
+                    },
+                    Priority::Medium
+                );
+            },
+            Priority::High
+        );
     };
 
     generate();
     input.addKeyCallback(Key::K, KeyAction::PRESS, generate);
 
 	LoopConfig config = {
-        .loopBody = [&bodyQueue]() {
-            if (!bodyQueue.empty()) {
-                auto body = std::move(bodyQueue.front());
-                bodyQueue.pop();
-                body();
-            }
-        }
+        .mode = LoopMode::Concurrent
     }; 
 
     Engine::loop(config);
