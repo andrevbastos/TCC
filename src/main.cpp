@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <functional>
+#include <atomic>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
 #include <graph/common/lw_grid.hpp>
@@ -25,7 +26,7 @@ std::vector<AlgFunc> algorithms = {
     [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW heuristic) {
         int width = graph.getOrder();
         for (int i = 0; i < graph.getOrder(); ++i) {
-            if (graph.getVertexData(i).y > 0.0f) {
+            if (graph.getVertexData(i).z > 0.0f) {
                 width = i;
                 break;
             }
@@ -69,7 +70,7 @@ std::vector<AlgFunc> algorithms = {
     [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW heuristic) {
         int width = graph.getOrder();
         for (int i = 0; i < graph.getOrder(); ++i) {
-            if (graph.getVertexData(i).y > 0.0f) {
+            if (graph.getVertexData(i).z > 0.0f) {
                 width = i;
                 break;
             }
@@ -80,7 +81,7 @@ std::vector<AlgFunc> algorithms = {
         auto validator = [&](int fromId, int toId) {
             const auto& fromData = graph.getVertexData(fromId);
             const auto& toData = graph.getVertexData(toId);
-            return std::abs(fromData.z - toData.z) <= 1.0f;
+            return std::abs(fromData.y - toData.y) <= 1.0f;
         };
         util::JumpPointSearchLw jps(grid, validator);
         auto jpsHeuristic = [](const util::Vertex2D& a, const util::Vertex2D& b) -> double {
@@ -269,6 +270,25 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
     std::shared_ptr<Mesh> geometryPtr = nullptr;
     std::shared_ptr<Mesh> navigationPtr = nullptr;
+    std::vector<std::shared_ptr<Mesh>> pathPtrs;
+
+    struct GeometryResult {
+        std::vector<float> noise;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
+
+    struct NavigationResult {
+        std::shared_ptr<undirected::lwGraph<Vertex3D>> graph;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
+
+    struct PathResult {
+        size_t algorithmIndex;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
 
     bool isGenerating = false;
     auto generate = [&]() {
@@ -282,11 +302,10 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
         noiseConfig.seed = static_cast<unsigned int>(time(NULL));
         const NoiseConfig currentConfig = noiseConfig;
 
-        struct GeometryResult {
-            std::vector<float> noise;
-            std::vector<Vertex> vertices;
-            std::vector<GLuint> indices;
-        };
+        for (auto& pathPtr : pathPtrs) {
+            renderer.removeMesh(pathPtr);
+        }
+        pathPtrs.clear();
 
         Engine::runAsyncThenMain(
             [currentConfig, intensity]() {
@@ -306,7 +325,7 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
                     .indices = std::move(indicesGeo)
                 };
             },
-            [&, shader, intensity](GeometryResult result) mutable {
+            [&, shader, intensity, currentConfig](GeometryResult result) mutable {
                 if (geometryPtr) {
                     std::cout << "Removendo geometria antiga." << std::endl;
                     renderer.removeMesh(geometryPtr);
@@ -318,17 +337,23 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
                 std::cout << "Gerando navegação." << std::endl;
                 Engine::runAsyncThenMain(
-                    [geometryPtr, intensity]() {
-                        // auto graph = createVoxelGraph(result.noise, currentConfig.width, intensity, currentConfig.height);
-                        // auto graph = createGrid3D(result.noise, currentConfig.width, intensity, currentConfig.height);
+                    [currentConfig, noise = std::move(result.noise), intensity]() mutable {
+                        // auto graph = createVoxelGraph(noise, currentConfig.width, intensity, currentConfig.height);
+                        auto graph = createGrid3D(noise, currentConfig.width, intensity, currentConfig.height);
                         // auto graph = createVertexToVertex(*geometryPtr);
-                        auto graph = createPolygonToPolygon(*geometryPtr);
-                        auto [verticesNav, indicesNav] = getMeshFromGraph(graph, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+                        // auto graph = createPolygonToPolygon(*geometryPtr);
 
-                        return std::make_pair(std::move(verticesNav), std::move(indicesNav));
+                        auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
+                        auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+
+                        return NavigationResult {
+                            .graph = std::move(graphPtr),
+                            .vertices = std::move(verticesNav),
+                            .indices = std::move(indicesNav)
+                        };
                     },
-                    [&, shader](auto navData) mutable {
-                        auto [verticesNav, indicesNav] = std::move(navData);
+                    [&, shader](NavigationResult navData) mutable {
+                        auto graphPtr = std::move(navData.graph);
 
                         if (navigationPtr) {
                             std::cout << "Removendo navegação antiga." << std::endl;
@@ -336,11 +361,66 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
                         }
 
                         std::cout << "Adicionando nova navegação." << std::endl;
-                        navigationPtr = std::make_shared<Mesh>(std::move(verticesNav), std::move(indicesNav), shader, GL_LINES);
+                        navigationPtr = std::make_shared<Mesh>(std::move(navData.vertices), std::move(navData.indices), shader, GL_LINES);
                         navigationPtr->translate(0.0f, 0.2f, 0.0f);
                         renderer.addMesh(navigationPtr);
 
-                        isGenerating = false;
+                        std::cout << "Gerando caminhos." << std::endl;
+                        pathPtrs.resize(algorithms.size());
+
+                        if (algorithms.empty()) {
+                            isGenerating = false;
+                            return;
+                        }
+
+                        auto pendingPaths = std::make_shared<std::atomic_size_t>(algorithms.size());
+
+                        for (size_t algorithmIndex = 0; algorithmIndex < algorithms.size(); ++algorithmIndex) {
+                            Engine::runAsyncThenMain(
+                                [graphPtr, algorithmIndex, algFunc = algorithms[algorithmIndex]]() {
+                                    const int startId = 0;
+                                    const int endId = graphPtr->getOrder() - 1;
+                                    const Color color = pathColors[algorithmIndex % pathColors.size()];
+
+                                    HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) -> float {
+                                        const float dx = a.x - b.x;
+                                        const float dy = a.y - b.y;
+                                        const float dz = a.z - b.z;
+                                        return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+                                    };
+
+                                    auto path = algFunc(*graphPtr, startId, endId, heuristic);
+                                    if (path.empty()) {
+                                        std::cout << "Algoritmo " << algorithmIndex << " não encontrou caminho." << std::endl;
+                                        return PathResult {
+                                            .algorithmIndex = algorithmIndex,
+                                            .vertices = {},
+                                            .indices = {}
+                                        };
+                                    }
+                                    auto [verticesPath, indicesPath] = getMeshFromPath(*graphPtr, path, color);
+
+                                    return PathResult {
+                                        .algorithmIndex = algorithmIndex,
+                                        .vertices = std::move(verticesPath),
+                                        .indices = std::move(indicesPath)
+                                    };
+                                },
+                                [&, shader, pendingPaths](PathResult pathData) mutable {
+                                    if (!pathData.vertices.empty() && !pathData.indices.empty()) {
+                                        auto pathPtr = std::make_shared<Mesh>(std::move(pathData.vertices), std::move(pathData.indices), shader, GL_LINES);
+                                        pathPtr->translate(0.0f, 0.4f, 0.0f);
+                                        renderer.addMesh(pathPtr);
+                                        pathPtrs[pathData.algorithmIndex] = std::move(pathPtr);
+                                    }
+
+                                    if (pendingPaths->fetch_sub(1) == 1) {
+                                        isGenerating = false;
+                                    }
+                                },
+                                Priority::Medium
+                            );
+                        }
                     },
                     Priority::Medium
                 );
