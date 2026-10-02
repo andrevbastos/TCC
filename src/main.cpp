@@ -8,11 +8,9 @@
 #include <atomic>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
-#include <graph/common/lw_grid.hpp>
 #include <graph/common/lw_graph.hpp>
 #include <graph/util/dijkstra.hpp>
 #include <graph/util/a_star.hpp>
-#include <graph/util/jps.hpp>
 #include <graph/util/node_data.hpp>
 
 #include "core/statistics.hpp"
@@ -22,74 +20,7 @@ namespace fs = std::filesystem;
 
 std::vector<AlgFunc> algorithms = {
     util::lwAStar<Vertex3D>,
-    util::lwAStarMod<Vertex3D>,
-    [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW heuristic) {
-        int width = graph.getOrder();
-        for (int i = 0; i < graph.getOrder(); ++i) {
-            if (graph.getVertexData(i).z > 0.0f) {
-                width = i;
-                break;
-            }
-        }
-        std::function<bool(int, int)> los = [&](int start, int end) -> bool {
-            int w = width;
-            int x0 = start % w;
-            int y0 = start / w;
-            int x1 = end % w;
-            int y1 = end / w;
-            int dx = std::abs(x1 - x0);
-            int dy = std::abs(y1 - y0);
-            int sx = (x0 < x1) ? 1 : -1;
-            int sy = (y0 < y1) ? 1 : -1;
-            int err = dx - dy;
-            int x = x0;
-            int y = y0;
-            float lastZ = graph.getVertexData(start).z;
-            while (true) {
-                int currentId = y * w + x;
-                float currentZ = graph.getVertexData(currentId).z;
-                lastZ = currentZ;
-                if (x == x1 && y == y1) {
-                    break;
-                }
-                int e2 = 2 * err;
-                if (e2 > -dy) {
-                    err -= dy;
-                    x += sx;
-                }
-                if (e2 < dx) {
-                    err += dx;
-                    y += sy;
-                }
-            }
-            return true;
-        };
-        auto path = util::lwThetaStar<Vertex3D>(graph, startId, endId, heuristic, los);
-        return reconstructPathLW(path, width);
-    },
-    [](const common::lwGraph<Vertex3D>& graph, int startId, int endId, HeuristicFuncLW heuristic) {
-        int width = graph.getOrder();
-        for (int i = 0; i < graph.getOrder(); ++i) {
-            if (graph.getVertexData(i).z > 0.0f) {
-                width = i;
-                break;
-            }
-        }
-        int height = graph.getOrder() / width;
-        std::vector<unsigned int> gridData(width * height, 1);
-        common::lwGrid grid(width, height, gridData);
-        auto validator = [&](int fromId, int toId) {
-            const auto& fromData = graph.getVertexData(fromId);
-            const auto& toData = graph.getVertexData(toId);
-            return std::abs(fromData.y - toData.y) <= 1.0f;
-        };
-        util::JumpPointSearchLw jps(grid, validator);
-        auto jpsHeuristic = [](const util::Vertex2D& a, const util::Vertex2D& b) -> double {
-            return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
-        };
-        auto path = jps.find(startId, endId, jpsHeuristic);
-        return reconstructPathLW(path, width);
-    }
+    util::lwAStarMod<Vertex3D>
 };
 
 std::vector<Color> pathColors = {
@@ -337,11 +268,11 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
                 std::cout << "Gerando navegação." << std::endl;
                 Engine::runAsyncThenMain(
-                    [currentConfig, noise = std::move(result.noise), intensity]() mutable {
+                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity]() mutable {
                         // auto graph = createVoxelGraph(noise, currentConfig.width, intensity, currentConfig.height);
-                        auto graph = createGrid3D(noise, currentConfig.width, intensity, currentConfig.height);
+                        // auto graph = createGrid2_5D(noise, currentConfig.width, intensity, currentConfig.height);
                         // auto graph = createVertexToVertex(*geometryPtr);
-                        // auto graph = createPolygonToPolygon(*geometryPtr);
+                        auto graph = createPolygonToPolygon(*geometryPtr);
 
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
                         auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});

@@ -8,7 +8,9 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <cstdint>
 #include <map>
+#include <unordered_map>
 #include <graph/undirected/graph.hpp>
 #include <graph/undirected/lw_graph.hpp>
 #include <graph/util/a_star.hpp>
@@ -182,6 +184,11 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
 	std::vector<Vertex> vertices;
 	std::vector<GLuint> indices;
 
+    const std::uint64_t keyWidth = (2ULL * static_cast<std::uint64_t>(width)) - 1ULL;
+    const std::uint64_t keyDepth = (2ULL * static_cast<std::uint64_t>(depth)) - 1ULL;
+    std::unordered_map<std::uint64_t, GLuint> vertexLookup;
+    vertexLookup.reserve(static_cast<size_t>(width) * static_cast<size_t>(depth));
+
 	for (uint z = 0; z < static_cast<uint>(depth - 1); ++z) {
 		for (uint y = 0; y < static_cast<uint>(height); ++y) {
 			for (uint x = 0; x < static_cast<uint>(width - 1); ++x) {
@@ -199,7 +206,7 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
 					auto vertexCount = cellData.GetVertexCount();
 					auto triangleCount = cellData.GetTriangleCount();
 
-					uint vertexOffset = vertices.size();
+                    std::array<GLuint, 12> cellVertexIndices {};
 
 					for (int i = 0; i < vertexCount; i++) {
 						auto edgeInfo = regularVertexData[caseIndex][i];
@@ -207,14 +214,29 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
 						auto a = lowByte >> 4;
 						auto b = lowByte & 0x0F;
 
+                        const std::uint64_t keyX = (2ULL * x) + cornerDx[a] + cornerDx[b];
+                        const std::uint64_t keyY = (2ULL * y) + cornerDy[a] + cornerDy[b];
+                        const std::uint64_t keyZ = (2ULL * z) + cornerDz[a] + cornerDz[b];
+                        const std::uint64_t key = ((keyY * keyDepth) + keyZ) * keyWidth + keyX;
+
+                        auto existingVertex = vertexLookup.find(key);
+                        if (existingVertex != vertexLookup.end()) {
+                            cellVertexIndices[i] = existingVertex->second;
+                            continue;
+                        }
+
                         auto dim = (float)(y) / (float)(height);
 
 						auto pos = corners[a] % corners[b];
 						pos = (pos + Vertex{(float)x, (float)y, (float)z, 0.0f, 0.0f, 0.0f, 0.0f}) * Vertex{1.0f, 1.0f, 1.0f, dim, dim, dim, 1.0f};
+
+                        const GLuint vertexIndex = static_cast<GLuint>(vertices.size());
 						vertices.push_back(pos);
+                        vertexLookup.emplace(key, vertexIndex);
+                        cellVertexIndices[i] = vertexIndex;
 					}
 					for (int i = 0; i < (triangleCount * 3); i++) {
-						indices.push_back(vertexOffset + cellData.vertexIndex[i]);
+						indices.push_back(cellVertexIndices[cellData.vertexIndex[i]]);
 					}
 				}
 			}
@@ -227,7 +249,7 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
     return {{}, {}};
 };
 
-undirected::lwGraph<Vertex3D> createGrid3D(const std::vector<float>& noise, int width, int heightScale, int depth) {
+undirected::lwGraph<Vertex3D> createGrid2_5D(const std::vector<float>& noise, int width, int heightScale, int depth) {
     undirected::lwGraph<Vertex3D> graph(width * depth);
 
     for (int z = 0; z < depth; ++z) {
@@ -277,76 +299,53 @@ undirected::lwGraph<Vertex3D> createVoxelGraph(const std::vector<float>& noise, 
         return undirected::lwGraph<Vertex3D>(0);
     }
 
-    const int layerSize = width * depth;
-    undirected::lwGraph<Vertex3D> graph(layerSize * height);
+    const int vertexCount = width * depth;
+    undirected::lwGraph<Vertex3D> graph(vertexCount);
+    std::vector<int> columnHeights(static_cast<size_t>(vertexCount));
 
-    auto voxelIndex = [&](int x, int y, int z) {
-        return (y * layerSize) + (z * width) + x;
-    };
-
-    for (int y = 0; y < height; ++y) {
-        for (int z = 0; z < depth; ++z) {
-            for (int x = 0; x < width; ++x) {
-                graph.setVertex(voxelIndex(x, y, z), Vertex3D{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)});
-            }
-        }
-    }
-
-    std::vector<int> columnHeights(static_cast<size_t>(width) * static_cast<size_t>(depth));
-    for (int z = 0; z < depth; ++z) {
-        for (int x = 0; x < width; ++x) {
-            const int noiseIndex = (z * width) + x;
-            columnHeights[noiseIndex] = static_cast<int>(std::round(1.0f + noise[noiseIndex] * (static_cast<float>(height) - 1.0f)));
-        }
-    }
-
-    auto navigableY = [&](int x, int z) {
-        const int y = columnHeights[(z * width) + x];
-        return y < height ? y : -1;
-    };
-
-    std::set<std::pair<int, int>> addedEdges;
-    auto addGraphEdge = [&](int from, int to) {
-        if (from == to) {
-            return;
-        }
-
-        auto edge = std::minmax(from, to);
-        if (addedEdges.insert(edge).second) {
-            graph.addEdge(from, to, 1.0f);
-        }
-    };
-
-    auto addEdge = [&](int x1, int z1, int x2, int z2) {
-        const int y1 = navigableY(x1, z1);
-        const int y2 = navigableY(x2, z2);
-
-        if (y1 < 0 || y2 < 0 || std::abs(y1 - y2) > 1) {
-            return;
-        }
-
-        if (y1 == y2) {
-            addGraphEdge(voxelIndex(x1, y1, z1), voxelIndex(x2, y2, z2));
-            return;
-        }
-
-        if (y1 < y2) {
-            addGraphEdge(voxelIndex(x1, y1, z1), voxelIndex(x1, y2, z1));
-            addGraphEdge(voxelIndex(x1, y2, z1), voxelIndex(x2, y2, z2));
-            return;
-        }
-
-        addGraphEdge(voxelIndex(x2, y2, z2), voxelIndex(x2, y1, z2));
-        addGraphEdge(voxelIndex(x1, y1, z1), voxelIndex(x2, y1, z2));
+    auto vertexIndex = [width](int x, int z) {
+        return (z * width) + x;
     };
 
     for (int z = 0; z < depth; ++z) {
         for (int x = 0; x < width; ++x) {
-            if (x < width - 1) {
-                addEdge(x, z, x + 1, z);
+            const int index = vertexIndex(x, z);
+            const int y = static_cast<int>(std::round(
+                1.0f + noise[index] * (static_cast<float>(height) - 1.0f)
+            ));
+
+            columnHeights[index] = y;
+            graph.setVertex(index, Vertex3D {
+                static_cast<float>(x),
+                static_cast<float>(y),
+                static_cast<float>(z)
+            });
+        }
+    }
+
+    auto addSurfaceEdge = [&](int x1, int z1, int x2, int z2) {
+        const int from = vertexIndex(x1, z1);
+        const int to = vertexIndex(x2, z2);
+        const int heightDifference = std::abs(columnHeights[from] - columnHeights[to]);
+
+        if (heightDifference > 5) {
+            return;
+        }
+
+        const float dx = static_cast<float>(x2 - x1);
+        const float dy = static_cast<float>(columnHeights[to] - columnHeights[from]);
+        const float dz = static_cast<float>(z2 - z1);
+        const float weight = std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+        graph.addEdge(from, to, weight);
+    };
+
+    for (int z = 0; z < depth; ++z) {
+        for (int x = 0; x < width; ++x) {
+            if (x + 1 < width) {
+                addSurfaceEdge(x, z, x + 1, z);
             }
-            if (z < depth - 1) {
-                addEdge(x, z, x, z + 1);
+            if (z + 1 < depth) {
+                addSurfaceEdge(x, z, x, z + 1);
             }
         }
     }
@@ -367,14 +366,41 @@ undirected::lwGraph<Vertex3D> createVertexToVertex(const Mesh& mesh) {
         graph.setVertex(i, Vertex3D{x, y, z});
     }
 
-    for (size_t i = 0; i < indices.size(); i += 3) {
-        int v1 = indices[i];
-        int v2 = indices[i + 1];
-        int v3 = indices[i + 2];
+    auto addUniqueEdge = [&](int from, int to) {
+        if (from == to) {
+            return;
+        }
 
-        graph.addEdge(v1, v2);
-        graph.addEdge(v2, v3);
-        graph.addEdge(v3, v1);
+        const auto& neighbors = graph.adj(from);
+        const bool alreadyExists = std::any_of(
+            neighbors.begin(),
+            neighbors.end(),
+            [to](const common::lwEdge& edge) {
+                return edge.target == to;
+            }
+        );
+
+        if (alreadyExists) {
+            return;
+        }
+
+        const Vertex& a = vertices[from];
+        const Vertex& b = vertices[to];
+        const float dx = a.x - b.x;
+        const float dy = a.y - b.y;
+        const float dz = a.z - b.z;
+        const float weight = std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+        graph.addEdge(from, to, weight);
+    };
+
+    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+        const int v1 = static_cast<int>(indices[i]);
+        const int v2 = static_cast<int>(indices[i + 1]);
+        const int v3 = static_cast<int>(indices[i + 2]);
+
+        addUniqueEdge(v1, v2);
+        addUniqueEdge(v2, v3);
+        addUniqueEdge(v3, v1);
     }
 
     return graph;
