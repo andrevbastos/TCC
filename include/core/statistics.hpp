@@ -1,316 +1,397 @@
 #pragma once
 
-#include <iostream>
-#include <filesystem>
-#include <pthread.h>
-#include <iomanip>
 #include <fstream>
-#include <thread>
-#include <chrono>
-#include <random>
-#include <vector>
+#include <functional>
+#include <iomanip>
 #include <map>
-#include <ifcg/components/task.hpp>
-#include <graph/common/lw_grid.hpp>
-#include <graph/common/lw_graph.hpp>
-#include <graph/util/dijkstra.hpp>
-#include <graph/util/a_star.hpp>
-#include <graph/util/jps.hpp>
-#include <graph/util/theta_star.hpp>
-#include <graph/util/node_data.hpp>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "core/util.hpp"
 
 class Statistics {
 public:
-    Statistics(int max_entries = 1)  
-        : max_entries(max_entries) {};
-
-    ~Statistics() = default;
+    explicit Statistics(int maxEntries = 1)
+        : maxEntries(maxEntries) {}
 
     void addEntry(const std::string& group, const std::string& metric, double value) {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (data[group][metric].size() < max_entries) {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (data[group][metric].size() < static_cast<std::size_t>(maxEntries)) {
             data[group][metric].push_back(value);
         }
     }
 
     void printStatistics() const {
-        std::lock_guard<std::mutex> lock(mtx);
-        const int columnWidth = 20;
+        std::lock_guard<std::mutex> lock(mutex);
+        constexpr int columnWidth = 20;
 
-        for (const auto& group : data) {
-            std::cout << group.first << ":" << std::endl;
-
-            const auto& metrics = group.second;
-            if (metrics.empty()) continue;
+        for (const auto& [group, metrics] : data) {
+            std::cout << group << ":\n";
+            if (metrics.empty()) {
+                continue;
+            }
 
             bool first = true;
-            for (const auto& m : metrics) {
-                if (!first) std::cout << ", ";
-                std::cout << std::left << std::setw(columnWidth) << m.first;
+            for (const auto& [metric, values] : metrics) {
+                if (!first) {
+                    std::cout << ", ";
+                }
+                std::cout << std::left << std::setw(columnWidth) << metric;
                 first = false;
             }
-            std::cout << std::endl;
+            std::cout << '\n';
 
-            size_t numRows = metrics.begin()->second.size();
-            for (size_t i = 0; i < numRows; ++i) {
+            const std::size_t rowCount = metrics.begin()->second.size();
+            for (std::size_t row = 0; row < rowCount; ++row) {
                 first = true;
-                for (const auto& m : metrics) {
-                    if (!first) std::cout << ", ";
-                    std::cout << std::left << std::setw(columnWidth) << m.second[i];
+                for (const auto& [metric, values] : metrics) {
+                    if (!first) {
+                        std::cout << ", ";
+                    }
+                    std::cout << std::left << std::setw(columnWidth) << values[row];
                     first = false;
                 }
-                std::cout << std::endl;
+                std::cout << '\n';
             }
-            std::cout << std::string(columnWidth * metrics.size(), '-') << std::endl;
         }
     }
 
     void clear() {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mutex);
         data.clear();
     }
 
     void saveToCSV(const std::string& fullPath) const {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mutex);
         std::ofstream file(fullPath);
-        
-        if (!file.is_open()) {
+        if (!file || data.empty()) {
             return;
         }
 
-        if (data.empty()) return;
-
         file << "Grupo";
-        const auto& firstGroupMetrics = data.begin()->second;
-        for (const auto& m : firstGroupMetrics) {
-            file << "," << m.first;
+        for (const auto& [metric, values] : data.begin()->second) {
+            file << ',' << metric;
         }
-        file << std::endl;
+        file << '\n';
 
-        auto formatValue = [](double v) {
-            std::ostringstream oss;
-            oss << std::fixed << std::setprecision(6) << v;
-            std::string s = oss.str();
-            s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-            if (s.back() == '.') s.pop_back();
-            return s;
-        };
+        for (const auto& [group, metrics] : data) {
+            if (metrics.empty()) {
+                continue;
+            }
 
-        for (const auto& group : data) {
-            const std::string& groupName = group.first;
-            const auto& metrics = group.second;
-            
-            size_t numRows = metrics.begin()->second.size();
-            for (size_t i = 0; i < numRows; ++i) {
-                file << groupName;
-                for (const auto& m : metrics) {
-                    file << "," << formatValue(m.second[i]);
+            const std::size_t rowCount = metrics.begin()->second.size();
+            for (std::size_t row = 0; row < rowCount; ++row) {
+                file << group;
+                for (const auto& [metric, values] : metrics) {
+                    file << ',' << formatValue(values[row]);
                 }
-                file << std::endl;
+                file << '\n';
             }
         }
-
-        file.close();
     }
 
-    void makeCSV(const std::string& filepath) const {
-        std::lock_guard<std::mutex> lock(mtx);
-        for (const auto& group : data) {
-            std::ofstream file(filepath + "/" + group.first + ".csv");
-            
-            if (!file.is_open()) {
-                return;
+    void makeCSV(const std::string& directory) const {
+        std::lock_guard<std::mutex> lock(mutex);
+        for (const auto& [group, metrics] : data) {
+            if (metrics.empty()) {
+                continue;
             }
-            
-            const auto& metrics = group.second;
-            if (metrics.empty()) continue;
-            
+
+            std::ofstream file(directory + "/" + group + ".csv");
+            if (!file) {
+                continue;
+            }
+
             bool first = true;
-            for (const auto& m : metrics) {
-                if (!first) file << ",";
-                file << m.first;
+            for (const auto& [metric, values] : metrics) {
+                if (!first) {
+                    file << ',';
+                }
+                file << metric;
                 first = false;
             }
+            file << '\n';
 
-            auto formatValue = [](double v) {
-                std::ostringstream oss;
-                oss << std::fixed << std::setprecision(6) << v;
-                std::string s = oss.str();
-                s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-                if (s.back() == '.') s.pop_back();
-                return s;
-            };
-            
-            file << std::endl;
-            size_t numRows = metrics.begin()->second.size();
-            for (size_t i = 0; i < numRows; ++i) {
+            const std::size_t rowCount = metrics.begin()->second.size();
+            for (std::size_t row = 0; row < rowCount; ++row) {
                 first = true;
-                for (const auto& m : metrics) {
-                    if (!first) file << ",";
-                    file << formatValue(m.second[i]);
+                for (const auto& [metric, values] : metrics) {
+                    if (!first) {
+                        file << ',';
+                    }
+                    file << formatValue(values[row]);
                     first = false;
                 }
-                file << std::endl;
+                file << '\n';
             }
-
-            file.close();
         }
     }
 
 private:
+    static std::string formatValue(double value) {
+        std::ostringstream output;
+        output << std::fixed << std::setprecision(6) << value;
+        std::string formatted = output.str();
+        formatted.erase(formatted.find_last_not_of('0') + 1);
+        if (!formatted.empty() && formatted.back() == '.') {
+            formatted.pop_back();
+        }
+        return formatted;
+    }
+
     std::map<std::string, std::map<std::string, std::vector<double>>> data;
-    int max_entries;
-
-    mutable std::mutex mtx;
+    int maxEntries;
+    mutable std::mutex mutex;
 };
 
-void warmUp() {
-    undirected::Graph warmUpGraph;
-    for (int i = 0; i < 10; ++i) {
-        warmUpGraph.newVertex(std::make_tuple(i, 0, 0));
-    }
-    for (int i = 0; i < 9; ++i) {
-        warmUpGraph.newEdge(warmUpGraph.getVertex(i), warmUpGraph.getVertex(i + 1));
-    }
+using HeuristicFuncLW = std::function<double(const Vertex3D&, const Vertex3D&)>;
+using AlgFunc = std::function<std::vector<std::size_t>(
+    const common::lwGraph<Vertex3D>&,
+    std::size_t,
+    std::size_t,
+    HeuristicFuncLW
+)>;
 
-    for (int i = 0; i < 5; ++i) {
-        util::AStar(&warmUpGraph, 0, 9, util::heuristics::euclideanHeuristic3D);
-        util::AStarMod(&warmUpGraph, 0, 9, util::heuristics::chebyshevHeuristic3D);
-    }
-};
+// #pragma once
 
-using HeuristicFuncLW = std::function<float(const Vertex3D&, const Vertex3D&)>;
-using AlgFunc = std::function<std::vector<int>(const common::lwGraph<Vertex3D>&, int, int, HeuristicFuncLW)>;
+// #include <iostream>
+// #include <filesystem>
+// #include <pthread.h>
+// #include <iomanip>
+// #include <fstream>
+// #include <thread>
+// #include <chrono>
+// #include <random>
+// #include <vector>
+// #include <array>
+// #include <map>
+// #include <ifcg/components/task.hpp>
+// #include <graph/common/lw_graph.hpp>
+// #include <graph/util/dijkstra.hpp>
+// #include <graph/util/a_star.hpp>
+// #include <graph/util/jps.hpp>
+// #include <graph/util/theta_star.hpp>
+// #include <graph/util/node_data.hpp>
 
-using Param = std::function<NoiseConfig(int)>;
-using Stats = std::function<void(Statistics&, const std::string&, const NoiseConfig&)>;
+// #include "core/util.hpp"
 
-void pinThreadToCore(int core_id) {
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(core_id, &cpuset);
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-}
+// class Statistics {
+// public:
+//     Statistics(int max_entries = 1)  
+//         : max_entries(max_entries) {};
 
-// void runTestsPar(
-//     std::string testName,
-//     std::unordered_map<std::string, AlgFunc> algorithms, 
-//     Param paramSetter, 
-//     Stats statsSetter,
-//     unsigned int repetitions,
-//     unsigned int numSteps,
-//     unsigned int intensity,
-//     float heightLimit
-// ) {
-//     warmUp();
-//     TaskMaster tm(true);
-    
-//     int tarefasPorPasso = repetitions * 3; 
-    
-//     std::mutex mainMtx;
-//     std::condition_variable mainCv;
+//     ~Statistics() = default;
 
-//     Statistics stats(numSteps * repetitions);
-
-//     std::string folderPath = "../results/parallel/" + testName;
-//     fs::create_directories(folderPath);
-
-//     for (int step = 0; step < numSteps; ++step) {
-//         std::cout << "\r                                                   " << std::flush;
-
-//         std::vector<std::shared_ptr<common::lwGraph<Vertex3D>>> graphs(repetitions);
-//         std::vector<NoiseConfig> configs(repetitions);
-        
-//         int tarefasConcluidas = 0;
-
-//         for (int rep = 0; rep < repetitions; ++rep) {
-//             tm.addTask([step, rep, tarefasPorPasso, algorithms, paramSetter, heightLimit, intensity, folderPath, &graphs, &configs, &mainMtx, &mainCv, &tarefasConcluidas, &tm]() {
-//                 std::random_device rd;
-//                 std::mt19937 gen(rd());
-//                 std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
-                
-//                 int currentSize = (step + 1) * 125;
-//                 NoiseConfig config = paramSetter(step);
-                
-//                 configs[rep] = config;
-//                 auto noise = generateNoiseMap(config);
-
-//                 tm.addTask([config, noise, step, rep, tarefasPorPasso, folderPath, &mainMtx, &mainCv, &tarefasConcluidas]() {
-//                     std::string fileName = "step" + std::to_string(step + 1) + "_rep" + std::to_string(rep + 1) + ".png";
-//                     saveNoiseAsPNG(folderPath + "/" + fileName, noise, config.width, config.height);
-                    
-//                     std::lock_guard<std::mutex> lock(mainMtx);
-//                     tarefasConcluidas++;
-//                     if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
-//                 }, Priority::Low);
-
-//                 tm.addTask([config, noise = std::move(noise), rep, tarefasPorPasso, heightLimit, intensity, &graphs, &mainMtx, &mainCv, &tarefasConcluidas]() mutable {
-//                     auto graph = createlwGraphFromNoise(noise, config.width, config.height, heightLimit, intensity);
-                    
-//                     if (graph) {
-//                         graphs[rep] = std::move(graph);
-//                     }
-
-//                     std::lock_guard<std::mutex> lock(mainMtx);
-//                     tarefasConcluidas++;
-//                     if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
-//                 }, Priority::Medium);
-
-//                 {
-//                     std::lock_guard<std::mutex> lock(mainMtx);
-//                     tarefasConcluidas++;
-//                     if (tarefasConcluidas == tarefasPorPasso) mainCv.notify_one();
-//                 }
-//             }, Priority::High); 
-//         }
-
-//         {
-//             std::unique_lock<std::mutex> mainLock(mainMtx);
-//             mainCv.wait(mainLock, [&]() { return tarefasConcluidas == tarefasPorPasso; });
-//         }
-
-//         pinThreadToCore(2);
-
-//         for (int rep = 0; rep < repetitions; ++rep) {
-//             if (!graphs[rep]) continue;
-            
-//             const NoiseConfig& config = configs[rep];
-//             auto& graph = *graphs[rep];
-            
-//             int startId = 0;
-//             int endId = config.width * config.height - 1;
-            
-//             std::cout << "\r" << testName << ": Step " << step + 1 << "/" << numSteps << " (Rep " << rep + 1 << "/" << repetitions << ")" << std::flush;
-
-//             for (const auto& algPair : algorithms) {
-//                 const std::string& algName = algPair.first;
-//                 const AlgFunc& algFunc = algPair.second;
-                
-//                 int nosAvaliados = 0;
-//                 auto trackingHeuristic = [&nosAvaliados](const auto& a, const auto& b) -> float {
-//                     nosAvaliados++;
-//                     return std::max({std::abs(a.x - b.x), std::abs(a.y - b.y), std::abs(a.z - b.z)});
-//                 };
-
-//                 auto startTime = std::chrono::steady_clock::now();
-//                 auto path = algFunc(graph, startId, endId, trackingHeuristic);
-//                 auto endTime = std::chrono::steady_clock::now();
-                
-//                 double execTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-//                 double pathCost = (double)calculatePathCostLW(path, graph);
-            
-//                 stats.addEntry(algName, "Tempo de Execução", execTime);
-//                 stats.addEntry(algName, "Custo do Caminho", pathCost);
-//                 stats.addEntry(algName, "Número de Nós Expandidos", (double)nosAvaliados);
-
-//                 statsSetter(stats, algName, config);
-//             }
-            
-//             graphs[rep].reset();
+//     void addEntry(const std::string& group, const std::string& metric, double value) {
+//         std::lock_guard<std::mutex> lock(mtx);
+//         if (data[group][metric].size() < max_entries) {
+//             data[group][metric].push_back(value);
 //         }
 //     }
 
-//     stats.saveToCSV(folderPath + "/stats.csv");
+//     void printStatistics() const {
+//         std::lock_guard<std::mutex> lock(mtx);
+//         const int columnWidth = 20;
+
+//         for (const auto& group : data) {
+//             std::cout << group.first << ":" << std::endl;
+
+//             const auto& metrics = group.second;
+//             if (metrics.empty()) continue;
+
+//             bool first = true;
+//             for (const auto& m : metrics) {
+//                 if (!first) std::cout << ", ";
+//                 std::cout << std::left << std::setw(columnWidth) << m.first;
+//                 first = false;
+//             }
+//             std::cout << std::endl;
+
+//             size_t numRows = metrics.begin()->second.size();
+//             for (size_t i = 0; i < numRows; ++i) {
+//                 first = true;
+//                 for (const auto& m : metrics) {
+//                     if (!first) std::cout << ", ";
+//                     std::cout << std::left << std::setw(columnWidth) << m.second[i];
+//                     first = false;
+//                 }
+//                 std::cout << std::endl;
+//             }
+//             std::cout << std::string(columnWidth * metrics.size(), '-') << std::endl;
+//         }
+//     }
+
+//     void clear() {
+//         std::lock_guard<std::mutex> lock(mtx);
+//         data.clear();
+//     }
+
+//     void saveToCSV(const std::string& fullPath) const {
+//         std::lock_guard<std::mutex> lock(mtx);
+//         std::ofstream file(fullPath);
+        
+//         if (!file.is_open()) {
+//             return;
+//         }
+
+//         if (data.empty()) return;
+
+//         file << "Grupo";
+//         const auto& firstGroupMetrics = data.begin()->second;
+//         for (const auto& m : firstGroupMetrics) {
+//             file << "," << m.first;
+//         }
+//         file << std::endl;
+
+//         auto formatValue = [](double v) {
+//             std::ostringstream oss;
+//             oss << std::fixed << std::setprecision(6) << v;
+//             std::string s = oss.str();
+//             s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+//             if (s.back() == '.') s.pop_back();
+//             return s;
+//         };
+
+//         for (const auto& group : data) {
+//             const std::string& groupName = group.first;
+//             const auto& metrics = group.second;
+            
+//             size_t numRows = metrics.begin()->second.size();
+//             for (size_t i = 0; i < numRows; ++i) {
+//                 file << groupName;
+//                 for (const auto& m : metrics) {
+//                     file << "," << formatValue(m.second[i]);
+//                 }
+//                 file << std::endl;
+//             }
+//         }
+
+//         file.close();
+//     }
+
+//     void makeCSV(const std::string& filepath) const {
+//         std::lock_guard<std::mutex> lock(mtx);
+//         for (const auto& group : data) {
+//             std::ofstream file(filepath + "/" + group.first + ".csv");
+            
+//             if (!file.is_open()) {
+//                 return;
+//             }
+            
+//             const auto& metrics = group.second;
+//             if (metrics.empty()) continue;
+            
+//             bool first = true;
+//             for (const auto& m : metrics) {
+//                 if (!first) file << ",";
+//                 file << m.first;
+//                 first = false;
+//             }
+
+//             auto formatValue = [](double v) {
+//                 std::ostringstream oss;
+//                 oss << std::fixed << std::setprecision(6) << v;
+//                 std::string s = oss.str();
+//                 s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+//                 if (s.back() == '.') s.pop_back();
+//                 return s;
+//             };
+            
+//             file << std::endl;
+//             size_t numRows = metrics.begin()->second.size();
+//             for (size_t i = 0; i < numRows; ++i) {
+//                 first = true;
+//                 for (const auto& m : metrics) {
+//                     if (!first) file << ",";
+//                     file << formatValue(m.second[i]);
+//                     first = false;
+//                 }
+//                 file << std::endl;
+//             }
+
+//             file.close();
+//         }
+//     }
+
+// private:
+//     std::map<std::string, std::map<std::string, std::vector<double>>> data;
+//     int max_entries;
+
+//     mutable std::mutex mtx;
+// };
+
+// void warmUp() {
+//     undirected::Graph warmUpGraph;
+//     for (int i = 0; i < 10; ++i) {
+//         warmUpGraph.newVertex(std::make_tuple(i, 0, 0));
+//     }
+//     for (int i = 0; i < 9; ++i) {
+//         warmUpGraph.newEdge(warmUpGraph.getVertex(i), warmUpGraph.getVertex(i + 1));
+//     }
+
+//     for (int i = 0; i < 5; ++i) {
+//         util::AStar(&warmUpGraph, 0, 9, util::heuristics::euclideanHeuristic3D);
+//         util::AStarMod(&warmUpGraph, 0, 9, util::heuristics::chebyshevHeuristic3D);
+//     }
+// };
+
+// using HeuristicFuncLW = std::function<double(const Vertex3D&, const Vertex3D&)>;
+// using AlgFunc = std::function<std::vector<std::size_t>(
+//     const common::lwGraph<Vertex3D>&,
+//     std::size_t,
+//     std::size_t,
+//     HeuristicFuncLW
+// )>;
+
+// using Param = std::function<NoiseConfig(int)>;
+// using Stats = std::function<void(Statistics&, const std::string&, const NoiseConfig&)>;
+
+// void pinThreadToCore(int core_id) {
+//     cpu_set_t cpuset;
+//     CPU_ZERO(&cpuset);
+//     CPU_SET(core_id, &cpuset);
+//     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+// }
+
+// void runTests(
+//     std::vector<AlgFunc> algorithms, 
+//     Param paramSetter, 
+//     Stats statsSetter,
+//     unsigned int repetitions,
+//     unsigned int steps,
+//     unsigned int intensity,
+//     float heightLimit
+// ) {
+//     Statistics stats;
+//     TaskMaster tm;
+
+//     while (steps--) {
+//         auto reps = repetitions;
+//         while (reps--) {
+//             auto noiseConfig = paramSetter(steps);
+//             auto noise = generateNoiseMap(noiseConfig);
+            
+//             auto terrain = getMarchingCubeData(
+//                 noise,
+//                 noiseConfig.width,
+//                 intensity,
+//                 noiseConfig.height
+//             );
+
+//             std::array<std::unique_ptr<graph::lwGraph<Vertex3D>>, 4> graphs;
+//             std::
+
+//             // auto graph = createVoxelGraph(noise, currentConfig.width, intensity, currentConfig.height);
+//             // auto graph = createGrid2_5D(noise, currentConfig.width, intensity, currentConfig.height);
+//             // auto graph = createVertexToVertex(*geometryPtr);
+//             // auto graph = createPolygonToPolygon(*geometryPtr);
+
+//             tm.addTask([]{
+                
+//             });
+//         }
+//     }
+
 // };

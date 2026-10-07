@@ -11,16 +11,25 @@
 #include <graph/common/lw_graph.hpp>
 #include <graph/util/dijkstra.hpp>
 #include <graph/util/a_star.hpp>
+#include <graph/util/greedy.hpp>
+#include <graph/util/weighted.hpp>
 #include <graph/util/node_data.hpp>
 
 #include "core/statistics.hpp"
 #include "core/util.hpp"
 
 namespace fs = std::filesystem;
+using namespace perlin2D;
 
 std::vector<AlgFunc> algorithms = {
+    [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
+        return util::Dijkstra::lwGetPathTo(graph, start, goal);
+    },
     util::lwAStar<Vertex3D>,
-    util::lwAStarMod<Vertex3D>
+    util::lwGreedyBestFirst<Vertex3D>,
+    [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
+        return util::lwWeightedAStar<Vertex3D>(graph, start, goal, heuristic, 1.5f);
+    }
 };
 
 std::vector<Color> pathColors = {
@@ -30,11 +39,32 @@ std::vector<Color> pathColors = {
     {1.0f, 1.0f, 0.0f, 1.0f}
 };
 
+struct Results {
+    Statistics& stats;
+    std::string algorithmName;
+
+    uint generatedNodes = 0;
+    bool success = false;
+    std::optional<uint> exploredNodes = std::nullopt;
+    std::optional<double> pathCost = std::nullopt;
+    std::optional<double> executionTime = std::nullopt;
+    std::optional<double> pathLength = std::nullopt;
+
+    void saveAll(){
+        stats.addEntry(algorithmName, "Nós Gerados", generatedNodes);
+        stats.addEntry(algorithmName, "Sucesso", success ? 1 : 0);
+        stats.addEntry(algorithmName, "Nós Expandidos", exploredNodes.value_or(0));
+        stats.addEntry(algorithmName, "Custo Caminho", pathCost.value_or(0.0));
+        stats.addEntry(algorithmName, "Tempo de Execução", executionTime.value_or(0.0));
+        stats.addEntry(algorithmName, "Comprimento do Caminho", pathLength.value_or(0.0));
+    }
+};
+
 void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir);
-void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
+// void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
 
 int main(int argc, char* argv[]) {   
-    CLI::App app{"PATHFINDING EM MALHAS 3D, André Vitor B. de Macêdo"};
+    CLI::App app{"PATHFINDING EM MALHAS 3D, André Vitor Bastos de Macêdo"};
 
     uint repetitions = 5;
     uint steps = 4;
@@ -44,7 +74,6 @@ int main(int argc, char* argv[]) {
     NoiseConfig noiseConfig = {
         .width = 250,
         .height = 250,
-        .wave = 50,
         .freq = 1.0f,
         .amp = 1.0f,
         .exp = 1.0f,
@@ -57,123 +86,120 @@ int main(int argc, char* argv[]) {
     testCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::PositiveNumber);
     testCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::PositiveNumber);
     testCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::PositiveNumber);
-    testCmd->add_option("wave,-w,--wave", noiseConfig.wave, "Tamanho da onda")->check(CLI::PositiveNumber);
     testCmd->add_option("freq, -f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
+    testCmd->add_option("lac,--lac", noiseConfig.lac, "Lacunaridade do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
+    testCmd->add_option("pers,--pers", noiseConfig.pers, "Persistência do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
     testCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
     testCmd->callback([&]() { test(intensity, noiseConfig, path); });
 
-    auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
-    statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
-    statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
-    statsCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
-    statsCmd->add_option("heightLimit", heightLimit, "Limite de altura para o caminho")->check(CLI::PositiveNumber)->required();
-    statsCmd->callback([&]() { stats(repetitions, steps, intensity, heightLimit); });
+    // auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
+    // statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
+    // statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
+    // statsCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
+    // statsCmd->add_option("heightLimit", heightLimit, "Limite de altura para o caminho")->check(CLI::PositiveNumber)->required();
+    // statsCmd->callback([&]() { stats(repetitions, steps, intensity, heightLimit); });
 
     CLI11_PARSE(app, argc, argv);
 
     return 0;
 };
 
-void stats(uint repetitions, uint steps, uint intensity, float heightLimit) {
-    struct TestConfig {
-        std::string name;
-        Param paramSetter;
-        Stats statsSetter;
-    };
+// void stats(uint repetitions, uint steps, uint intensity, float heightLimit) {
+//     struct TestConfig {
+//         std::string name;
+//         Param paramSetter;
+//         Stats statsSetter;
+//     };
 
-    std::vector<TestConfig> testConfigs = {
-        {
-            "Escala",
-            [](int step) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+//     std::vector<TestConfig> testConfigs = {
+//         {
+//             "Escala",
+//             [](int step) {
+//                 std::random_device rd;
+//                 std::mt19937 gen(rd());
+//                 std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
-                NoiseConfig config = {
-                    .width = (step + 1) * 200,
-                    .height = (step + 1) * 200,
-                    .wave = (step + 1) * 50,
-                    .freq = 4.0f,
-                    .amp = 1.0f,
-                    .exp = 1.0f,
-                    .seed = distSeed(gen),
-                    .octaves = 6
-                };
+//                 NoiseConfig config = {
+//                     .width = (step + 1) * 200,
+//                     .height = (step + 1) * 200,
+//                     .freq = 4.0f,
+//                     .amp = 1.0f,
+//                     .exp = 1.0f,
+//                     .seed = distSeed(gen),
+//                     .octaves = 6
+//                 };
                 
-                return config;
-            },
-            [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
-                stats.addEntry(algName, "Tamanho do Mapa", (double)config.width);
-            }
-        }, {
-            "Lacunaridade",
-            [](int step) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+//                 return config;
+//             },
+//             [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
+//                 stats.addEntry(algName, "Tamanho do Mapa", (double)config.width);
+//             }
+//         }, {
+//             "Lacunaridade",
+//             [](int step) {
+//                 std::random_device rd;
+//                 std::mt19937 gen(rd());
+//                 std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
-                NoiseConfig config = {
-                    .width = 500,
-                    .height = 500,
-                    .wave = 50,
-                    .freq = 1.0f + (step * 0.5f),
-                    .amp = 1.0f,
-                    .exp = 1.0f,
-                    .seed = distSeed(gen),
-                    .octaves = 6
-                };
+//                 NoiseConfig config = {
+//                     .width = 500,
+//                     .height = 500,
+//                     .freq = 1.0f + (step * 0.5f),
+//                     .amp = 1.0f,
+//                     .exp = 1.0f,
+//                     .seed = distSeed(gen),
+//                     .octaves = 6
+//                 };
                 
-                return config;
-            },
-            [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
-                stats.addEntry(algName, "Frequência", (double)config.freq);
-            }
-        }, {
-            "Persistência",
-            [](int step) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
+//                 return config;
+//             },
+//             [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
+//                 stats.addEntry(algName, "Frequência", (double)config.freq);
+//             }
+//         }, {
+//             "Persistência",
+//             [](int step) {
+//                 std::random_device rd;
+//                 std::mt19937 gen(rd());
+//                 std::uniform_int_distribution<unsigned int> distSeed(0, UINT32_MAX);
 
-                NoiseConfig config = {
-                    .width = 500,
-                    .height = 500,
-                    .wave = 50,
-                    .freq = 4.0f,
-                    .amp = 1.0f - (step * 0.15f),
-                    .exp = 1.0f,
-                    .seed = distSeed(gen),
-                    .octaves = 6
-                };
+//                 NoiseConfig config = {
+//                     .width = 500,
+//                     .height = 500,
+//                     .freq = 4.0f,
+//                     .amp = 1.0f - (step * 0.15f),
+//                     .exp = 1.0f,
+//                     .seed = distSeed(gen),
+//                     .octaves = 6
+//                 };
 
-                return config;
-            },
-            [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
-                stats.addEntry(algName, "Amplitude", (double)config.amp);
-            }
-        }
-    };
+//                 return config;
+//             },
+//             [](Statistics& stats, const std::string& algName, const NoiseConfig& config) {
+//                 stats.addEntry(algName, "Amplitude", (double)config.amp);
+//             }
+//         }
+//     };
 
-    for (const auto& config : testConfigs) {
-        auto testName = config.name;
-        auto paramSetter = config.paramSetter;
-        auto statsSetter = config.statsSetter;
+//     for (const auto& config : testConfigs) {
+//         auto testName = config.name;
+//         auto paramSetter = config.paramSetter;
+//         auto statsSetter = config.statsSetter;
 
-        // runTestsParClean(
-        //     testName,
-        //     algorithms,
-        //     paramSetter,
-        //     statsSetter,
-        //     repetitions, steps,
-        //     intensity, heightLimit
-        // );
+//         runTests(
+//             algorithms,
+//             paramSetter,
+//             statsSetter,
+//             repetitions, steps,
+//             intensity, heightLimit
+//         );
 
-        std::cout << std::endl;
-    }
-};
+//         std::cout << std::endl;
+//     }
+// };
 
 void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
     using namespace ifcg;
@@ -309,14 +335,14 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
                         for (size_t algorithmIndex = 0; algorithmIndex < algorithms.size(); ++algorithmIndex) {
                             Engine::runAsyncThenMain(
                                 [graphPtr, algorithmIndex, algFunc = algorithms[algorithmIndex]]() {
-                                    const int startId = 0;
-                                    const int endId = graphPtr->getOrder() - 1;
+                                    const std::size_t startId = 0;
+                                    const std::size_t endId = graphPtr->getOrder() - 1;
                                     const Color color = pathColors[algorithmIndex % pathColors.size()];
 
-                                    HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) -> float {
-                                        const float dx = a.x - b.x;
-                                        const float dy = a.y - b.y;
-                                        const float dz = a.z - b.z;
+                                    HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) -> double {
+                                        const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+                                        const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+                                        const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
                                         return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
                                     };
 

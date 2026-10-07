@@ -54,13 +54,13 @@ inline double getMeshDataSizeMB(const std::vector<Vertex>& vertices, const std::
     return (double)totalBytes / (1024.0 * 1024.0);
 }
 
-inline float calculatePathCostLW(const std::vector<int>& path, const common::lwGraph<Vertex3D>& graph) {
-    if (path.size() < 2) return 0.0; 
-    
-    float totalCost = 0.0;
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        int currentId = path[i];
-        int nextId = path[i + 1];
+inline double calculatePathCostLW(const std::vector<std::size_t>& path, const common::lwGraph<Vertex3D>& graph) {
+    if (path.size() < 2) return 0.0;
+
+    double totalCost = 0.0;
+    for (std::size_t i = 0; i < path.size() - 1; ++i) {
+        const std::size_t currentId = path[i];
+        const std::size_t nextId = path[i + 1];
         
         for (const auto& edge : graph.adj(currentId)) {
             if (edge.target == nextId) {
@@ -93,20 +93,20 @@ inline std::vector<int> reconstructPathLW(const std::vector<int>& path, int widt
     return fullPath;
 };
 
-inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromPath(const common::lwGraph<Vertex3D>& graph, const std::vector<int>& path, Color color) {
+inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromPath(const common::lwGraph<Vertex3D>& graph, const std::vector<std::size_t>& path, Color color) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    for (size_t i = 0; i < path.size(); ++i) {
-        int nodeId = path[i];
+    for (std::size_t i = 0; i < path.size(); ++i) {
+        const std::size_t nodeId = path[i];
         
         const auto& data = graph.getVertexData(nodeId);
         
         vertices.emplace_back(data.x, data.y, data.z, color.r, color.g, color.b, color.a);
         
         if (i < path.size() - 1) {
-            indices.push_back(i);
-            indices.push_back(i + 1);
+            indices.push_back(static_cast<GLuint>(i));
+            indices.push_back(static_cast<GLuint>(i + 1));
         }
     }
 
@@ -117,9 +117,9 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromGraph(cons
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    int numVertices {graph.getOrder()}; 
+    const std::size_t numVertices {graph.getOrder()};
 
-    for (int i = 0; i < numVertices; ++i) {
+    for (std::size_t i = 0; i < numVertices; ++i) {
         const auto& data {graph.getVertexData(i)};
         Vertex vertex {data.x, data.y, data.z, color.r, color.g, color.b, color.a};
         
@@ -129,13 +129,13 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromGraph(cons
         vertices.emplace_back(vertex);
     }
 
-    for (int i = 0; i < numVertices; ++i) {
-        auto adjNodes = graph.adj(i);
-        
-        for (common::lwEdge neighbor : adjNodes) {
+    for (std::size_t i = 0; i < numVertices; ++i) {
+        const auto& adjNodes = graph.adj(i);
+
+        for (const common::lwEdge& neighbor : adjNodes) {
             if (i < neighbor.target) {
-                indices.push_back(i);
-                indices.push_back(neighbor.target);
+                indices.push_back(static_cast<GLuint>(i));
+                indices.push_back(static_cast<GLuint>(neighbor.target));
             }
         }
     }

@@ -20,7 +20,6 @@ class TerrainControlsApp:
         
         # Variáveis de Controle
         self.var_width = tk.IntVar(value=256)
-        self.var_wave = tk.DoubleVar(value=100.0)
         self.var_freq = tk.DoubleVar(value=4.0)
         self.var_amp = tk.DoubleVar(value=1.0)
         self.var_exp = tk.DoubleVar(value=1.0)
@@ -59,7 +58,6 @@ class TerrainControlsApp:
         
         # Sliders
         self.create_slider(self.center_frame, "Resolução do Grid", self.var_width, 64, 512, is_int=True)
-        self.create_slider(self.center_frame, "Comprimento de Onda", self.var_wave, 10, 500)
         self.create_slider(self.center_frame, "Frequência Base", self.var_freq, 0.1, 10.0)
         self.create_slider(self.center_frame, "Amplitude Base", self.var_amp, 0.1, 2.0)
         self.create_slider(self.center_frame, "Expoente (Relevo)", self.var_exp, 0.5, 4.0)
@@ -229,7 +227,6 @@ class TerrainControlsApp:
 
         w = self.var_width.get()
         h = w
-        wave = self.var_wave.get()
         freq = self.var_freq.get()
         amp = self.var_amp.get()
         exp = self.var_exp.get()
@@ -238,7 +235,7 @@ class TerrainControlsApp:
         intensity = self.var_intensity.get()
         
         # Envia parâmetros ao C++
-        msg = f"{w} {h} {wave:.4f} {freq:.4f} {amp:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f}"
+        msg = f"{w} {h} {freq:.4f} {amp:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f}"
         try:
             self.sock.sendto(msg.encode(), (UDP_IP, UDP_PORT))
         except Exception:

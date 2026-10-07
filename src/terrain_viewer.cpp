@@ -72,10 +72,9 @@ int main() {
     });
 
 
-    NoiseConfig config {
+    perlin2D::NoiseConfig config {
         .width = 256,
         .height = 256,
-        .wave = 100,
         .freq = 4.0f,
         .amp = 1.0f,
         .exp = 1.0f,
@@ -87,8 +86,8 @@ int main() {
     Color terrainColor = {0.3f, 0.6f, 0.3f, 1.0f};
 
     std::cout << "[Terrain] Gerando malha inicial de tamanho " << config.width << "x" << config.height << "..." << std::endl;
-    std::vector<float> noiseMap = generateNoiseMap(config);
-    saveNoiseAsPNG("./noise_preview.png", noiseMap, config.width, config.height);
+    std::vector<float> noiseMap = perlin2D::generateNoiseMap(config);
+    perlin2D::saveNoiseAsPNG("./noise_preview.png", noiseMap, config.width, config.height);
     auto [vertices, indices] = getMarchingCubeData(noiseMap, config.width, intensity, config.height, terrainColor);
     
     std::shared_ptr<MeshBase> terrainMesh = std::make_shared<Mesh>(std::move(vertices), std::move(indices), shader, GL_TRIANGLES);
@@ -105,7 +104,6 @@ int main() {
             bool dataReceived = false;
             int new_w = config.width;
             int new_h = config.height;
-            float new_wave = static_cast<float>(config.wave);
             float new_freq = config.freq;
             float new_amp = config.amp;
             float new_exp = config.exp;
@@ -123,21 +121,19 @@ int main() {
                 std::string msg(buffer);
                 std::stringstream ss(msg);
                 
-                if (ss >> new_w >> new_h >> new_wave >> new_freq >> new_amp >> new_exp >> new_seed >> new_octaves >> new_intensity) {
+                if (ss >> new_w >> new_h >> new_freq >> new_amp >> new_exp >> new_seed >> new_octaves >> new_intensity) {
                     dataReceived = true;
                 }
             }
 
             if (dataReceived) {
                 if (config.width != new_w || config.height != new_h ||
-                    config.wave != static_cast<int>(new_wave) || config.freq != new_freq ||
-                    config.amp != new_amp || config.exp != new_exp ||
-                    config.seed != new_seed || config.octaves != new_octaves ||
-                    intensity != new_intensity) {
+                    config.freq != new_freq || config.amp != new_amp ||
+                    config.exp != new_exp || config.seed != new_seed ||
+                    config.octaves != new_octaves || intensity != new_intensity) {
                     
                     config.width = new_w;
                     config.height = new_h;
-                    config.wave = static_cast<int>(new_wave);
                     config.freq = new_freq;
                     config.amp = new_amp;
                     config.exp = new_exp;
@@ -149,8 +145,8 @@ int main() {
             }
 
             if (needsUpdate) {
-                std::vector<float> newNoiseMap = generateNoiseMap(config);
-                saveNoiseAsPNG("./noise_preview.png", newNoiseMap, config.width, config.height);
+                std::vector<float> newNoiseMap = perlin2D::generateNoiseMap(config);
+                perlin2D::saveNoiseAsPNG("./noise_preview.png", newNoiseMap, config.width, config.height);
                 auto [newVertices, newIndices] = getMarchingCubeData(newNoiseMap, config.width, intensity, config.height, terrainColor);
                 
                 if (!newVertices.empty()) {

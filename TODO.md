@@ -58,10 +58,10 @@
     - Seeds
 
 [ ] Métricas da busca:
+    - Nós gerados
     - Tempo
     - Nós expandidos
-    - Nós gerados
-    - Custo
+    - Custo Caminho
     - Comprimento geométrico
     - Taxa de sucesso
 
