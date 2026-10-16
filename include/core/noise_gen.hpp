@@ -19,6 +19,7 @@ namespace perlin2D {
 
     struct NoiseConfig {
         int width, height;
+        int wave = 250;
         float freq = 4.0f;
         float lac = 2.0f;
         float amp = 1.0f;
@@ -59,7 +60,7 @@ namespace perlin2D {
     }
 
     float interpolate(float a0, float a1, float w) {
-        return (a1 - a0) * (3.0f - w * 2.0f) * w * w + a0;
+        return (a1 - a0) * ((w * (w * 6.0f - 15.0f) + 10.0f) * w * w * w) + a0;
     }
 
     float perlin(float x, float y, unsigned int seed) {
@@ -87,25 +88,34 @@ namespace perlin2D {
     std::vector<float> generateNoiseMap(NoiseConfig config) {
         std::vector<float> noiseMap(config.width * config.height);
 
+        std::mt19937 rng {config.seed};
+        std::uniform_real_distribution<float> dist {0.0f, 1000.0f};
+        std::vector<Vector2D> offsets(config.octaves);
+        for (auto& o : offsets) o = {dist(rng), dist(rng)};
+
         for (int y{0}; y < config.height; ++y) {
             for (int x{0}; x < config.width; ++x) {
                 int index {y * config.width + x};
 
-                float nx {config.width > 1 ? static_cast<float>(x) / (config.width - 1) : 0.0f};
-                float ny {config.height > 1 ? static_cast<float>(y) / (config.height - 1) : 0.0f};
+                float nx {static_cast<float>(x) / config.wave};
+                float ny {static_cast<float>(y) / config.wave};
 
                 float val {0.0f};
+                float ampSum {0.0f};
                 float freq {config.freq};
                 float lac {config.lac};
-                float amp {config.amp};
+                float amp {1.0f};
                 float pers {config.pers};
 
                 for (unsigned int i{0}; i < config.octaves; i++) {
                     unsigned int octaveSeed {config.seed + i * 1013u};
-                    val += perlin(nx * freq, ny * freq, octaveSeed) * amp;
+                    val += perlin(nx * freq + offsets[i].x, ny * freq + offsets[i].y, octaveSeed) * amp;
+                    ampSum += amp;
                     amp *= pers;
                     freq *= lac;
                 }
+
+                val = val / ampSum * config.amp;
 
                 if (val > 1.0f) val = 1.0f;
                 else if (val < -1.0f) val = -1.0f;
@@ -186,7 +196,7 @@ namespace noise3D {
         return (dx * gradient.x + dy * gradient.y + dz * gradient.z);
     };
     float interpolate(float a0, float a1, float w) {
-        return (a1 - a0) * (3.0f - w * 2.0f) * w * w + a0;
+        return (a1 - a0) * ((w * (w * 6.0f - 15.0f) + 10.0f) * w * w * w) + a0;
     };
     
     float perlin(float x, float y, float z, unsigned int seed) {
@@ -227,21 +237,31 @@ namespace noise3D {
     
     std::vector<float> generateNoiseField(NoiseConfig config) {
         std::vector<float> noiseField(config.width * config.height * config.depth);
-        
+
+        std::mt19937 rng {config.seed};
+        std::uniform_real_distribution<float> dist {0.0f, 1000.0f};
+        std::vector<Vector3D> offsets(config.octaves);
+        for (auto& o : offsets) o = {dist(rng), dist(rng), dist(rng)};
+
         for (int z{0}; z < config.depth; ++z) {
             for (int y{0}; y < config.height; ++y) {
                 for (int x{0}; x < config.width; ++x) {
                     int index {z * config.width * config.height + y * config.width + x};
 
                     float val {0.0f};
+                    float ampSum {0.0f};
                     float freq {config.freq};
-                    float amp {config.amp};
+                    float amp {1.0f};
 
-                    for (int i{0}; i < config.octaves; i++) {
-                        val += perlin(x * freq / config.wave, y * freq / config.wave, z * freq / config.wave, config.seed) * amp;
+                    for (unsigned int i{0}; i < config.octaves; i++) {
+                        unsigned int octaveSeed {config.seed + i * 1013u};
+                        val += perlin(x * freq / config.wave + offsets[i].x, y * freq / config.wave + offsets[i].y, z * freq / config.wave + offsets[i].z, octaveSeed) * amp;
+                        ampSum += amp;
                         amp /= 2;
                         freq *= 2;
                     }
+
+                    val = val / ampSum * config.amp;
 
                     if (val > 1.0f) val = 1.0f;
                     else if (val < -1.0f) val = -1.0f;
