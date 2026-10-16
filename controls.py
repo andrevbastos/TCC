@@ -11,7 +11,7 @@ class TerrainControlsApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Controle de Terrenos")
-        self.root.geometry("420x840")
+        self.root.geometry("420x940")
         self.root.configure(bg="#0b0b0c")
         self.root.resizable(False, False)
         
@@ -21,7 +21,9 @@ class TerrainControlsApp:
         # Variáveis de Controle
         self.var_width = tk.IntVar(value=256)
         self.var_freq = tk.DoubleVar(value=4.0)
+        self.var_lac = tk.DoubleVar(value=2.0)
         self.var_amp = tk.DoubleVar(value=1.0)
+        self.var_pers = tk.DoubleVar(value=0.5)
         self.var_exp = tk.DoubleVar(value=1.0)
         self.var_seed = tk.IntVar(value=42)
         self.var_octaves = tk.IntVar(value=3)
@@ -59,7 +61,9 @@ class TerrainControlsApp:
         # Sliders
         self.create_slider(self.center_frame, "Resolução do Grid", self.var_width, 64, 512, is_int=True)
         self.create_slider(self.center_frame, "Frequência Base", self.var_freq, 0.1, 10.0)
+        self.create_slider(self.center_frame, "Lacunaridade", self.var_lac, 1.0, 4.0)
         self.create_slider(self.center_frame, "Amplitude Base", self.var_amp, 0.1, 2.0)
+        self.create_slider(self.center_frame, "Persistência", self.var_pers, 0.1, 1.0)
         self.create_slider(self.center_frame, "Expoente (Relevo)", self.var_exp, 0.5, 4.0)
         self.create_slider(self.center_frame, "Oitavas", self.var_octaves, 1, 8, is_int=True)
         self.create_slider(self.center_frame, "Intensidade Vertical", self.var_intensity, 10, 300)
@@ -228,14 +232,16 @@ class TerrainControlsApp:
         w = self.var_width.get()
         h = w
         freq = self.var_freq.get()
+        lac = self.var_lac.get()
         amp = self.var_amp.get()
+        pers = self.var_pers.get()
         exp = self.var_exp.get()
         seed = seed_val
         octaves = self.var_octaves.get()
         intensity = self.var_intensity.get()
         
         # Envia parâmetros ao C++
-        msg = f"{w} {h} {freq:.4f} {amp:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f}"
+        msg = f"{w} {h} {freq:.4f} {lac:.4f} {amp:.4f} {pers:.4f} {exp:.4f} {seed} {octaves} {intensity:.4f}"
         try:
             self.sock.sendto(msg.encode(), (UDP_IP, UDP_PORT))
         except Exception:

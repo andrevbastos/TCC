@@ -76,7 +76,9 @@ int main() {
         .width = 256,
         .height = 256,
         .freq = 4.0f,
+        .lac = 2.0f,
         .amp = 1.0f,
+        .pers = 0.5f,
         .exp = 1.0f,
         .seed = 42,
         .octaves = 3
@@ -105,7 +107,9 @@ int main() {
             int new_w = config.width;
             int new_h = config.height;
             float new_freq = config.freq;
+            float new_lac = config.lac;
             float new_amp = config.amp;
+            float new_pers = config.pers;
             float new_exp = config.exp;
             unsigned int new_seed = config.seed;
             unsigned int new_octaves = config.octaves;
@@ -121,21 +125,24 @@ int main() {
                 std::string msg(buffer);
                 std::stringstream ss(msg);
                 
-                if (ss >> new_w >> new_h >> new_freq >> new_amp >> new_exp >> new_seed >> new_octaves >> new_intensity) {
+                if (ss >> new_w >> new_h >> new_freq >> new_lac >> new_amp >> new_pers >> new_exp >> new_seed >> new_octaves >> new_intensity) {
                     dataReceived = true;
                 }
             }
 
             if (dataReceived) {
                 if (config.width != new_w || config.height != new_h ||
-                    config.freq != new_freq || config.amp != new_amp ||
+                    config.freq != new_freq || config.lac != new_lac ||
+                    config.amp != new_amp || config.pers != new_pers ||
                     config.exp != new_exp || config.seed != new_seed ||
                     config.octaves != new_octaves || intensity != new_intensity) {
                     
                     config.width = new_w;
                     config.height = new_h;
                     config.freq = new_freq;
+                    config.lac = new_lac;
                     config.amp = new_amp;
+                    config.pers = new_pers;
                     config.exp = new_exp;
                     config.seed = new_seed;
                     config.octaves = new_octaves;
