@@ -339,8 +339,8 @@
 // ==========================================
 
 #show: pre_projeto_abnt.with(
-  titulo: "Pathfinding em Malhas 3D",
-  subtitulo: "Análise estatística e comparativa",
+  titulo: "Algoritmos de busca de caminho em representações navegáveis tridimensionais",
+  subtitulo: "Uma análise estatística e comparativa",
   autor: "André Vitor Bastos de Macêdo",
   orientador: "Prof. Paulo César Rodacki Gomes",
   instituicao: "Instituto Federal Catarinense - IFC",

@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <atomic>
+#include <stdexcept>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
 #include <graph/common/lw_graph.hpp>
@@ -21,14 +22,20 @@
 namespace fs = std::filesystem;
 using namespace perlin2D;
 
-std::vector<AlgFunc> algorithms = {
-    [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
-        return util::Dijkstra::lwGetPathTo(graph, start, goal);
+std::vector<Algorithm> algorithms = {
+    {
+        "Dijkstra",
+        [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
+            return util::Dijkstra::lwGetPathTo(graph, start, goal);
+        }
     },
-    util::lwAStar<Vertex3D>,
-    util::lwGreedyBestFirst<Vertex3D>,
-    [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
-        return util::lwWeightedAStar<Vertex3D>(graph, start, goal, heuristic, 1.5f);
+    {"A*", util::lwAStar<Vertex3D>},
+    {"Greedy Best-First", util::lwGreedyBestFirst<Vertex3D>},
+    {
+        "Weighted A*",
+        [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
+            return util::lwWeightedAStar<Vertex3D>(graph, start, goal, heuristic, 1.5f);
+        }
     }
 };
 
@@ -39,28 +46,54 @@ std::vector<Color> pathColors = {
     {1.0f, 1.0f, 0.0f, 1.0f}
 };
 
-struct Results {
-    Statistics& stats;
-    std::string algorithmName;
-
-    uint generatedNodes = 0;
-    bool success = false;
-    std::optional<uint> exploredNodes = std::nullopt;
-    std::optional<double> pathCost = std::nullopt;
-    std::optional<double> executionTime = std::nullopt;
-    std::optional<double> pathLength = std::nullopt;
-
-    void saveAll(){
-        stats.addEntry(algorithmName, "Nós Gerados", generatedNodes);
-        stats.addEntry(algorithmName, "Sucesso", success ? 1 : 0);
-        stats.addEntry(algorithmName, "Nós Expandidos", exploredNodes.value_or(0));
-        stats.addEntry(algorithmName, "Custo Caminho", pathCost.value_or(0.0));
-        stats.addEntry(algorithmName, "Tempo de Execução", executionTime.value_or(0.0));
-        stats.addEntry(algorithmName, "Comprimento do Caminho", pathLength.value_or(0.0));
+const std::vector<GraphModel> graphModels = {
+    {
+        "2_5d",
+        false,
+        [](const GraphBuildInput& input) {
+            return createGrid2_5D(input.noise, input.width, input.heightScale, input.depth);
+        }
+    },
+    {
+        "voxel",
+        false,
+        [](const GraphBuildInput& input) {
+            return createVoxelGraph(input.noise, input.width, input.heightScale, input.depth);
+        }
+    },
+    {
+        "vertex",
+        true,
+        [](const GraphBuildInput& input) {
+            return createVertexToVertex(input.vertices, input.indices);
+        }
+    },
+    {
+        "dual",
+        true,
+        [](const GraphBuildInput& input) {
+            return createPolygonToPolygon(input.vertices, input.indices);
+        }
     }
 };
 
-void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir);
+const GraphModel& getGraphModel(const std::string& name) {
+    const auto model = std::find_if(
+        graphModels.begin(),
+        graphModels.end(),
+        [&name](const GraphModel& candidate) {
+            return candidate.name == name;
+        }
+    );
+
+    if (model == graphModels.end()) {
+        throw std::invalid_argument("Modelo de grafo desconhecido: " + name);
+    }
+
+    return *model;
+}
+
+void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir, const GraphModel& graphModel);
 // void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
 
 int main(int argc, char* argv[]) {   
@@ -71,6 +104,7 @@ int main(int argc, char* argv[]) {
     uint intensity = 100;
     float heightLimit = 2.5f;
     std::string path = "../results/";
+    std::string graphModelName;
     NoiseConfig noiseConfig = {
         .width = 250,
         .height = 250,
@@ -82,7 +116,10 @@ int main(int argc, char* argv[]) {
     };
 
     auto testCmd = app.add_subcommand("test", "Executa o teste visual");
-    testCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
+    testCmd->add_option("graph", graphModelName, "Representação do grafo")
+        ->check(CLI::IsMember({"2_5d", "voxel", "vertex", "dual"}))
+        ->required();
+    testCmd->add_option("--intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::PositiveNumber);
     testCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::PositiveNumber);
     testCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::PositiveNumber);
@@ -93,7 +130,9 @@ int main(int argc, char* argv[]) {
     testCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
     testCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
-    testCmd->callback([&]() { test(intensity, noiseConfig, path); });
+    testCmd->callback([&]() {
+        test(intensity, noiseConfig, path, getGraphModel(graphModelName));
+    });
 
     // auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
     // statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
@@ -201,7 +240,12 @@ int main(int argc, char* argv[]) {
 //     }
 // };
 
-void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
+void test(
+    uint intensity,
+    NoiseConfig noiseConfig,
+    const std::string& saveDir,
+    const GraphModel& graphModel
+) {
     using namespace ifcg;
 
     srand(static_cast<unsigned>(time(NULL)));
@@ -294,11 +338,16 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
                 std::cout << "Gerando navegação." << std::endl;
                 Engine::runAsyncThenMain(
-                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity]() mutable {
-                        // auto graph = createVoxelGraph(noise, currentConfig.width, intensity, currentConfig.height);
-                        // auto graph = createGrid2_5D(noise, currentConfig.width, intensity, currentConfig.height);
-                        // auto graph = createVertexToVertex(*geometryPtr);
-                        auto graph = createPolygonToPolygon(*geometryPtr);
+                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity, graphModel]() mutable {
+                        const GraphBuildInput graphInput {
+                            .noise = noise,
+                            .vertices = geometryPtr->getVertices(),
+                            .indices = geometryPtr->getIndices(),
+                            .width = currentConfig.width,
+                            .heightScale = static_cast<int>(intensity),
+                            .depth = currentConfig.height
+                        };
+                        auto graph = graphModel.create(graphInput);
 
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
                         auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
@@ -334,7 +383,7 @@ void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir) {
 
                         for (size_t algorithmIndex = 0; algorithmIndex < algorithms.size(); ++algorithmIndex) {
                             Engine::runAsyncThenMain(
-                                [graphPtr, algorithmIndex, algFunc = algorithms[algorithmIndex]]() {
+                                [graphPtr, algorithmIndex, algFunc = algorithms[algorithmIndex].run]() {
                                     const std::size_t startId = 0;
                                     const std::size_t endId = graphPtr->getOrder() - 1;
                                     const Color color = pathColors[algorithmIndex % pathColors.size()];

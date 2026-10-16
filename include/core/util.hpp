@@ -18,6 +18,8 @@
 #include <ifcg/graphics/mesh.hpp>
 #include <ifcg/graphics/meshTree.hpp>
 #include <fstream>
+#include <functional>
+#include <string>
 #include <unistd.h>
 
 #include "core/noise_gen.hpp"
@@ -36,6 +38,25 @@ struct Color {
     Color operator*(float f) const {
         return {r * f, g * f, b * f, a};
     };
+};
+
+using NavigationGraph = undirected::lwGraph<Vertex3D>;
+
+struct GraphBuildInput {
+    const std::vector<float>& noise;
+    const std::vector<Vertex>& vertices;
+    const std::vector<GLuint>& indices;
+    int width;
+    int heightScale;
+    int depth;
+};
+
+using GraphFactory = std::function<NavigationGraph(const GraphBuildInput&)>;
+
+struct GraphModel {
+    std::string name;
+    bool requiresGeometry;
+    GraphFactory create;
 };
 
 inline double getMemoryUsageMB() {
@@ -353,10 +374,10 @@ undirected::lwGraph<Vertex3D> createVoxelGraph(const std::vector<float>& noise, 
     return graph;
 }
 
-undirected::lwGraph<Vertex3D> createVertexToVertex(const Mesh& mesh) {
-    const auto& vertices = mesh.getVertices();
-    const auto& indices = mesh.getIndices();
-
+undirected::lwGraph<Vertex3D> createVertexToVertex(
+    const std::vector<Vertex>& vertices,
+    const std::vector<GLuint>& indices
+) {
     undirected::lwGraph<Vertex3D> graph(vertices.size());
 
     for (size_t i = 0; i < vertices.size(); ++i) {
@@ -406,10 +427,14 @@ undirected::lwGraph<Vertex3D> createVertexToVertex(const Mesh& mesh) {
     return graph;
 }
 
-undirected::lwGraph<Vertex3D> createPolygonToPolygon(const Mesh& mesh) {
-    const auto& vertices = mesh.getVertices();
-    const auto& indices = mesh.getIndices();
+undirected::lwGraph<Vertex3D> createVertexToVertex(const Mesh& mesh) {
+    return createVertexToVertex(mesh.getVertices(), mesh.getIndices());
+}
 
+undirected::lwGraph<Vertex3D> createPolygonToPolygon(
+    const std::vector<Vertex>& vertices,
+    const std::vector<GLuint>& indices
+) {
     const size_t triangleCount = indices.size() / 3;
     undirected::lwGraph<Vertex3D> graph(triangleCount);
 
@@ -484,3 +509,7 @@ undirected::lwGraph<Vertex3D> createPolygonToPolygon(const Mesh& mesh) {
 
     return graph;
 };
+
+undirected::lwGraph<Vertex3D> createPolygonToPolygon(const Mesh& mesh) {
+    return createPolygonToPolygon(mesh.getVertices(), mesh.getIndices());
+}
