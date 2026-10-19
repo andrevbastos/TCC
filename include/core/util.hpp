@@ -9,6 +9,7 @@
 #include <memory>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <unordered_map>
 #include <graph/undirected/graph.hpp>
@@ -58,6 +59,51 @@ struct GraphModel {
     bool requiresGeometry;
     GraphFactory create;
 };
+
+// Inclinação máxima transitável (|dy| / distância horizontal), comum a todas as representações.
+// Equivale ao antigo limite de 5 unidades de altura por célula do voxel (~78,7°).
+inline constexpr float MAX_SLOPE = 5.0f;
+
+inline bool isTraversable(const Vertex3D& a, const Vertex3D& b) {
+    const float horizontal = std::hypot(b.x - a.x, b.z - a.z);
+    if (horizontal == 0.0f) return false;
+    return std::abs(b.y - a.y) / horizontal <= MAX_SLOPE;
+}
+
+struct SnapResult {
+    std::size_t id = 0;
+    double distance = 0.0;
+};
+
+// Busca linear pelo vértice mais próximo (distância 3D); usada apenas no setup do experimento.
+inline SnapResult nearestVertex(const common::lwGraph<Vertex3D>& graph, const Vertex3D& point) {
+    SnapResult result;
+    double bestSq = std::numeric_limits<double>::infinity();
+
+    for (std::size_t v = 0; v < graph.getOrder(); ++v) {
+        const auto& data = graph.getVertexData(v);
+        const double dx = static_cast<double>(data.x) - point.x;
+        const double dy = static_cast<double>(data.y) - point.y;
+        const double dz = static_cast<double>(data.z) - point.z;
+        const double distSq = (dx * dx) + (dy * dy) + (dz * dz);
+
+        if (distSq < bestSq) {
+            bestSq = distSq;
+            result.id = v;
+        }
+    }
+
+    result.distance = std::sqrt(bestSq);
+    return result;
+}
+
+inline std::size_t countEdges(const common::lwGraph<Vertex3D>& graph) {
+    std::size_t total = 0;
+    for (std::size_t v = 0; v < graph.getOrder(); ++v) {
+        total += graph.adj(v).size();
+    }
+    return total / 2;
+}
 
 inline double getMemoryUsageMB() {
     std::ifstream statm("/proc/self/statm");
@@ -284,6 +330,9 @@ undirected::lwGraph<Vertex3D> createGrid2_5D(const std::vector<float>& noise, in
     auto addEdge = [&](int from, int to) {
         const auto& a = graph.getVertexData(from);
         const auto& b = graph.getVertexData(to);
+        if (!isTraversable(a, b)) {
+            return;
+        }
 
         const float dx = a.x - b.x;
         const float dy = a.y - b.y;
@@ -347,9 +396,7 @@ undirected::lwGraph<Vertex3D> createVoxelGraph(const std::vector<float>& noise, 
     auto addSurfaceEdge = [&](int x1, int z1, int x2, int z2) {
         const int from = vertexIndex(x1, z1);
         const int to = vertexIndex(x2, z2);
-        const int heightDifference = std::abs(columnHeights[from] - columnHeights[to]);
-
-        if (heightDifference > 5) {
+        if (!isTraversable(graph.getVertexData(from), graph.getVertexData(to))) {
             return;
         }
 
@@ -388,7 +435,7 @@ undirected::lwGraph<Vertex3D> createVertexToVertex(
     }
 
     auto addUniqueEdge = [&](int from, int to) {
-        if (from == to) {
+        if (from == to || !isTraversable(graph.getVertexData(from), graph.getVertexData(to))) {
             return;
         }
 
@@ -502,6 +549,10 @@ undirected::lwGraph<Vertex3D> createPolygonToPolygon(
             }
 
             const size_t neighbor = found->second;
+            if (!isTraversable(centroids[triangle], centroids[neighbor])) {
+                continue;
+            }
+
             const float weight = distance(centroids[triangle], centroids[neighbor]);
             graph.addEdge(triangle, neighbor, weight);
         }

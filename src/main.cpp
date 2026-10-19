@@ -7,13 +7,10 @@
 #include <functional>
 #include <atomic>
 #include <stdexcept>
+#include <limits>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
 #include <graph/common/lw_graph.hpp>
-#include <graph/util/dijkstra.hpp>
-#include <graph/util/a_star.hpp>
-#include <graph/util/greedy.hpp>
-#include <graph/util/weighted.hpp>
 #include <graph/util/node_data.hpp>
 
 #include "core/statistics.hpp"
@@ -26,15 +23,15 @@ std::vector<Algorithm> algorithms = {
     {
         "Dijkstra",
         [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
-            return util::Dijkstra::lwGetPathTo(graph, start, goal);
+            return search::dijkstra(graph, start, goal);
         }
     },
-    {"A*", util::lwAStar<Vertex3D>},
-    {"Greedy Best-First", util::lwGreedyBestFirst<Vertex3D>},
+    {"A*", search::aStar<Vertex3D>},
+    {"Greedy Best-First", search::greedyBestFirst<Vertex3D>},
     {
         "Weighted A*",
         [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
-            return util::lwWeightedAStar<Vertex3D>(graph, start, goal, heuristic, 1.5f);
+            return search::weightedAStar<Vertex3D>(graph, start, goal, heuristic, 1.5);
         }
     }
 };
@@ -102,6 +99,9 @@ int main(int argc, char* argv[]) {
     uint repetitions = 5;
     uint steps = 4;
     uint intensity = 100;
+    uint pairCount = 10;
+    std::string statsTestName;
+    unsigned int statsSeed = static_cast<unsigned int>(time(NULL));
     float heightLimit = 2.5f;
     std::string path = "../results/";
     std::string graphModelName;
@@ -119,10 +119,10 @@ int main(int argc, char* argv[]) {
     testCmd->add_option("graph", graphModelName, "Representação do grafo")
         ->check(CLI::IsMember({"2_5d", "voxel", "vertex", "dual"}))
         ->required();
-    testCmd->add_option("--intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber);
-    testCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::PositiveNumber);
-    testCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::PositiveNumber);
-    testCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::PositiveNumber);
+    testCmd->add_option("intensity,--intensity", intensity, "Intensidade do ruído")->check(CLI::Range(2u, std::numeric_limits<uint>::max()));
+    testCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    testCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    testCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::Range(1u, 16u));
     testCmd->add_option("freq, -f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("lac,--lac", noiseConfig.lac, "Lacunaridade do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
@@ -134,12 +134,32 @@ int main(int argc, char* argv[]) {
         test(intensity, noiseConfig, path, getGraphModel(graphModelName));
     });
 
-    // auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
-    // statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
-    // statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
-    // statsCmd->add_option("intensity", intensity, "Intensidade do ruído")->check(CLI::PositiveNumber)->required();
-    // statsCmd->add_option("heightLimit", heightLimit, "Limite de altura para o caminho")->check(CLI::PositiveNumber)->required();
-    // statsCmd->callback([&]() { stats(repetitions, steps, intensity, heightLimit); });
+    auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
+    statsCmd->add_option("test", statsTestName, "Variável de terreno testada")
+        ->check(CLI::IsMember({"scale", "lac", "pers"}))
+        ->required();
+    statsCmd->add_option("graph", graphModelName, "Representação do grafo")
+        ->check(CLI::IsMember({"2_5d", "voxel", "vertex", "dual"}))
+        ->required();
+    statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
+    statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
+    statsCmd->add_option("--intensity", intensity, "Intensidade do ruído")->check(CLI::Range(2u, std::numeric_limits<uint>::max()));
+    statsCmd->add_option("--pairs", pairCount, "Pares início/fim por terreno")->check(CLI::PositiveNumber);
+    statsCmd->add_option("-s,--seed", statsSeed, "Semente base dos terrenos e pares");
+    statsCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
+    statsCmd->callback([&]() {
+        std::cout << "Seed base: " << statsSeed << std::endl;
+        const GraphModel& graphModel = getGraphModel(graphModelName);
+        const int heightScale = static_cast<int>(intensity);
+
+        if (statsTestName == "scale") {
+            testScale(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+        } else if (statsTestName == "lac") {
+            testLacunarity(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+        } else if (statsTestName == "pers") {
+            testPersistence(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+        }
+    });
 
     CLI11_PARSE(app, argc, argv);
 
@@ -371,6 +391,12 @@ void test(
                         navigationPtr->translate(0.0f, 0.2f, 0.0f);
                         renderer.addMesh(navigationPtr);
 
+                        if (graphPtr->getOrder() == 0) {
+                            std::cout << "Grafo de navegação vazio; busca de caminhos ignorada." << std::endl;
+                            isGenerating = false;
+                            return;
+                        }
+
                         std::cout << "Gerando caminhos." << std::endl;
                         pathPtrs.resize(algorithms.size());
 
@@ -395,7 +421,7 @@ void test(
                                         return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
                                     };
 
-                                    auto path = algFunc(*graphPtr, startId, endId, heuristic);
+                                    auto path = algFunc(*graphPtr, startId, endId, heuristic).path;
                                     if (path.empty()) {
                                         std::cout << "Algoritmo " << algorithmIndex << " não encontrou caminho." << std::endl;
                                         return PathResult {

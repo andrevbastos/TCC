@@ -6,23 +6,34 @@
 #include <iomanip>
 #include <mutex>
 #include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "core/search.hpp"
 #include "core/util.hpp"
 
 struct Results {
     std::string algorithmName;
     double testedValue = 0.0;
+    unsigned int terrainSeed = 0;
+    std::size_t pairIndex = 0;
 
     double graphGenerationTime = 0.0;
     std::size_t graphNodes = 0;
+    std::size_t graphEdges = 0;
+    double startSnap = 0.0;
+    double goalSnap = 0.0;
     bool success = false;
     std::optional<double> pathCost = std::nullopt;
     std::optional<double> executionTime = std::nullopt;
     std::optional<std::size_t> pathNodeCount = std::nullopt;
+    std::optional<std::size_t> expandedNodes = std::nullopt;
+    std::optional<std::size_t> generatedNodes = std::nullopt;
+    std::optional<std::size_t> peakOpen = std::nullopt;
+    std::optional<std::size_t> searchBytes = std::nullopt;
 };
 
 class Statistics {
@@ -63,21 +74,37 @@ public:
 
         file
             << "Algoritmo," << testedColumnName
-            << ",Tempo de Construção do Grafo,Nós do Grafo,Sucesso"
-            << ",Custo do Caminho,Tempo de Execução,Nós no Caminho\n";
+            << ",Seed do Terreno,Par"
+            << ",Tempo de Construção do Grafo,Nós do Grafo,Arestas do Grafo"
+            << ",Snap do Início,Snap do Fim,Sucesso"
+            << ",Custo do Caminho,Tempo de Execução,Nós no Caminho"
+            << ",Nós Expandidos,Nós Gerados,Pico da Open List,Memória da Busca (B)\n";
 
         for (const Results& result : data) {
             file
                 << result.algorithmName << ','
                 << formatValue(result.testedValue) << ','
+                << result.terrainSeed << ','
+                << result.pairIndex << ','
                 << formatValue(result.graphGenerationTime) << ','
                 << result.graphNodes << ','
+                << result.graphEdges << ','
+                << formatValue(result.startSnap) << ','
+                << formatValue(result.goalSnap) << ','
                 << (result.success ? 1 : 0) << ',';
             writeOptional(file, result.pathCost);
             file << ',';
             writeOptional(file, result.executionTime);
             file << ',';
             writeOptional(file, result.pathNodeCount);
+            file << ',';
+            writeOptional(file, result.expandedNodes);
+            file << ',';
+            writeOptional(file, result.generatedNodes);
+            file << ',';
+            writeOptional(file, result.peakOpen);
+            file << ',';
+            writeOptional(file, result.searchBytes);
             file << '\n';
         }
     }
@@ -113,7 +140,7 @@ private:
 };
 
 using HeuristicFuncLW = std::function<double(const Vertex3D&, const Vertex3D&)>;
-using AlgFunc = std::function<std::vector<std::size_t>(
+using AlgFunc = std::function<search::SearchResult(
     const common::lwGraph<Vertex3D>&,
     std::size_t,
     std::size_t,
@@ -125,18 +152,49 @@ struct Algorithm {
     AlgFunc run;
 };
 
+struct QueryPair {
+    Vertex3D start;
+    Vertex3D goal;
+};
+
+// Pares em margens opostas: início em z = 0 e fim em z = depth - 1, com x sorteado.
+inline std::vector<QueryPair> generateQueryPairs(
+    const std::vector<float>& noise,
+    int width,
+    int depth,
+    int heightScale,
+    unsigned int terrainSeed,
+    uint pairCount
+) {
+    std::mt19937 generator(terrainSeed ^ 0x9E3779B9u);
+    std::uniform_int_distribution<int> xDistribution(0, width - 1);
+
+    auto surfacePoint = [&](int x, int z) {
+        const float y = 1.0f + noise[(z * width) + x] * (static_cast<float>(heightScale) - 1.0f);
+        return Vertex3D{static_cast<float>(x), y, static_cast<float>(z)};
+    };
+
+    std::vector<QueryPair> pairs;
+    pairs.reserve(pairCount);
+    for (uint i = 0; i < pairCount; ++i) {
+        const int startX = xDistribution(generator);
+        const int goalX = xDistribution(generator);
+        pairs.push_back({surfacePoint(startX, 0), surfacePoint(goalX, depth - 1)});
+    }
+    return pairs;
+}
+
 void testScale(
     uint steps,
     uint repetitions,
+    uint pairCount,
+    unsigned int baseSeed,
     const std::string& outputDir,
     int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
     Statistics stats;
-    std::random_device randomDevice;
-    std::mt19937 generator(randomDevice());
-    std::uniform_int_distribution<unsigned int> seedDistribution;
 
     const HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) {
         const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
@@ -149,13 +207,16 @@ void testScale(
         const int dimension = 500 + (static_cast<int>(step) * 100);
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
+            const unsigned int terrainSeed =
+                baseSeed + static_cast<unsigned int>((step * repetitions) + repetition);
+
             perlin2D::NoiseConfig config = {
                 .width = dimension,
                 .height = dimension,
                 .freq = 1.0f,
                 .amp = 1.0f,
                 .exp = 1.0f,
-                .seed = seedDistribution(generator),
+                .seed = terrainSeed,
                 .octaves = 6
             };
 
@@ -188,35 +249,52 @@ void testScale(
             const auto graphEnd = std::chrono::steady_clock::now();
             const double graphGenerationTime =
                 std::chrono::duration<double>(graphEnd - graphStart).count();
+            const std::size_t graphEdges = countEdges(graph);
 
-            for (const Algorithm& algorithm : algorithms) {
-                Results result {
-                    .algorithmName = algorithm.name,
-                    .testedValue = static_cast<double>(dimension),
-                    .graphGenerationTime = graphGenerationTime,
-                    .graphNodes = graph.getOrder()
-                };
+            if (graph.getOrder() == 0) {
+                continue;
+            }
 
-                if (graph.getOrder() > 0) {
-                    const std::size_t startId = 0;
-                    const std::size_t endId = graph.getOrder() - 1;
+            const auto pairs = generateQueryPairs(
+                noise, config.width, config.height, heightScale, terrainSeed, pairCount
+            );
+
+            for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+
+                for (const Algorithm& algorithm : algorithms) {
+                    Results result {
+                        .algorithmName = algorithm.name,
+                        .testedValue = static_cast<double>(dimension),
+                        .terrainSeed = terrainSeed,
+                        .pairIndex = pairIndex,
+                        .graphGenerationTime = graphGenerationTime,
+                        .graphNodes = graph.getOrder(),
+                        .graphEdges = graphEdges,
+                        .startSnap = start.distance,
+                        .goalSnap = goal.distance
+                    };
 
                     const auto executionStart = std::chrono::steady_clock::now();
-                    const auto path = algorithm.run(graph, startId, endId, heuristic);
+                    const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
                     const auto executionEnd = std::chrono::steady_clock::now();
 
                     result.executionTime =
                         std::chrono::duration<double>(executionEnd - executionStart).count();
-                    result.success = !path.empty();
+                    result.success = !search.path.empty();
+                    result.expandedNodes = search.expanded;
+                    result.generatedNodes = search.generated;
+                    result.peakOpen = search.peakOpen;
+                    result.searchBytes = search.peakBytes;
 
-                    // TODO: coletar nós expandidos quando os algoritmos fornecerem essa métrica.
                     if (result.success) {
-                        result.pathCost = calculatePathCostLW(path, graph);
-                        result.pathNodeCount = path.size();
+                        result.pathCost = search.cost;
+                        result.pathNodeCount = search.path.size();
                     }
-                }
 
-                stats.addResult(std::move(result));
+                    stats.addResult(std::move(result));
+                }
             }
         }
     }
@@ -231,19 +309,249 @@ void testScale(
 void testLacunarity(
     uint steps,
     uint repetitions,
+    uint pairCount,
+    unsigned int baseSeed,
     const std::string& outputDir,
     int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
+    Statistics stats;
+
+    const HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) {
+        const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+        const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+        const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
+        return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+    };
+
+    for (std::size_t step = 0; step < steps; ++step) {
+        const int dimension = 500;
+        const float lacunarity = 1.5f + (static_cast<float>(step) * (3.0f - 1.5f) / static_cast<float>(std::max(steps - 1, 1u)));
+
+        for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
+            const unsigned int terrainSeed =
+                baseSeed + static_cast<unsigned int>(repetition);
+
+            perlin2D::NoiseConfig config = {
+                .width = dimension,
+                .height = dimension,
+                .freq = 1.0f,
+                .lac = lacunarity,
+                .amp = 1.0f,
+                .pers = 0.5f,
+                .exp = 1.0f,
+                .seed = terrainSeed,
+                .octaves = 6
+            };
+
+            auto noise = perlin2D::generateNoiseMap(config);
+            std::vector<Vertex> geometryVertices;
+            std::vector<GLuint> geometryIndices;
+
+            if (graphModel.requiresGeometry) {
+                auto [vertices, indices] = getMarchingCubeData(
+                    noise,
+                    config.width,
+                    heightScale,
+                    config.height
+                );
+                geometryVertices = std::move(vertices);
+                geometryIndices = std::move(indices);
+            }
+
+            const GraphBuildInput graphInput {
+                .noise = noise,
+                .vertices = geometryVertices,
+                .indices = geometryIndices,
+                .width = config.width,
+                .heightScale = heightScale,
+                .depth = config.height
+            };
+
+            const auto graphStart = std::chrono::steady_clock::now();
+            auto graph = graphModel.create(graphInput);
+            const auto graphEnd = std::chrono::steady_clock::now();
+            const double graphGenerationTime =
+                std::chrono::duration<double>(graphEnd - graphStart).count();
+            const std::size_t graphEdges = countEdges(graph);
+
+            if (graph.getOrder() == 0) {
+                continue;
+            }
+
+            const auto pairs = generateQueryPairs(
+                noise, config.width, config.height, heightScale, terrainSeed, pairCount
+            );
+
+            for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+
+                for (const Algorithm& algorithm : algorithms) {
+                    Results result {
+                        .algorithmName = algorithm.name,
+                        .testedValue = static_cast<double>(lacunarity),
+                        .terrainSeed = terrainSeed,
+                        .pairIndex = pairIndex,
+                        .graphGenerationTime = graphGenerationTime,
+                        .graphNodes = graph.getOrder(),
+                        .graphEdges = graphEdges,
+                        .startSnap = start.distance,
+                        .goalSnap = goal.distance
+                    };
+
+                    const auto executionStart = std::chrono::steady_clock::now();
+                    const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
+                    const auto executionEnd = std::chrono::steady_clock::now();
+
+                    result.executionTime =
+                        std::chrono::duration<double>(executionEnd - executionStart).count();
+                    result.success = !search.path.empty();
+                    result.expandedNodes = search.expanded;
+                    result.generatedNodes = search.generated;
+                    result.peakOpen = search.peakOpen;
+                    result.searchBytes = search.peakBytes;
+
+                    if (result.success) {
+                        result.pathCost = search.cost;
+                        result.pathNodeCount = search.path.size();
+                    }
+
+                    stats.addResult(std::move(result));
+                }
+            }
+        }
+    }
+
+    const std::string separator =
+        !outputDir.empty() && outputDir.back() == '/' ? "" : "/";
+    const std::string savePath =
+        outputDir + separator + "lac_" + graphModel.name + ".csv";
+    stats.saveToCSV(savePath, "Lacunaridade");
 }
 
 void testPersistence(
     uint steps,
     uint repetitions,
+    uint pairCount,
+    unsigned int baseSeed,
     const std::string& outputDir,
     int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
+    Statistics stats;
+
+    const HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) {
+        const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+        const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+        const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
+        return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+    };
+
+    for (std::size_t step = 0; step < steps; ++step) {
+        const int dimension = 500;
+        const float persistence = 0.3f + (static_cast<float>(step) * (0.7f - 0.3f) / static_cast<float>(std::max(steps - 1, 1u)));
+
+        for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
+            const unsigned int terrainSeed =
+                baseSeed + static_cast<unsigned int>(repetition);
+
+            perlin2D::NoiseConfig config = {
+                .width = dimension,
+                .height = dimension,
+                .freq = 1.0f,
+                .lac = 2.0f,
+                .amp = 1.0f,
+                .pers = persistence,
+                .exp = 1.0f,
+                .seed = terrainSeed,
+                .octaves = 6
+            };
+
+            auto noise = perlin2D::generateNoiseMap(config);
+            std::vector<Vertex> geometryVertices;
+            std::vector<GLuint> geometryIndices;
+
+            if (graphModel.requiresGeometry) {
+                auto [vertices, indices] = getMarchingCubeData(
+                    noise,
+                    config.width,
+                    heightScale,
+                    config.height
+                );
+                geometryVertices = std::move(vertices);
+                geometryIndices = std::move(indices);
+            }
+
+            const GraphBuildInput graphInput {
+                .noise = noise,
+                .vertices = geometryVertices,
+                .indices = geometryIndices,
+                .width = config.width,
+                .heightScale = heightScale,
+                .depth = config.height
+            };
+
+            const auto graphStart = std::chrono::steady_clock::now();
+            auto graph = graphModel.create(graphInput);
+            const auto graphEnd = std::chrono::steady_clock::now();
+            const double graphGenerationTime =
+                std::chrono::duration<double>(graphEnd - graphStart).count();
+            const std::size_t graphEdges = countEdges(graph);
+
+            if (graph.getOrder() == 0) {
+                continue;
+            }
+
+            const auto pairs = generateQueryPairs(
+                noise, config.width, config.height, heightScale, terrainSeed, pairCount
+            );
+
+            for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+
+                for (const Algorithm& algorithm : algorithms) {
+                    Results result {
+                        .algorithmName = algorithm.name,
+                        .testedValue = static_cast<double>(persistence),
+                        .terrainSeed = terrainSeed,
+                        .pairIndex = pairIndex,
+                        .graphGenerationTime = graphGenerationTime,
+                        .graphNodes = graph.getOrder(),
+                        .graphEdges = graphEdges,
+                        .startSnap = start.distance,
+                        .goalSnap = goal.distance
+                    };
+
+                    const auto executionStart = std::chrono::steady_clock::now();
+                    const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
+                    const auto executionEnd = std::chrono::steady_clock::now();
+
+                    result.executionTime =
+                        std::chrono::duration<double>(executionEnd - executionStart).count();
+                    result.success = !search.path.empty();
+                    result.expandedNodes = search.expanded;
+                    result.generatedNodes = search.generated;
+                    result.peakOpen = search.peakOpen;
+                    result.searchBytes = search.peakBytes;
+
+                    if (result.success) {
+                        result.pathCost = search.cost;
+                        result.pathNodeCount = search.path.size();
+                    }
+
+                    stats.addResult(std::move(result));
+                }
+            }
+        }
+    }
+
+    const std::string separator =
+        !outputDir.empty() && outputDir.back() == '/' ? "" : "/";
+    const std::string savePath =
+        outputDir + separator + "pers_" + graphModel.name + ".csv";
+    stats.saveToCSV(savePath, "Persistência");
 }
