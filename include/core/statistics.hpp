@@ -24,12 +24,11 @@ struct Results {
     double graphGenerationTime = 0.0;
     std::size_t graphNodes = 0;
     std::size_t graphEdges = 0;
-    double startSnap = 0.0;
-    double goalSnap = 0.0;
-    bool success = false;
+    std::size_t graphMemory = 0;
     std::optional<double> pathCost = std::nullopt;
     std::optional<double> executionTime = std::nullopt;
     std::optional<std::size_t> pathNodeCount = std::nullopt;
+    std::optional<double> geometricLength = std::nullopt;
     std::optional<std::size_t> expandedNodes = std::nullopt;
     std::optional<std::size_t> generatedNodes = std::nullopt;
     std::optional<std::size_t> peakOpen = std::nullopt;
@@ -50,7 +49,6 @@ public:
             std::cout
                 << result.algorithmName
                 << ": testedValue=" << result.testedValue
-                << ", success=" << result.success
                 << ", executionTime=";
             printOptional(std::cout, result.executionTime);
             std::cout << '\n';
@@ -75,9 +73,8 @@ public:
         file
             << "Algoritmo," << testedColumnName
             << ",Seed do Terreno,Par"
-            << ",Tempo de Construção do Grafo,Nós do Grafo,Arestas do Grafo"
-            << ",Snap do Início,Snap do Fim,Sucesso"
-            << ",Custo do Caminho,Tempo de Execução,Nós no Caminho"
+            << ",Tempo de Construção do Grafo,Nós do Grafo,Arestas do Grafo,Memória do Grafo (B)"
+            << ",Custo do Caminho,Tempo de Execução,Nós no Caminho,Comprimento Geométrico"
             << ",Nós Expandidos,Nós Gerados,Pico da Open List,Memória da Busca (B)\n";
 
         for (const Results& result : data) {
@@ -89,14 +86,14 @@ public:
                 << formatValue(result.graphGenerationTime) << ','
                 << result.graphNodes << ','
                 << result.graphEdges << ','
-                << formatValue(result.startSnap) << ','
-                << formatValue(result.goalSnap) << ','
-                << (result.success ? 1 : 0) << ',';
+                << result.graphMemory << ',';
             writeOptional(file, result.pathCost);
             file << ',';
             writeOptional(file, result.executionTime);
             file << ',';
             writeOptional(file, result.pathNodeCount);
+            file << ',';
+            writeOptional(file, result.geometricLength);
             file << ',';
             writeOptional(file, result.expandedNodes);
             file << ',';
@@ -190,7 +187,6 @@ void testScale(
     uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
-    int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
@@ -205,6 +201,9 @@ void testScale(
 
     for (std::size_t step = 0; step < steps; ++step) {
         const int dimension = 500 + (static_cast<int>(step) * 100);
+        // Volume cúbico e terreno esticado: altura e comprimento de onda acompanham a dimensão
+        // (heightScale / wave = 2, como em lac/pers), então só a resolução muda entre os passos.
+        const int heightScale = dimension;
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
             const unsigned int terrainSeed =
@@ -213,6 +212,7 @@ void testScale(
             perlin2D::NoiseConfig config = {
                 .width = dimension,
                 .height = dimension,
+                .wave = dimension / 2,
                 .freq = 1.0f,
                 .amp = 1.0f,
                 .exp = 1.0f,
@@ -250,18 +250,28 @@ void testScale(
             const double graphGenerationTime =
                 std::chrono::duration<double>(graphEnd - graphStart).count();
             const std::size_t graphEdges = countEdges(graph);
+            const std::size_t graphMemory = graphMemoryBytes(graph);
 
             if (graph.getOrder() == 0) {
                 continue;
             }
+
+            const std::vector<char> snapMask = largestComponentMask(graph);
 
             const auto pairs = generateQueryPairs(
                 noise, config.width, config.height, heightScale, terrainSeed, pairCount
             );
 
             for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
-                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
-                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, snapMask);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, snapMask);
+
+                // Diagnóstico interno (fora do CSV): ponto realocado para longe do pedido.
+                if (start.distance > 2.0 || goal.distance > 2.0) {
+                    std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                        << " par=" << pairIndex << ": snap início=" << start.distance
+                        << ", fim=" << goal.distance << std::endl;
+                }
 
                 for (const Algorithm& algorithm : algorithms) {
                     Results result {
@@ -272,8 +282,7 @@ void testScale(
                         .graphGenerationTime = graphGenerationTime,
                         .graphNodes = graph.getOrder(),
                         .graphEdges = graphEdges,
-                        .startSnap = start.distance,
-                        .goalSnap = goal.distance
+                        .graphMemory = graphMemory
                     };
 
                     const auto executionStart = std::chrono::steady_clock::now();
@@ -282,15 +291,25 @@ void testScale(
 
                     result.executionTime =
                         std::chrono::duration<double>(executionEnd - executionStart).count();
-                    result.success = !search.path.empty();
+                    const bool pathFound = !search.path.empty();
                     result.expandedNodes = search.expanded;
                     result.generatedNodes = search.generated;
                     result.peakOpen = search.peakOpen;
                     result.searchBytes = search.peakBytes;
 
-                    if (result.success) {
+                    if (!pathFound) {
+                        // Não deveria ocorrer: início e fim estão no mesmo componente.
+                        std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                            << " par=" << pairIndex << ": " << algorithm.name
+                            << " não encontrou caminho." << std::endl;
+                    }
+
+                    if (pathFound) {
                         result.pathCost = search.cost;
                         result.pathNodeCount = search.path.size();
+                        result.geometricLength = surfacePathLength(
+                            search.path, graph, noise, config.width, config.height, heightScale
+                        );
                     }
 
                     stats.addResult(std::move(result));
@@ -312,7 +331,6 @@ void testLacunarity(
     uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
-    int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
@@ -327,6 +345,7 @@ void testLacunarity(
 
     for (std::size_t step = 0; step < steps; ++step) {
         const int dimension = 500;
+        const int heightScale = dimension;
         const float lacunarity = 1.5f + (static_cast<float>(step) * (3.0f - 1.5f) / static_cast<float>(std::max(steps - 1, 1u)));
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
@@ -336,6 +355,7 @@ void testLacunarity(
             perlin2D::NoiseConfig config = {
                 .width = dimension,
                 .height = dimension,
+                .wave = 250,
                 .freq = 1.0f,
                 .lac = lacunarity,
                 .amp = 1.0f,
@@ -375,18 +395,28 @@ void testLacunarity(
             const double graphGenerationTime =
                 std::chrono::duration<double>(graphEnd - graphStart).count();
             const std::size_t graphEdges = countEdges(graph);
+            const std::size_t graphMemory = graphMemoryBytes(graph);
 
             if (graph.getOrder() == 0) {
                 continue;
             }
+
+            const std::vector<char> snapMask = largestComponentMask(graph);
 
             const auto pairs = generateQueryPairs(
                 noise, config.width, config.height, heightScale, terrainSeed, pairCount
             );
 
             for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
-                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
-                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, snapMask);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, snapMask);
+
+                // Diagnóstico interno (fora do CSV): ponto realocado para longe do pedido.
+                if (start.distance > 2.0 || goal.distance > 2.0) {
+                    std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                        << " par=" << pairIndex << ": snap início=" << start.distance
+                        << ", fim=" << goal.distance << std::endl;
+                }
 
                 for (const Algorithm& algorithm : algorithms) {
                     Results result {
@@ -397,8 +427,7 @@ void testLacunarity(
                         .graphGenerationTime = graphGenerationTime,
                         .graphNodes = graph.getOrder(),
                         .graphEdges = graphEdges,
-                        .startSnap = start.distance,
-                        .goalSnap = goal.distance
+                        .graphMemory = graphMemory
                     };
 
                     const auto executionStart = std::chrono::steady_clock::now();
@@ -407,15 +436,25 @@ void testLacunarity(
 
                     result.executionTime =
                         std::chrono::duration<double>(executionEnd - executionStart).count();
-                    result.success = !search.path.empty();
+                    const bool pathFound = !search.path.empty();
                     result.expandedNodes = search.expanded;
                     result.generatedNodes = search.generated;
                     result.peakOpen = search.peakOpen;
                     result.searchBytes = search.peakBytes;
 
-                    if (result.success) {
+                    if (!pathFound) {
+                        // Não deveria ocorrer: início e fim estão no mesmo componente.
+                        std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                            << " par=" << pairIndex << ": " << algorithm.name
+                            << " não encontrou caminho." << std::endl;
+                    }
+
+                    if (pathFound) {
                         result.pathCost = search.cost;
                         result.pathNodeCount = search.path.size();
+                        result.geometricLength = surfacePathLength(
+                            search.path, graph, noise, config.width, config.height, heightScale
+                        );
                     }
 
                     stats.addResult(std::move(result));
@@ -437,7 +476,6 @@ void testPersistence(
     uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
-    int heightScale,
     const GraphModel& graphModel,
     const std::vector<Algorithm>& algorithms
 ) {
@@ -452,6 +490,7 @@ void testPersistence(
 
     for (std::size_t step = 0; step < steps; ++step) {
         const int dimension = 500;
+        const int heightScale = dimension;
         const float persistence = 0.3f + (static_cast<float>(step) * (0.7f - 0.3f) / static_cast<float>(std::max(steps - 1, 1u)));
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
@@ -461,6 +500,7 @@ void testPersistence(
             perlin2D::NoiseConfig config = {
                 .width = dimension,
                 .height = dimension,
+                .wave = 250,
                 .freq = 1.0f,
                 .lac = 2.0f,
                 .amp = 1.0f,
@@ -500,18 +540,28 @@ void testPersistence(
             const double graphGenerationTime =
                 std::chrono::duration<double>(graphEnd - graphStart).count();
             const std::size_t graphEdges = countEdges(graph);
+            const std::size_t graphMemory = graphMemoryBytes(graph);
 
             if (graph.getOrder() == 0) {
                 continue;
             }
+
+            const std::vector<char> snapMask = largestComponentMask(graph);
 
             const auto pairs = generateQueryPairs(
                 noise, config.width, config.height, heightScale, terrainSeed, pairCount
             );
 
             for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
-                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
-                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
+                const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, snapMask);
+                const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, snapMask);
+
+                // Diagnóstico interno (fora do CSV): ponto realocado para longe do pedido.
+                if (start.distance > 2.0 || goal.distance > 2.0) {
+                    std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                        << " par=" << pairIndex << ": snap início=" << start.distance
+                        << ", fim=" << goal.distance << std::endl;
+                }
 
                 for (const Algorithm& algorithm : algorithms) {
                     Results result {
@@ -522,8 +572,7 @@ void testPersistence(
                         .graphGenerationTime = graphGenerationTime,
                         .graphNodes = graph.getOrder(),
                         .graphEdges = graphEdges,
-                        .startSnap = start.distance,
-                        .goalSnap = goal.distance
+                        .graphMemory = graphMemory
                     };
 
                     const auto executionStart = std::chrono::steady_clock::now();
@@ -532,15 +581,25 @@ void testPersistence(
 
                     result.executionTime =
                         std::chrono::duration<double>(executionEnd - executionStart).count();
-                    result.success = !search.path.empty();
+                    const bool pathFound = !search.path.empty();
                     result.expandedNodes = search.expanded;
                     result.generatedNodes = search.generated;
                     result.peakOpen = search.peakOpen;
                     result.searchBytes = search.peakBytes;
 
-                    if (result.success) {
+                    if (!pathFound) {
+                        // Não deveria ocorrer: início e fim estão no mesmo componente.
+                        std::cerr << "[aviso] " << graphModel.name << " seed=" << terrainSeed
+                            << " par=" << pairIndex << ": " << algorithm.name
+                            << " não encontrou caminho." << std::endl;
+                    }
+
+                    if (pathFound) {
                         result.pathCost = search.cost;
                         result.pathNodeCount = search.path.size();
+                        result.geometricLength = surfacePathLength(
+                            search.path, graph, noise, config.width, config.height, heightScale
+                        );
                     }
 
                     stats.addResult(std::move(result));

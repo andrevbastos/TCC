@@ -143,21 +143,19 @@ int main(int argc, char* argv[]) {
         ->required();
     statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
     statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
-    statsCmd->add_option("--intensity", intensity, "Intensidade do ruído")->check(CLI::Range(2u, std::numeric_limits<uint>::max()));
     statsCmd->add_option("--pairs", pairCount, "Pares início/fim por terreno")->check(CLI::PositiveNumber);
     statsCmd->add_option("-s,--seed", statsSeed, "Semente base dos terrenos e pares");
     statsCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
     statsCmd->callback([&]() {
         std::cout << "Seed base: " << statsSeed << std::endl;
         const GraphModel& graphModel = getGraphModel(graphModelName);
-        const int heightScale = static_cast<int>(intensity);
 
         if (statsTestName == "scale") {
-            testScale(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+            testScale(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
         } else if (statsTestName == "lac") {
-            testLacunarity(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+            testLacunarity(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
         } else if (statsTestName == "pers") {
-            testPersistence(steps, repetitions, pairCount, statsSeed, path, heightScale, graphModel, algorithms);
+            testPersistence(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
         }
     });
 
@@ -301,6 +299,8 @@ void test(
 
     struct NavigationResult {
         std::shared_ptr<undirected::lwGraph<Vertex3D>> graph;
+        std::size_t startId;
+        std::size_t goalId;
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
     };
@@ -372,14 +372,26 @@ void test(
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
                         auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
 
+                        // Mesmo critério do experimento: par nas margens opostas, snap no maior componente.
+                        const std::vector<char> snapMask = largestComponentMask(*graphPtr);
+                        const QueryPair pair = generateQueryPairs(
+                            noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity), currentConfig.seed, 1
+                        ).front();
+                        const SnapResult start = nearestVertex(*graphPtr, pair.start, snapMask);
+                        const SnapResult goal = nearestVertex(*graphPtr, pair.goal, snapMask);
+
                         return NavigationResult {
                             .graph = std::move(graphPtr),
+                            .startId = start.id,
+                            .goalId = goal.id,
                             .vertices = std::move(verticesNav),
                             .indices = std::move(indicesNav)
                         };
                     },
                     [&, shader](NavigationResult navData) mutable {
                         auto graphPtr = std::move(navData.graph);
+                        const std::size_t startId = navData.startId;
+                        const std::size_t goalId = navData.goalId;
 
                         if (navigationPtr) {
                             std::cout << "Removendo navegação antiga." << std::endl;
@@ -409,9 +421,7 @@ void test(
 
                         for (size_t algorithmIndex = 0; algorithmIndex < algorithms.size(); ++algorithmIndex) {
                             Engine::runAsyncThenMain(
-                                [graphPtr, algorithmIndex, algFunc = algorithms[algorithmIndex].run]() {
-                                    const std::size_t startId = 0;
-                                    const std::size_t endId = graphPtr->getOrder() - 1;
+                                [graphPtr, startId, goalId, algorithmIndex, algFunc = algorithms[algorithmIndex].run]() {
                                     const Color color = pathColors[algorithmIndex % pathColors.size()];
 
                                     HeuristicFuncLW heuristic = [](const Vertex3D& a, const Vertex3D& b) -> double {
@@ -421,7 +431,7 @@ void test(
                                         return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
                                     };
 
-                                    auto path = algFunc(*graphPtr, startId, endId, heuristic).path;
+                                    auto path = algFunc(*graphPtr, startId, goalId, heuristic).path;
                                     if (path.empty()) {
                                         std::cout << "Algoritmo " << algorithmIndex << " não encontrou caminho." << std::endl;
                                         return PathResult {

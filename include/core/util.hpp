@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <queue>
 #include <unordered_map>
 #include <graph/undirected/graph.hpp>
 #include <graph/undirected/lw_graph.hpp>
@@ -61,8 +62,8 @@ struct GraphModel {
 };
 
 // Inclinação máxima transitável (|dy| / distância horizontal), comum a todas as representações.
-// Equivale ao antigo limite de 5 unidades de altura por célula do voxel (~78,7°).
-inline constexpr float MAX_SLOPE = 5.0f;
+// 1.0 corresponde a 45°: o desnível não pode exceder a distância horizontal.
+inline constexpr float MAX_SLOPE = 1.0f;
 
 inline bool isTraversable(const Vertex3D& a, const Vertex3D& b) {
     const float horizontal = std::hypot(b.x - a.x, b.z - a.z);
@@ -75,12 +76,62 @@ struct SnapResult {
     double distance = 0.0;
 };
 
-// Busca linear pelo vértice mais próximo (distância 3D); usada apenas no setup do experimento.
-inline SnapResult nearestVertex(const common::lwGraph<Vertex3D>& graph, const Vertex3D& point) {
+// Marca os vértices do maior componente conexo (BFS). Evita que o snap caia em ilhas
+// isoladas pelo critério de transitabilidade, como triângulos de parede do marching cubes.
+inline std::vector<char> largestComponentMask(const common::lwGraph<Vertex3D>& graph) {
+    const std::size_t numVertices = graph.getOrder();
+    std::vector<std::size_t> component(numVertices, std::numeric_limits<std::size_t>::max());
+    std::size_t bestComponent = 0;
+    std::size_t bestSize = 0;
+    std::size_t componentCount = 0;
+
+    for (std::size_t source = 0; source < numVertices; ++source) {
+        if (component[source] != std::numeric_limits<std::size_t>::max()) continue;
+
+        std::size_t size = 0;
+        std::queue<std::size_t> frontier;
+        frontier.push(source);
+        component[source] = componentCount;
+
+        while (!frontier.empty()) {
+            const std::size_t current = frontier.front();
+            frontier.pop();
+            ++size;
+
+            for (const auto& edge : graph.adj(current)) {
+                if (component[edge.target] != std::numeric_limits<std::size_t>::max()) continue;
+                component[edge.target] = componentCount;
+                frontier.push(edge.target);
+            }
+        }
+
+        if (size > bestSize) {
+            bestSize = size;
+            bestComponent = componentCount;
+        }
+        ++componentCount;
+    }
+
+    std::vector<char> mask(numVertices, 0);
+    for (std::size_t v = 0; v < numVertices; ++v) {
+        mask[v] = component[v] == bestComponent;
+    }
+    return mask;
+}
+
+// Busca linear pelo vértice mais próximo (distância 3D) dentre os permitidos pela máscara;
+// usada apenas no setup do experimento.
+inline SnapResult nearestVertex(
+    const common::lwGraph<Vertex3D>& graph,
+    const Vertex3D& point,
+    const std::vector<char>& allowed
+) {
     SnapResult result;
     double bestSq = std::numeric_limits<double>::infinity();
 
     for (std::size_t v = 0; v < graph.getOrder(); ++v) {
+        if (!allowed[v]) continue;
+
         const auto& data = graph.getVertexData(v);
         const double dx = static_cast<double>(data.x) - point.x;
         const double dy = static_cast<double>(data.y) - point.y;
@@ -95,6 +146,95 @@ inline SnapResult nearestVertex(const common::lwGraph<Vertex3D>& graph, const Ve
 
     result.distance = std::sqrt(bestSq);
     return result;
+}
+
+// Altura contínua da superfície de referência (heightmap), com interpolação bilinear.
+inline float terrainHeightAt(
+    const std::vector<float>& noise,
+    int width,
+    int depth,
+    int heightScale,
+    float x,
+    float z
+) {
+    x = std::clamp(x, 0.0f, static_cast<float>(width - 1));
+    z = std::clamp(z, 0.0f, static_cast<float>(depth - 1));
+
+    const int x0 = static_cast<int>(std::floor(x));
+    const int z0 = static_cast<int>(std::floor(z));
+    const int x1 = std::min(x0 + 1, width - 1);
+    const int z1 = std::min(z0 + 1, depth - 1);
+    const float tx = x - static_cast<float>(x0);
+    const float tz = z - static_cast<float>(z0);
+
+    const float top = (noise[(z0 * width) + x0] * (1.0f - tx)) + (noise[(z0 * width) + x1] * tx);
+    const float bottom = (noise[(z1 * width) + x0] * (1.0f - tx)) + (noise[(z1 * width) + x1] * tx);
+    const float value = (top * (1.0f - tz)) + (bottom * tz);
+
+    return 1.0f + value * (static_cast<float>(heightScale) - 1.0f);
+}
+
+// Comprimento do caminho projetado em (x, z) sobre a superfície de referência,
+// amostrando cada segmento em subpassos de no máximo 0.25 unidade horizontal.
+inline double surfacePathLength(
+    const std::vector<std::size_t>& path,
+    const common::lwGraph<Vertex3D>& graph,
+    const std::vector<float>& noise,
+    int width,
+    int depth,
+    int heightScale
+) {
+    constexpr double sampleStep = 0.25;
+    double length = 0.0;
+
+    for (std::size_t i = 0; i + 1 < path.size(); ++i) {
+        const Vertex3D& a = graph.getVertexData(path[i]);
+        const Vertex3D& b = graph.getVertexData(path[i + 1]);
+        const double horizontal = std::hypot(
+            static_cast<double>(b.x) - a.x,
+            static_cast<double>(b.z) - a.z
+        );
+        const int samples = std::max(1, static_cast<int>(std::ceil(horizontal / sampleStep)));
+
+        double prevX = a.x;
+        double prevZ = a.z;
+        double prevY = terrainHeightAt(noise, width, depth, heightScale, a.x, a.z);
+
+        for (int s = 1; s <= samples; ++s) {
+            const double t = static_cast<double>(s) / samples;
+            const double x = a.x + (b.x - a.x) * t;
+            const double z = a.z + (b.z - a.z) * t;
+            const double y = terrainHeightAt(
+                noise, width, depth, heightScale, static_cast<float>(x), static_cast<float>(z)
+            );
+
+            const double dx = x - prevX;
+            const double dy = y - prevY;
+            const double dz = z - prevZ;
+            length += std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+            prevX = x;
+            prevY = y;
+            prevZ = z;
+        }
+    }
+
+    return length;
+}
+
+// Memória estrutural da representação pronta: objeto do grafo, dados dos vértices,
+// vetores de adjacência e arestas alocadas (capacity, inclui a folga de crescimento).
+inline std::size_t graphMemoryBytes(const NavigationGraph& graph) {
+    const std::size_t numVertices = graph.getOrder();
+    std::size_t edgeBytes = 0;
+    for (std::size_t v = 0; v < numVertices; ++v) {
+        edgeBytes += graph.adj(v).capacity() * sizeof(common::lwEdge);
+    }
+
+    return sizeof(NavigationGraph)
+        + (numVertices * sizeof(Vertex3D))
+        + (numVertices * sizeof(std::vector<common::lwEdge>))
+        + edgeBytes;
 }
 
 inline std::size_t countEdges(const common::lwGraph<Vertex3D>& graph) {
