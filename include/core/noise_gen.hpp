@@ -110,12 +110,12 @@ namespace perlin2D {
                 for (unsigned int i{0}; i < config.octaves; i++) {
                     unsigned int octaveSeed {config.seed + i * 1013u};
                     val += perlin(nx * freq + offsets[i].x, ny * freq + offsets[i].y, octaveSeed) * amp;
-                    ampSum += amp;
+                    ampSum += amp * amp;
                     amp *= pers;
                     freq *= lac;
                 }
 
-                val = val / ampSum * config.amp;
+                val = val / std::sqrt(ampSum) * config.amp;
 
                 if (val > 1.0f) val = 1.0f;
                 else if (val < -1.0f) val = -1.0f;
@@ -128,6 +128,42 @@ namespace perlin2D {
         }
 
         return noiseMap;
+    }
+
+    // Uma camada por oitava, com os mesmos offsets e frequências de generateNoiseMap.
+    // Cada camada é normalizada isoladamente (sem o peso de persistência).
+    std::vector<std::vector<float>> generateOctaveMaps(NoiseConfig config) {
+        std::vector<std::vector<float>> octaveMaps(config.octaves, std::vector<float>(config.width * config.height));
+
+        std::mt19937 rng {config.seed};
+        std::uniform_real_distribution<float> dist {0.0f, 1000.0f};
+        std::vector<Vector2D> offsets(config.octaves);
+        for (auto& o : offsets) o = {dist(rng), dist(rng)};
+
+        for (int y{0}; y < config.height; ++y) {
+            for (int x{0}; x < config.width; ++x) {
+                int index {y * config.width + x};
+
+                float nx {static_cast<float>(x) / config.wave};
+                float ny {static_cast<float>(y) / config.wave};
+
+                float freq {config.freq};
+
+                for (unsigned int i{0}; i < config.octaves; i++) {
+                    unsigned int octaveSeed {config.seed + i * 1013u};
+                    float val {perlin(nx * freq + offsets[i].x, ny * freq + offsets[i].y, octaveSeed) * config.amp};
+                    freq *= config.lac;
+
+                    if (val > 1.0f) val = 1.0f;
+                    else if (val < -1.0f) val = -1.0f;
+
+                    val = (val + 1.0f) * 0.5f;
+                    octaveMaps[i][index] = pow(val, config.exp);
+                }
+            }
+        }
+
+        return octaveMaps;
     }
 
     void saveNoiseAsPNG(const std::string& filename, const std::vector<float>& noiseMap, int width, int height) {

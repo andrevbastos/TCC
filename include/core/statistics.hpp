@@ -346,7 +346,8 @@ void testLacunarity(
     for (std::size_t step = 0; step < steps; ++step) {
         const int dimension = 500;
         const int heightScale = dimension;
-        const float lacunarity = 1.5f + (static_cast<float>(step) * (3.0f - 1.5f) / static_cast<float>(std::max(steps - 1, 1u)));
+        // lac⁵ / wave ≤ 0,25 ciclo por unidade: a última oitava fica abaixo do limite de Nyquist com margem.
+        const float lacunarity = 1.5f + (static_cast<float>(step) * (2.25f - 1.5f) / static_cast<float>(std::max(steps - 1, 1u)));
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
             const unsigned int terrainSeed =

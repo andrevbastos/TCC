@@ -18,6 +18,9 @@
 [x] Altura = largura = profundidade; teste de escala estica o terreno (heightScale / wave = 2)
 [x] Comprimento geométrico: caminho projetado em (x, z) sobre o heightmap
 [x] Memória do grafo: memória estrutural pela capacidade alocada
+[x] Lacunaridade limitada a 1,5–2,25: última oitava (lac⁵ / 250) ≤ 0,25 ciclo/unidade, abaixo de Nyquist
+[x] Persistência confundida com a amplitude: normalizar por √Σa² em vez de Σa
+    (desvio cai ~32% de pers 0,3 a 0,7; teoria √Σp²ⁱ / Σpⁱ)
 [x] Viewer usa o mesmo par/snap do experimento (1 par por terreno, seed do terreno)
 
 = Coleta

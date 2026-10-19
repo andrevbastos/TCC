@@ -8,6 +8,7 @@
 #include <atomic>
 #include <stdexcept>
 #include <limits>
+#include <cstdlib>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
 #include <graph/common/lw_graph.hpp>
@@ -91,6 +92,7 @@ const GraphModel& getGraphModel(const std::string& name) {
 }
 
 void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir, const GraphModel& graphModel);
+void save(const std::string& target, NoiseConfig noiseConfig, bool saveOctaves);
 // void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
 
 int main(int argc, char* argv[]) {   
@@ -132,6 +134,25 @@ int main(int argc, char* argv[]) {
     testCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
     testCmd->callback([&]() {
         test(intensity, noiseConfig, path, getGraphModel(graphModelName));
+    });
+
+    std::string saveTarget;
+    bool saveOctaves = false;
+    auto saveCmd = app.add_subcommand("save", "Gera o ruído e salva como PNG");
+    saveCmd->add_option("target", saveTarget, "Diretório ou arquivo de destino")->required();
+    saveCmd->add_option("intensity,--intensity", intensity, "Intensidade do ruído (não afeta a imagem)")->check(CLI::Range(2u, std::numeric_limits<uint>::max()));
+    saveCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    saveCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    saveCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::Range(1u, 16u));
+    saveCmd->add_option("freq,-f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
+    saveCmd->add_option("lac,--lac", noiseConfig.lac, "Lacunaridade do ruído")->check(CLI::PositiveNumber);
+    saveCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
+    saveCmd->add_option("pers,--pers", noiseConfig.pers, "Persistência do ruído")->check(CLI::PositiveNumber);
+    saveCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
+    saveCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
+    saveCmd->add_flag("--save-octaves", saveOctaves, "Salva cada oitava em <destino>/octave_N.png");
+    saveCmd->callback([&]() {
+        save(saveTarget, noiseConfig, saveOctaves);
     });
 
     auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
@@ -257,6 +278,37 @@ int main(int argc, char* argv[]) {
 //         std::cout << std::endl;
 //     }
 // };
+
+void save(const std::string& target, NoiseConfig noiseConfig, bool saveOctaves) {
+    std::string expanded = target;
+    if (expanded.starts_with('~')) {
+        if (const char* home = std::getenv("HOME")) {
+            expanded = std::string(home) + expanded.substr(1);
+        }
+    }
+
+    fs::path filePath(expanded);
+    if (expanded.ends_with('/') || fs::is_directory(filePath)) {
+        filePath /= "temp.png";
+    } else if (filePath.extension() != ".png") {
+        filePath.replace_extension(".png");
+    }
+
+    std::cout << "Seed: " << noiseConfig.seed << std::endl;
+    const auto noise = generateNoiseMap(noiseConfig);
+    saveNoiseAsPNG(filePath.string(), noise, noiseConfig.width, noiseConfig.height);
+    std::cout << "Ruído salvo em " << filePath.string() << std::endl;
+
+    if (saveOctaves) {
+        const fs::path octaveDir = filePath.parent_path() / filePath.stem();
+        const auto octaveMaps = generateOctaveMaps(noiseConfig);
+        for (size_t i = 0; i < octaveMaps.size(); ++i) {
+            const fs::path octavePath = octaveDir / ("octave_" + std::to_string(i + 1) + ".png");
+            saveNoiseAsPNG(octavePath.string(), octaveMaps[i], noiseConfig.width, noiseConfig.height);
+        }
+        std::cout << "Oitavas salvas em " << octaveDir.string() << std::endl;
+    }
+};
 
 void test(
     uint intensity,
