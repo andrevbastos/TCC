@@ -432,7 +432,12 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
                             continue;
                         }
 
-                        auto dim = (float)(y) / (float)(height);
+                        const auto [minIt, maxIt] = std::minmax_element(columnHeights.begin(), columnHeights.end());
+                        const float yMin = static_cast<float>(*minIt);
+                        const float yRange = std::max(1.0f, static_cast<float>(*maxIt) - yMin);
+
+                        const float t = std::clamp((static_cast<float>(y) - yMin) / yRange, 0.0f, 1.0f);
+                        const float dim = 0.35f + 0.65f * t;
 
 						auto pos = corners[a] % corners[b];
 						pos = (pos + Vertex{(float)x, (float)y, (float)z, 0.0f, 0.0f, 0.0f, 0.0f}) * Vertex{1.0f, 1.0f, 1.0f, dim, dim, dim, 1.0f};

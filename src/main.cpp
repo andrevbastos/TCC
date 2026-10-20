@@ -330,18 +330,12 @@ void test(
     camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
     renderer.setFarPlane(1000.0f);
     GLuint shader {renderer.getShaderID()};
-	
-	input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera]() {
-        camera.setSpeed(1.0f);
-    });
-
-    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera]() {
-        camera.setSpeed(0.5f);
-    });
 
     std::shared_ptr<Mesh> geometryPtr = nullptr;
     std::shared_ptr<Mesh> navigationPtr = nullptr;
     std::vector<std::shared_ptr<Mesh>> pathPtrs;
+    bool showNavigation = true;
+    bool showPaths = true;
 
     struct GeometryResult {
         std::vector<float> noise;
@@ -370,9 +364,8 @@ void test(
         }
 
         isGenerating = true;
-        std::cout << "Gerando geometria." << std::endl;
+        std::cout << "Gerando geometria (seed " << noiseConfig.seed << ")." << std::endl;
 
-        noiseConfig.seed = static_cast<unsigned int>(time(NULL));
         const NoiseConfig currentConfig = noiseConfig;
 
         for (auto& pathPtr : pathPtrs) {
@@ -424,7 +417,6 @@ void test(
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
                         auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
 
-                        // Mesmo critério do experimento: par nas margens opostas, snap no maior componente.
                         const std::vector<char> snapMask = largestComponentMask(*graphPtr);
                         const QueryPair pair = generateQueryPairs(
                             noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity), currentConfig.seed, 1
@@ -453,7 +445,9 @@ void test(
                         std::cout << "Adicionando nova navegação." << std::endl;
                         navigationPtr = std::make_shared<Mesh>(std::move(navData.vertices), std::move(navData.indices), shader, GL_LINES);
                         navigationPtr->translate(0.0f, 0.2f, 0.0f);
-                        renderer.addMesh(navigationPtr);
+                        if (showNavigation) {
+                            renderer.addMesh(navigationPtr);
+                        }
 
                         if (graphPtr->getOrder() == 0) {
                             std::cout << "Grafo de navegação vazio; busca de caminhos ignorada." << std::endl;
@@ -503,8 +497,10 @@ void test(
                                 [&, shader, pendingPaths](PathResult pathData) mutable {
                                     if (!pathData.vertices.empty() && !pathData.indices.empty()) {
                                         auto pathPtr = std::make_shared<Mesh>(std::move(pathData.vertices), std::move(pathData.indices), shader, GL_LINES);
-                                        pathPtr->translate(0.0f, 0.4f, 0.0f);
-                                        renderer.addMesh(pathPtr);
+                                        pathPtr->translate(0.0f, 0.4f + 0.15f * static_cast<float>(pathData.algorithmIndex), 0.0f);
+                                        if (showPaths) {
+                                            renderer.addMesh(pathPtr);
+                                        }
                                         pathPtrs[pathData.algorithmIndex] = std::move(pathPtr);
                                     }
 
@@ -524,7 +520,93 @@ void test(
     };
 
     generate();
-    input.addKeyCallback(Key::K, KeyAction::PRESS, generate);
+    std::mt19937 seedGenerator {std::random_device{}()};
+    input.addKeyCallback(Key::K, KeyAction::PRESS, [&]() {
+        if (isGenerating) {
+            return;
+        }
+
+        noiseConfig.seed = static_cast<unsigned int>(seedGenerator());
+        generate();
+    });
+
+    input.addKeyCallback(Key::I, KeyAction::PRESS, [&camera]() {
+        camera.setPosition(glm::vec3(-0.350095, 89.6943, 22.1546));
+        camera.setOrientation(glm::vec3(0.439334, -0.881492, -8.42847e-08));
+    });
+
+    float rotationStep {glm::radians(1.0f)};
+    input.addKeyCallback(Key::LEFT, KeyAction::HELD, [&camera, rotationStep]() {
+        camera.rotate(rotationStep, camera.getUp());
+    });
+
+    input.addKeyCallback(Key::RIGHT, KeyAction::HELD, [&camera, rotationStep]() {
+        camera.rotate(-rotationStep, camera.getUp());
+    });
+
+    auto tilt = [&camera](float angle) {
+        glm::vec3 orient {camera.getOrientation()};
+        glm::vec3 up {camera.getUp()};
+        glm::vec3 right {glm::normalize(glm::cross(orient, up))};
+        glm::vec3 newOrient {glm::rotate(orient, angle, right)};
+
+        if (std::abs(glm::dot(glm::normalize(newOrient), up)) < 0.99f) {
+            camera.setOrientation(newOrient);
+        }
+    };
+
+    input.addKeyCallback(Key::UP, KeyAction::HELD, [tilt, rotationStep]() {
+        tilt(rotationStep);
+    });
+
+    input.addKeyCallback(Key::DOWN, KeyAction::HELD, [tilt, rotationStep]() {
+        tilt(-rotationStep);
+    });
+
+	input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera, &rotationStep]() {
+        rotationStep = glm::radians(4.0f);
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera, &rotationStep]() {
+        rotationStep = glm::radians(1.0f);
+        camera.setSpeed(0.5f);
+    });
+
+    input.addKeyCallback(Key::O, KeyAction::PRESS, [&camera]() {
+        glm::vec3 pos {camera.getPosition()};
+        glm::vec3 orient {camera.getOrientation()};
+        std::cout << "Posição: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        std::cout << "Orientação: (" << orient.x << ", " << orient.y << ", " << orient.z << ")" << std::endl;
+    });
+
+    input.addKeyCallback(Key::Z, KeyAction::PRESS, [&]() {
+        showNavigation = !showNavigation;
+        if (!navigationPtr) {
+            return;
+        }
+
+        if (showNavigation) {
+            renderer.addMesh(navigationPtr);
+        } else {
+            renderer.removeMesh(navigationPtr);
+        }
+    });
+
+    input.addKeyCallback(Key::X, KeyAction::PRESS, [&]() {
+        showPaths = !showPaths;
+        for (auto& pathPtr : pathPtrs) {
+            if (!pathPtr) {
+                continue;
+            }
+
+            if (showPaths) {
+                renderer.addMesh(pathPtr);
+            } else {
+                renderer.removeMesh(pathPtr);
+            }
+        }
+    });
 
 	LoopConfig config = {
         .mode = LoopMode::Concurrent

@@ -1,7 +1,12 @@
-# ========================================================================
-#                          TRABALHOS RELACIONADOS
-# ========================================================================
+% ========================================================================
+%                          TRABALHOS RELACIONADOS
+% ========================================================================
 
+% Comparação de algoritmos de busca (A*, Dijkstra) em ambientes 3D discretizados
+% em voxels, com métricas de tempo de CPU e memória. Usar ao apresentar
+% trabalhos que avaliam pathfinding em 3D, ao justificar a representação em
+% voxels e ao contrastar o escopo deste trabalho (uma única representação vs
+% múltiplas representações do mesmo terreno).
 @mastersthesis{johansson2024adapting,
   title={Adapting Pathfinding Algorithms for 3D Environments: Performance Analysis and Real-World Applications},
   author={Johansson, E. and others},
@@ -10,6 +15,10 @@
   note={Estudo comparativo de memória e tempo de CPU em malhas 3D discretas}
 }
 
+% Comparação de A*, JPS e Theta* em grades 2D. Usar ao apresentar trabalhos
+% comparativos de algoritmos de busca em grades, como exemplo de avaliação
+% restrita a ambientes planos e ao discutir métricas de comparação entre
+% algoritmos.
 @article{Kapi2022,
   title = {A Comparison of Pathfinding Algorithm for Code Optimization on Grid Maps},
   journal = {International Journal of Advanced Computer Science and Applications},
@@ -20,12 +29,32 @@
   volume = {13},
   number = {12},
   author = {Azyan Yusra Kapi and Mohd Shahrizal Sunar and Zeyad Abd Algfoor}
-} 
+}
 
-# ========================================================================
-#                                REFERÊNCIAS
-# ========================================================================
+% Survey que divide o pathfinding em duas etapas (geração do grafo e algoritmo
+% de busca) e classifica as técnicas de geração de grafos (grades, malhas de
+% navegação, decomposição em células, esqueletonização) para 2D e 3D. Usar
+% para definir pathfinding como problema de duas etapas, para justificar a
+% escolha das representações navegáveis como famílias estabelecidas e para
+% apontar grades regulares como representação dominante em jogos e robótica.
+@article{algfoor_pathfinding_survey,
+  author    = {Zeyad Abd Algfoor and Mohd Shahrizal Sunar and Hoshang Kolivand},
+  title     = {A Comprehensive Study on Pathfinding Techniques for Robotics and Video Games},
+  journal   = {International Journal of Computer Games Technology},
+  volume    = {2015},
+  pages     = {1--11},
+  year      = {2015},
+  publisher = {Hindawi},
+  doi       = {10.1155/2015/736138}
+}
 
+% ========================================================================
+%                                REFERÊNCIAS
+% ========================================================================
+
+% Fundamentos de grafos: definição G = (V, A), arestas ponderadas, grafos
+% direcionados e não direcionados, caminho mínimo e o algoritmo de Dijkstra.
+% Usar nas definições formais de grafo e de problema de caminho mínimo.
 @book{rodacki_grafos,
   title={Grafos: conceitos fundamentais, algoritmos e aplicações},
   author={Gomes, Paulo César Rodacki},
@@ -35,6 +64,225 @@
   isbn={978-65-88089-12-5}
 }
 
+% Artigo original do algoritmo de Dijkstra. Usar ao apresentar o algoritmo
+% e sua origem histórica, complementando a definição de caminho mínimo.
+@article{dijkstra1959note,
+  author  = {Edsger W. Dijkstra},
+  title   = {A Note on Two Problems in Connexion with Graphs},
+  journal = {Numerische Mathematik},
+  volume  = {1},
+  number  = {1},
+  pages   = {269--271},
+  year    = {1959},
+  doi     = {10.1007/BF01386390}
+}
+
+% Artigo original do A*: função f(n) = g(n) + h(n), admissibilidade da
+% heurística e garantia de otimalidade. Usar ao definir A*, heurísticas
+% admissíveis e a formulação f = g + h.
+@article{astar,
+  title={A Formal Basis for the Heuristic Determination of Minimum Cost Paths},
+  author={Hart, Peter E and Nilsson, Nils J and Raphael, Bertram},
+  journal={IEEE Transactions on Systems Science and Cybernetics},
+  volume={4},
+  number={2},
+  pages={100--107},
+  year={1968},
+  publisher={IEEE}
+}
+
+% Origem do A* Ponderado (heurística multiplicada por um peso w > 1) e do
+% compromisso entre velocidade e qualidade da solução. Usar ao apresentar o
+% Weighted A* e o limite de custo em relação ao ótimo.
+@article{pohl1970heuristic,
+  author  = {Ira Pohl},
+  title   = {Heuristic Search Viewed as Path Finding in a Graph},
+  journal = {Artificial Intelligence},
+  volume  = {1},
+  number  = {3--4},
+  pages   = {193--204},
+  year    = {1970},
+  doi     = {10.1016/0004-3702(70)90007-X}
+}
+
+% Busca informada e não informada, busca gulosa pelo melhor primeiro, A*,
+% heurísticas admissíveis e consistentes. Usar como referência geral de
+% busca heurística, especialmente para a Busca Gulosa (f = h) e para os
+% conceitos de admissibilidade e consistência.
+@book{russell_norvig,
+  title={Intelig{\^e}ncia Artificial: uma abordagem moderna},
+  author={Russell, Stuart and Norvig, Peter},
+  year={2013},
+  publisher={Elsevier},
+  address={Rio de Janeiro},
+  edition={3}
+}
+
+% ATENÇÃO: duplicata de russell_norvig (mesma obra, mesma edição).
+% Manter apenas uma das duas chaves e trocar as citações para ela.
+@book{russel_norvig,
+  title={Inteligência artificial},
+  author={Russell, Stuart J. and Norvig, Peter},
+  edition={3},
+  year={2013},
+  publisher={Elsevier},
+  address={Rio de Janeiro, RJ},
+  isbn={978-85-352-3701-6}
+}
+
+% Theta*: busca em qualquer ângulo (any-angle) sobre grades, com verificação
+% de linha de visada. Usar ao discutir algoritmos any-angle, caminhos mais
+% suaves que os restritos às arestas da grade e trabalhos futuros que
+% incluam esse tipo de algoritmo.
+@inproceedings{nash2007thetastar,
+  author    = {Alex Nash and Kenny Daniel and Sven Koenig and Ariel Felner},
+  title     = {Theta*: Any-Angle Path Planning on Grids},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)},
+  pages     = {1177--1183},
+  year      = {2007}
+}
+
+% Revisão de planejamento de caminhos em qualquer ângulo e das limitações de
+% caminhos restritos a grades. Usar ao discutir qualidade de caminho,
+% artefatos de discretização e algoritmos any-angle de forma geral.
+@article{nash2013anyangle,
+  author  = {Alex Nash and Sven Koenig},
+  title   = {Any-Angle Path Planning},
+  journal = {AI Magazine},
+  volume  = {34},
+  number  = {4},
+  pages   = {85--107},
+  year    = {2013}
+}
+
+% Jump Point Search estendido para grades 3D (voxels). Usar ao apresentar
+% JPS, otimizações por poda de simetria em grades e pathfinding em ambientes
+% volumétricos; também como trabalho futuro para representações em voxel.
+@article{jps_3d,
+  title={The JPS Pathfinding System in 3D},
+  volume={15},
+  url={https://ojs.aaai.org/index.php/SOCS/article/view/21762},
+  DOI={10.1609/socs.v15i1.21762},
+  number={1},
+  journal={Proceedings of the International Symposium on Combinatorial Search},
+  author={Nobes, Thomas K. and Harabor, Daniel and Wybrow, Michael and Walsh, Stuart D.C.},
+  year={2022},
+  month={Jul.},
+  pages={145-152}
+}
+
+% Adaptação do A* para motores 3D. Usar ao argumentar que pathfinding em
+% ambientes tridimensionais exige adaptações em relação ao caso 2D (custos
+% de aresta não uniformes, variação de altura). Conferir no artigo qual
+% afirmação específica ele sustenta antes de citar.
+@article{a_star_modification,
+	author = {Smołka, Jakub and Miszta, Kamil and Skublewska-Paszkowska, Maria and Łukasik, Edyta},
+	title = {A* pathfinding algorithm modification for a 3D engine},
+	DOI= "10.1051/matecconf/201925203007",
+	url= "https://doi.org/10.1051/matecconf/201925203007",
+	journal = {MATEC Web Conf.},
+	year = 2019,
+	volume = 252,
+	pages = "03007"
+}
+
+% A* paralelo sobre malhas de navegação geradas pelo Recast. Usar ao
+% discutir paralelização de pathfinding, malhas de navegação em motores de
+% jogos e escalabilidade em ambientes dinâmicos. Preprint (arXiv), não
+% revisado por pares: preferir como referência complementar.
+@misc{a_star_multithreaded,
+  title={Multi-threaded Recast-Based A* Pathfinding for Scalable Navigation in Dynamic Game Environments},
+  author={Tiroshan Madushanka and Sakuna Madushanka},
+  year={2026},
+  eprint={2602.04130},
+  archivePrefix={arXiv},
+  primaryClass={cs.GR},
+  url={https://arxiv.org/abs/2602.04130},
+}
+
+% Revisão de pathfinding no desenvolvimento de jogos. Usar para
+% contextualizar a importância do pathfinding em jogos e simulações em tempo
+% real e na definição geral do problema.
+@article{pathfinding_game_dev,
+  title={A review of pathfinding in game development},
+  author={Pardede, Sara Lutami and Athallah, Fadel Ramli and Huda, Yahya Nur and Zain, Fikri Dzulfiqar and others},
+  journal={Journal of Computer Engineering},
+  volume={1},
+  number={01},
+  pages={47--56},
+  year={2022}
+}
+
+% Algoritmo de caminho mínimo de fonte única que supera o limite de
+% ordenação do Dijkstra em grafos direcionados. Usar ao discutir a
+% complexidade do Dijkstra e avanços teóricos recentes em caminho mínimo.
+% Preprint (arXiv).
+@misc{breaking_sorting_barrier,
+  title={Breaking the Sorting Barrier for Directed Single-Source Shortest Paths},
+  author={Ran Duan and Jiayi Mao and Xiao Mao and Xinkai Shu and Longhui Yin},
+  year={2025},
+  eprint={2504.17033},
+  archivePrefix={arXiv},
+  primaryClass={cs.DS},
+  url={https://arxiv.org/abs/2504.17033}
+}
+
+% Benchmarks padrão de pathfinding em grades octis (vizinhança-8). Usar ao
+% justificar grades regulares com vizinhança-8 como representação de
+% referência e ao discutir metodologias de avaliação de algoritmos em grades.
+@article{sturtevant_grid_benchmarks,
+  author  = {Nathan R. Sturtevant},
+  title   = {Benchmarks for Grid-Based Pathfinding},
+  journal = {IEEE Transactions on Computational Intelligence and AI in Games},
+  volume  = {4},
+  number  = {2},
+  pages   = {144--148},
+  year    = {2012},
+  doi     = {10.1109/TCIAIG.2012.2197681}
+}
+
+% Introdução clássica das malhas de navegação (navmesh) em jogos: polígonos
+% como regiões caminháveis e grafo de adjacência entre eles. Usar ao definir
+% malhas de navegação e ao justificar o grafo dual (nós nas faces) como
+% representação navegável.
+@incollection{snook_navmesh,
+  author    = {Greg Snook},
+  title     = {Simplified 3D Movement and Pathfinding Using Navigation Meshes},
+  booktitle = {Game Programming Gems},
+  editor    = {Mark DeLoura},
+  publisher = {Charles River Media},
+  address   = {Rockland, MA},
+  pages     = {288--304},
+  year      = {2000}
+}
+
+% Pathfinding sobre triangulações, com busca no grafo de adjacência dos
+% triângulos. Usar ao discutir grafos duais de malhas trianguladas e a
+% busca baseada em triângulos como alternativa às grades.
+@inproceedings{demyen_buro_triangulation,
+  author    = {Douglas Demyen and Michael Buro},
+  title     = {Efficient Triangulation-Based Pathfinding},
+  booktitle = {Proceedings of the 21st National Conference on Artificial Intelligence (AAAI-06)},
+  pages     = {942--947},
+  publisher = {AAAI Press},
+  year      = {2006}
+}
+
+% Extensões de malhas de navegação. Usar como referência complementar ao
+% definir malhas de navegação e suas variações.
+@mastersthesis{navigation_mesh,
+  author = {Gurung, Sabin},
+  title = {Extension On Navigation Meshes},
+  school = {Universitat Politécnica de Catalunya, Facultat d'Informática de Barcelona},
+  publisher = {Universitat Politécnica de Catalunya},
+  address = {Barcelona},
+  type = {Bachelor Thesis},
+  year = {2019}
+}
+
+% Artigo original do ruído de Perlin: gradientes pseudoaleatórios em uma
+% grade e interpolação suave. Usar ao definir o ruído de Perlin e a geração
+% procedural baseada em ruído coerente.
 @inproceedings{perlin1985image,
   author = {Perlin, Ken},
   title = {An Image Synthesizer},
@@ -50,147 +298,9 @@
   doi = {10.1145/325334.325247}
 }
 
-@book{russel_norvig,
-  title={Inteligência artificial},
-  author={Russell, Stuart J. and Norvig, Peter},
-  edition={3},
-  year={2013},
-  publisher={Elsevier},
-  address={Rio de Janeiro, RJ},
-  isbn={978-85-352-3701-6}
-}
-
-@book{gamma1994design,
-  author    = {Erich Gamma and Richard Helm and Ralph Johnson and John Vlissides},
-  title     = {Design Patterns: Elements of Reusable Object-Oriented Software},
-  publisher = {Addison-Wesley},
-  year      = {1994},
-  isbn      = {0-201-63361-2},
-  url       = {http://www.amazon.com/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612/},
-  keywords  = {software engineering, design patterns, oop}
-}
-
-@inproceedings{nash2007thetastar,
-  author    = {Alex Nash and Kenny Daniel and Sven Koenig and Ariel Felner},
-  title     = {Theta*: Any-Angle Path Planning on Grids},
-  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence (AAAI)},
-  pages     = {1177--1183},
-  year      = {2007}
-}
-
-@article{nash2013anyangle,
-  author  = {Alex Nash and Sven Koenig},
-  title   = {Any-Angle Path Planning},
-  journal = {AI Magazine},
-  volume  = {34},
-  number  = {4},
-  pages   = {85--107},
-  year    = {2013}
-}
-
-@book{williams2019c++,
-  title={C++ Concurrency in Action},
-  author={Williams, Anthony},
-  year={2019},
-  publisher={Manning Publications},
-  edition={2nd},
-  isbn={978-1617294693}
-}
-
-@online{learnopengl,
-  author={Joey de Vries},
-  title={Learn {OpenGL}: {E}njoy learning modern {OpenGL}},
-  year={2014},
-  url={https://learnopengl.com/},
-  urldate={2026-04-18},
-  note={Acessado em: 2026-04-18}
-}
-
-@misc{buck2011kruskal,
-  author = {Jamis Buck},
-  title = {Maze Generation: Kruskal's algorithm},
-  howpublished = {Buckblog},
-  year = {2011},
-  month = {jan},
-  url = {https://weblog.jamisbuck.org/2011/1/3/maze-generation-kruskal-s-algorithm},
-  note = {Acedido em: 25 mar. 2024}
-}
-
-@mastersthesis{navigation_mesh,
-  author = {Gurung, Sabin},
-  title = {Extension On Navigation Meshes},
-  school = {Universitat Politécnica de Catalunya, Facultat d'Informática de Barcelona},
-  publisher = {Universitat Politécnica de Catalunya}, 
-  address = {Barcelona},
-  type = {Bachelor Thesis},
-  year = {2019}
-}
-
-@article{astar,
-  title={A Formal Basis for the Heuristic Determination of Minimum Cost Paths},
-  author={Hart, Peter E and Nilsson, Nils J and Raphael, Bertram},
-  journal={IEEE Transactions on Systems Science and Cybernetics},
-  volume={4},
-  number={2},
-  pages={100--107},
-  year={1968},
-  publisher={IEEE}
-}
-
-@article{a_star_modification,
-	author = {Smołka, Jakub and Miszta, Kamil and Skublewska-Paszkowska, Maria and Łukasik, Edyta},
-	title = {A* pathfinding algorithm modification for a 3D engine},
-	DOI= "10.1051/matecconf/201925203007",
-	url= "https://doi.org/10.1051/matecconf/201925203007",
-	journal = {MATEC Web Conf.},
-	year = 2019,
-	volume = 252,
-	pages = "03007"
-}
-
-@misc{a_star_multithreaded,
-  title={Multi-threaded Recast-Based A* Pathfinding for Scalable Navigation in Dynamic Game Environments}, 
-  author={Tiroshan Madushanka and Sakuna Madushanka},
-  year={2026},
-  eprint={2602.04130},
-  archivePrefix={arXiv},
-  primaryClass={cs.GR},
-  url={https://arxiv.org/abs/2602.04130}, 
-}
-
-@article{jps_3d, 
-  title={The JPS Pathfinding System in 3D}, 
-  volume={15}, 
-  url={https://ojs.aaai.org/index.php/SOCS/article/view/21762}, 
-  DOI={10.1609/socs.v15i1.21762}, 
-  number={1}, 
-  journal={Proceedings of the International Symposium on Combinatorial Search}, 
-  author={Nobes, Thomas K. and Harabor, Daniel and Wybrow, Michael and Walsh, Stuart D.C.}, 
-  year={2022}, 
-  month={Jul.}, 
-  pages={145-152} 
-}
-
-@article{pathfinding_game_dev,
-  title={A review of pathfinding in game development},
-  author={Pardede, Sara Lutami and Athallah, Fadel Ramli and Huda, Yahya Nur and Zain, Fikri Dzulfiqar and others},
-  journal={Journal of Computer Engineering},
-  volume={1},
-  number={01},
-  pages={47--56},
-  year={2022}
-}
-
-@misc{breaking_sorting_barrier,
-  title={Breaking the Sorting Barrier for Directed Single-Source Shortest Paths}, 
-  author={Ran Duan and Jiayi Mao and Xiao Mao and Xinkai Shu and Longhui Yin},
-  year={2025},
-  eprint={2504.17033},
-  archivePrefix={arXiv},
-  primaryClass={cs.DS},
-  url={https://arxiv.org/abs/2504.17033}
-}
-
+% Geração de mapas de altura por soma de oitavas de ruído, com frequência e
+% amplitude por oitava e redistribuição de elevação. Usar ao explicar
+% oitavas, lacunaridade, persistência e a conversão de ruído em terreno.
 @online{patel_terrain_noise,
   author={Amit J. Patel},
   title={Making maps with noise functions},
@@ -201,6 +311,8 @@
   note={Acessado em: 07 mai. 2026}
 }
 
+% Tutorial de implementação do ruído de Perlin em C++ (gradientes por hash
+% e interpolação). Usar ao descrever a implementação do gerador de ruído.
 @online{zipped_perlin_noise,
   author={{Zipped}},
   title={C++: Perlin Noise Tutorial},
@@ -212,6 +324,83 @@
   note={Acessado em: 07 mai. 2026}
 }
 
+% Algoritmo original de Marching Cubes: extração de superfície poligonal a
+% partir de um campo volumétrico, por casos de configuração de cada célula.
+% Usar ao explicar a geração da malha triangulada a partir dos voxels.
+@inproceedings{lorensen_cline_marching_cubes,
+  author    = {William E. Lorensen and Harvey E. Cline},
+  title     = {Marching Cubes: A High Resolution 3D Surface Construction Algorithm},
+  booktitle = {Proceedings of the 14th Annual Conference on Computer Graphics and Interactive Techniques},
+  series    = {SIGGRAPH '87},
+  pages     = {163--169},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  year      = {1987},
+  doi       = {10.1145/37401.37422}
+}
+
+% Transvoxel: tabelas de casos para poligonização de terrenos em voxels
+% (células regulares e de transição entre níveis de detalhe). 
+% Usar ao citar as tabelas de casos usadas na extração da malha 
+% e ao discutir terrenos baseados em voxels em tempo real.
+@phdthesis{lengyel_transvoxel,
+  author = {Eric Lengyel},
+  title  = {Voxel-Based Terrain for Real-Time Virtual Simulations},
+  school = {University of California, Davis},
+  year   = {2010}
+}
+
+% Fundamentos de OpenGL moderno: pipeline de renderização, buffers de vértices, shaders e câmera. 
+% Usar ao descrever a infraestrutura de renderização e a representação de malhas (vértices, arestas, faces).
+@online{learnopengl,
+  author={Joey de Vries},
+  title={Learn {OpenGL}: {E}njoy learning modern {OpenGL}},
+  year={2014},
+  url={https://learnopengl.com/},
+  urldate={2026-04-18},
+  note={Acessado em: 2026-04-18}
+}
+
+% Concorrência em C++: threads, mutex, variáveis de condição, 
+% filas de tarefas e pools de threads. 
+% Usar ao descrever a arquitetura concorrente, escalonamento de tarefas e sincronização.
+@book{williams2019c++,
+  title={C++ Concurrency in Action},
+  author={Williams, Anthony},
+  year={2019},
+  publisher={Manning Publications},
+  edition={2nd},
+  isbn={978-1617294693}
+}
+
+% Padrões de projeto orientados a objetos. 
+% Usar ao justificar decisões de arquitetura de software 
+% que sigam padrões conhecidos.
+@book{gamma1994design,
+  author    = {Erich Gamma and Richard Helm and Ralph Johnson and John Vlissides},
+  title     = {Design Patterns: Elements of Reusable Object-Oriented Software},
+  publisher = {Addison-Wesley},
+  year      = {1994},
+  isbn      = {0-201-63361-2},
+  url       = {http://www.amazon.com/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612/},
+  keywords  = {software engineering, design patterns, oop}
+}
+
+% Testes unitários em C++ com GoogleTest. 
+% Usar ao descrever a validação da implementação 
+% dos algoritmos e estruturas de dados.
+@online{gtest,
+  author={{Google LLC}},
+  title={GoogleTest User's Guide},
+  year={2026},
+  url={https://google.github.io/googletest/},
+  urldate={2026-06-23},
+  note={Acessado em: 23 jun. 2026}
+}
+
+% Metodologia de medição de desempenho: fontes de erro, repetições,
+% intervalos de confiança e ambiente controlado. 
+% Usar ao justificar o protocolo de medição de tempo e o controle de interferências do sistema.
 @book{lilja2000measuring,
   author    = {Lilja, David J.},
   title     = {Measuring Computer Performance: A Practitioner's Guide},
@@ -221,6 +410,9 @@
   isbn      = {978-0521641074}
 }
 
+% Planejamento de experimentos e análise de desempenho de sistemas: fatores,
+% níveis, replicações, ANOVA e comparação de alternativas. 
+% Usar ao descrever o desenho experimental e a análise estatística dos resultados.
 @book{jain1991art,
   author    = {Jain, Raj},
   title     = {The Art of Computer Systems Performance Analysis: Techniques for Experimental Design, Measurement, Simulation, and Modeling},
@@ -230,6 +422,9 @@
   isbn      = {978-0471503361}
 }
 
+% Notas de aula de concorrência: monitores, filas multinível e escalonamento. 
+% Usar ao fundamentar os conceitos de
+% concorrência aplicados na arquitetura de tarefas.
 @misc{ladeira,
   author       = {Ladeira, Ricardo de la Rocha},
   title        = {Material didático},
@@ -238,6 +433,8 @@
   year         = {2026}
 }
 
+% Notas de aula de estatística: ANOVA, pressupostos e testes post hoc (Tukey). 
+% Usar ao fundamentar a análise estatística dos resultados.
 @misc{jurandir,
   author       = {Domingues, Jurandir Junior},
   title        = {Material didático},
@@ -246,9 +443,9 @@
   year         = {2026}
 }
 
-// ========================================================================
-//                                IMAGENS
-// ========================================================================
+% ========================================================================
+%                                IMAGENS
+% ========================================================================
 
 @online{imperial_library_solstheim,
     author = {{The Imperial Library}},
@@ -257,22 +454,4 @@
     url    = {https://www.imperial-library.info/content/maps-solstheim},
     urlaccessdate = {18 abr. 2026},
     note   = {The Elder Scrolls © 2026 ZeniMax Media Inc.}
-}
-
-@book{russell_norvig,
-  title={Intelig{\^e}ncia Artificial: uma abordagem moderna},
-  author={Russell, Stuart and Norvig, Peter},
-  year={2013},
-  publisher={Elsevier},
-  address={Rio de Janeiro},
-  edition={3}
-}
-
-@online{gtest,
-  author={{Google LLC}},
-  title={GoogleTest User's Guide},
-  year={2026},
-  url={https://google.github.io/googletest/},
-  urldate={2026-06-23},
-  note={Acessado em: 23 jun. 2026}
 }
