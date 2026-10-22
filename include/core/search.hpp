@@ -16,7 +16,6 @@ namespace search {
         std::size_t expanded = 0;
         std::size_t generated = 0;
         std::size_t peakOpen = 0;
-        std::size_t peakBytes = 0;
     };
 
     template <typename T>
@@ -42,11 +41,6 @@ namespace search {
         return path;
     }
 
-    // Memória auxiliar: gScore + cameFrom + closed por vértice, mais o pico da open list.
-    inline std::size_t searchBytes(std::size_t numVertices, std::size_t peakOpen) {
-        return numVertices * (sizeof(double) + sizeof(std::size_t) + sizeof(char))
-            + peakOpen * sizeof(OpenElement);
-    }
 
     template <typename T>
     SearchResult dijkstra(
@@ -99,7 +93,6 @@ namespace search {
             }
         }
 
-        result.peakBytes = searchBytes(numVertices, result.peakOpen);
         return result;
     }
 
@@ -159,7 +152,6 @@ namespace search {
             }
         }
 
-        result.peakBytes = searchBytes(numVertices, result.peakOpen);
         return result;
     }
 
@@ -223,7 +215,6 @@ namespace search {
             }
         }
 
-        result.peakBytes = searchBytes(numVertices, result.peakOpen);
         return result;
     }
 
@@ -284,7 +275,6 @@ namespace search {
             }
         }
 
-        result.peakBytes = searchBytes(numVertices, result.peakOpen);
         return result;
     }
 }

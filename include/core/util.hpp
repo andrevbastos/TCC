@@ -384,6 +384,10 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
         }
     }
 
+    const auto [minIt, maxIt] = std::minmax_element(columnHeights.begin(), columnHeights.end());
+    const float yMin = static_cast<float>(*minIt);
+    const float yRange = std::max(1.0f, static_cast<float>(*maxIt) - yMin);
+
     auto isVoxelFilled = [&](uint x, uint y, uint z) {
         return y < columnHeights[(z * width) + x];
     };
@@ -431,10 +435,6 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMarchingCubeData(
                             cellVertexIndices[i] = existingVertex->second;
                             continue;
                         }
-
-                        const auto [minIt, maxIt] = std::minmax_element(columnHeights.begin(), columnHeights.end());
-                        const float yMin = static_cast<float>(*minIt);
-                        const float yRange = std::max(1.0f, static_cast<float>(*maxIt) - yMin);
 
                         const float t = std::clamp((static_cast<float>(y) - yMin) / yRange, 0.0f, 1.0f);
                         const float dim = 0.35f + 0.65f * t;
