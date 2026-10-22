@@ -322,239 +322,268 @@
 )
 
 = Introdução
-  Busca de caminhos é um campo tradicional da IA aplicada, evoluindo a partir dos algoritmos de busca clássicos em grafos. Ao longo do tempo, os algoritmos de busca tornaram-se componentes cruciais para o desenvolvimento de jogos modernos e simulações em tempo real.
-  
-  Transição do 2D para o 3D gerou um grande salto de complexidade, exigindo adaptações nos algoritmos clássicos de busca. A representação do terreno em um grafo e o algoritmo usado é uma decisão crucial.
+A busca de caminhos (ou _pathfinding_) é um dos campos mais tradicionais da Inteligência Artificial aplicada, evoluindo a partir dos algoritmos de busca clássicos em grafos. Como definem #cite(<russell_norvig>, form: "prose"), os métodos clássicos de busca resolvem problemas de estados, ações e custos, visando encontrar caminhos entre um ponto de partida e um objetivo por meio da exploração do espaço de busca. Ao longo das últimas décadas, essa fundamentação deixou de ser puramente abstrata e passou a ser aplicada diretamente na computação interativa. Conforme apontam #cite(<pathfinding_game_dev>, form: "prose"), os algoritmos de busca tornaram-se componentes cruciais para o desenvolvimento de jogos modernos e simulações em tempo real.
 
-  figura: Comparação entre representações 2D e 3D
-  
-  Qual é a influência da representação navegável de um terreno 3D e das características do terreno no tempo de execução e na qualidade dos caminhos encontrados por algoritmos clássicos de busca?
-  
-  Avaliação estatística entre representações navegáveis de terrenos 3D com algoritmos de busca clássicos. Metodologia experimental reprodutível. Implementação open-source.
-  
-  Analisar comparativa e estatisticamente o desempenho de algoritmos clássicos de busca de caminhos em diferentes representações navegáveis de terrenos 3D.
+No entanto, a transição do espaço de busca de 2D para 3D introduziu um aumento significativo na complexidade, exigindo adaptações às técnicas de busca e de representação do terreno. A escolha da representação do espaço transitável e do algoritmo de busca a ser utilizado tornou-se uma decisão crítica, impactando diretamente o desempenho e a qualidade dos caminhos encontrados.
+
+\
+#figure(
+  caption: [Comparação entre representações 2D e 3D],
+  supplement: "Figura",
+)[
+  // #image("", width: 75%)
+  #v(0.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_2Dx3D> \ #v(-1.5em)
+
+Em estudos recentes, é comumente evitada a comparação de múltiplas representações navegáveis de terrenos 3D, com foco em apenas uma abornagem na maiora das vezes. Além disso, a análise estatística do desempenho dos algoritmos de busca em diferentes representações é frequentemente negligenciada, limitando a compreensão das interações entre a estrutura do terreno e o comportamento dos algoritmos.
+
+Esse trabalho propõe uma análise comparativa e estatística do desempenho de algoritmos clássicos de busca de caminhos em diferentes representações navegáveis de terrenos 3D. A pesquisa busca responder à seguinte questão central: Qual é a influência da *representação navegável* de um terreno 3D e das *características do terreno* no desempenho e na qualidade da busca de algoritmos clássicos de busca?
+
+== Contribuições
+
+Para responder à questão central, é necessário realizar uma análise detalhada das representações navegáveis de terrenos 3D, dos algoritmos de busca aplicados e das métricas de desempenho utilizadas. Com isso, as principais contribuições deste trabalho incluem:
+
++ #text()[*Comparação entre representações navegáveis.* \
+As mesmas instâncias de terreno são convertidas em quatro grafos diferentes e avaliadas com os mesmos algoritmos:
+  - a partir do mapa de altura: grade de altura (2.5D) e superfície voxel;
+  - a partir da malha poligonal: grafo de vértices e grafo dual.]
++ #text()[*Metodologia experimental reprodutível.* \
+Os terrenos são gerados proceduralmente a partir de parâmetros controlados (escala, lacunaridade, persistência) e semente registrada, e os resultados passam por análise estatística (ANOVA e testes post hoc).]
++ #text()[*Implementação open-source.* \
+Inclui uma biblioteca de grafos leve e o motor gráfico IFCG, com visualização das malhas e dos caminhos.]
+
+== Objetivos
+
+O objetivo geral do estudo é analisar comparativa e estatisticamente o desempenho de algoritmos clássicos de _pathfinding_ em diferentes representações navegáveis de terrenos 3D. Mais especificamente, os objetivos incluem:
+
++ Implementar uma biblioteca de grafos e os algoritmos Dijkstra, A\*,  Weighted A\* e Greedy Best-First.
++ Desenvolver um gerador procedural de terrenos baseado em ruído de Perlin, parametrizado por escala, lacunaridade e persistência.
++ Construir quatro representações navegáveis a partir do terreno: grade de altura, superfície voxel, grafo de vértices e grafo dual da malha.
++ Desenvolver um ambiente 3D com execução concorrente para visualização das malhas e dos caminhos encontrados.
++ Automatizar a coleta de métricas e analisar estatisticamente os resultados obtidos.
 
 = Fundamentação Teórica
-  
+
 Este capítulo apresenta os conceitos fundamentais que embasam o trabalho, incluindo grafos, algoritmos de busca, geração procedural de terrenos, representações geométricas e navegáveis de terrenos, avaliação de desempenho e trabalhos relacionados.
 
-  == Grafos
+== Grafos
 
-  Estrutura de dados composta por vértices e arestas, utilizada para modelar relações entre elementos.
+Estrutura de dados composta por vértices e arestas, utilizada para modelar relações entre elementos.
 
-  figura: exemplo de grafo com vértices e arestas 
+figura: exemplo de grafo com vértices e arestas 
 
-    === Definição
+=== Definição
 
-    Conjunto de vértices e arestas que conectam pares de vértices, representando relações entre elementos. Pode ser direcionado ou não direcionado, ponderado ou não ponderado.
+Conjunto de vértices e arestas que conectam pares de vértices, representando relações entre elementos. Pode ser direcionado ou não direcionado, ponderado ou não ponderado.
 
-    fórmula: G = (V, E), onde G é o grafo, V é o conjunto de vértices e E é o conjunto de arestas.
+fórmula: G = (V, E), onde G é o grafo, V é o conjunto de vértices e E é o conjunto de arestas.
 
-    === Pesos
+=== Pesos
 
-    Atribuição de valores numéricos às arestas, representando custos ou distâncias entre vértices. Pode ser constante ou variável, dependendo da aplicação.
+Atribuição de valores numéricos às arestas, representando custos ou distâncias entre vértices. Pode ser constante ou variável, dependendo da aplicação.
 
-    figura: exemplo de grafo com e sem pesos
+figura: exemplo de grafo com e sem pesos
 
-    === Caminho
+=== Caminho
 
-    Sequência de vértices conectados por arestas, representando uma rota entre dois pontos no grafo.
+Sequência de vértices conectados por arestas, representando uma rota entre dois pontos no grafo.
 
-    figura: exemplo de caminho em um grafo
+figura: exemplo de caminho em um grafo
 
-    === Componente conexo
+=== Componente conexo
 
-    Subgrafo em que todos os vértices estão conectados entre si, permitindo a existência de caminhos entre quaisquer pares de vértices.
+Subgrafo em que todos os vértices estão conectados entre si, permitindo a existência de caminhos entre quaisquer pares de vértices.
 
-    figura: exemplo de componentes conexos em um grafo
+figura: exemplo de componentes conexos em um grafo
 
-  == Busca
+== Busca
 
-  Processo de encontrar um caminho entre dois vértices em um grafo, utilizando diferentes estratégias e algoritmos.
+Processo de encontrar um caminho entre dois vértices em um grafo, utilizando diferentes estratégias e algoritmos.
 
-  figura: diversos caminhos possíveis entre dois vértices em um grafo
+figura: diversos caminhos possíveis entre dois vértices em um grafo
 
-    === Dijkstra
+=== Dijkstra
 
-    Algoritmo de busca de caminho mínimo em grafos ponderados, garantindo a descoberta do caminho mais curto entre um vértice inicial e todos os outros vértices.
+Algoritmo de busca de caminho mínimo em grafos ponderados, garantindo a descoberta do caminho mais curto entre um vértice inicial e todos os outros vértices.
 
-    === Heurísticas
+=== Heurísticas
 
-    Funções que estimam o custo de um caminho entre dois vértices, ajudando a direcionar a busca para áreas mais promissoras.
+Funções que estimam o custo de um caminho entre dois vértices, ajudando a direcionar a busca para áreas mais promissoras.
 
-    fórmula: heuristica euclidiana = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2), onde (x1, y1, z1) e (x2, y2, z2) são as coordenadas dos vértices.
+fórmula: heuristica euclidiana = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2), onde (x1, y1, z1) e (x2, y2, z2) são as coordenadas dos vértices.
 
-    === A\*
+=== A\*
 
-    Algoritmo de busca baseado no Dijkstra que utiliza heurísticas para encontrar o caminho mais curto entre dois vértices, combinando a precisão do seu pai com o uso de heurísticas.
+Algoritmo de busca baseado no Dijkstra que utiliza heurísticas para encontrar o caminho mais curto entre dois vértices, combinando a precisão do seu pai com o uso de heurísticas.
 
-    fórmula: f(n) = g(n) + h(n), onde f(n) é o custo total estimado, g(n) é o custo do caminho até o vértice n e h(n) é a heurística estimada do vértice n até o objetivo.
+fórmula: f(n) = g(n) + h(n), onde f(n) é o custo total estimado, g(n) é o custo do caminho até o vértice n e h(n) é a heurística estimada do vértice n até o objetivo.
 
-    === Weighted A\*
+=== Weighted A\*
 
-    Algoritmo de busca que combina a abordagem do A\* com um fator de ponderação, permitindo encontrar caminhos mais rápidos, mas possivelmente subótimos.
+Algoritmo de busca que combina a abordagem do A\* com um fator de ponderação, permitindo encontrar caminhos mais rápidos, mas possivelmente subótimos.
 
-    fórmula: f(n) = g(n) + w \* h(n), onde w é o fator de ponderação que ajusta a influência da heurística na busca.
+fórmula: f(n) = g(n) + w \* h(n), onde w é o fator de ponderação que ajusta a influência da heurística na busca.
 
-    === Greedy Best-First Search
+=== Greedy Best-First Search
 
-    Algoritmo de busca que utiliza apenas heurísticas para guiar a busca, priorizando a exploração de vértices mais promissores, mas sem garantir a descoberta do caminho mais curto.
+Algoritmo de busca que utiliza apenas heurísticas para guiar a busca, priorizando a exploração de vértices mais promissores, mas sem garantir a descoberta do caminho mais curto.
 
-    fórmula: f(n) = h(n), onde f(n) é o custo total estimado e h(n) é a heurística estimada do vértice n até o objetivo.
+fórmula: f(n) = h(n), onde f(n) é o custo total estimado e h(n) é a heurística estimada do vértice n até o objetivo.
 
-  == Geração Procedural de Terrenos
+== Geração Procedural de Terrenos
 
-  Para gerar terrenos 3D de forma eficiente e realista, técnicas de geração procedural são empregadas, permitindo a criação de paisagens complexas e reprodutíveis a partir de algoritmos matemáticos.
+Para gerar terrenos 3D de forma eficiente e realista, técnicas de geração procedural são empregadas, permitindo a criação de paisagens complexas e reprodutíveis a partir de algoritmos matemáticos.
 
-    === Heightmap
+=== Heightmap
 
-    Representação de terrenos 3D utilizando uma imagem em escala de cinza, onde a intensidade de cada pixel corresponde à altura do terreno naquele ponto.
+Representação de terrenos 3D utilizando uma imagem em escala de cinza, onde a intensidade de cada pixel corresponde à altura do terreno naquele ponto.
 
-    figura: heightmap de elder scrolls, malha 3D gerada a partir do heightmap
+figura: heightmap de elder scrolls, malha 3D gerada a partir do heightmap
 
-    === Perlin
+=== Perlin
 
-    Algoritmo de geração de ruído contínuo, utilizado para criar padrões naturais e realistas em terrenos, texturas e outros elementos gráficos.
+Algoritmo de geração de ruído contínuo, utilizado para criar padrões naturais e realistas em terrenos, texturas e outros elementos gráficos.
 
-    figura: ruidos de cada parâmetro, heightmap + malha final
+figura: ruidos de cada parâmetro, heightmap + malha final
 
-  == Representações Geométricas de Terrenos
+== Representações Geométricas de Terrenos
 
-  Formas de representar a geometria (visual) de terrenos em um ambiente 3D, utilizando diferentes técnicas e abstrações.
+Formas de representar a geometria (visual) de terrenos em um ambiente 3D, utilizando diferentes técnicas e abstrações.
 
-    === Voxels
+=== Voxels
 
-    Representação volumétrica de terrenos, onde o espaço é dividido em pequenas unidades cúbicas (voxels), permitindo a modelagem de formas complexas e detalhadas.
+Representação volumétrica de terrenos, onde o espaço é dividido em pequenas unidades cúbicas (voxels), permitindo a modelagem de formas complexas e detalhadas.
 
-    === Marching Cubes/Transvoxel
+=== Marching Cubes/Transvoxel
 
-    Algoritmos de reconstrução de superfícies a partir de dados volumétricos, como voxels, permitindo a criação de malhas poligonais suaves e contínuas.
+Algoritmos de reconstrução de superfícies a partir de dados volumétricos, como voxels, permitindo a criação de malhas poligonais suaves e contínuas.
 
-    figura: exemplo de reconstrução de superfícies com Marching Cubes e Transvoxel
+figura: exemplo de reconstrução de superfícies com Marching Cubes e Transvoxel
 
-  == Representações Navegáveis de Terrenos
+== Representações Navegáveis de Terrenos
 
-  Formas de representar a navegação em terrenos, permitindo a movimentação e interação com o ambiente.
+Formas de representar a navegação em terrenos, permitindo a movimentação e interação com o ambiente.
 
-    === Grade 2.5D
+=== Grade 2.5D
 
-    Representação de terrenos em uma grade bidimensional com informações de altura. Baseada únicamente na altura do terreno.
+Representação de terrenos em uma grade bidimensional com informações de altura. Baseada únicamente na altura do terreno.
 
-    figura: exemplo de grade 2.5D
+figura: exemplo de grade 2.5D
 
-    === Superfície Voxel
+=== Superfície Voxel
 
-    Representação de terrenos utilizando voxels, permitindo a modelagem de superfícies complexas e detalhadas, com informações de altura e volume.
+Representação de terrenos utilizando voxels, permitindo a modelagem de superfícies complexas e detalhadas, com informações de altura e volume.
 
-    figura: exemplo de superficie voxel
+figura: exemplo de superficie voxel
 
-    === Grafo de Vértices
+=== Grafo de Vértices
 
-    Representação de terrenos onde os vértices da malha do terreno representam pontos navegáveis.
+Representação de terrenos onde os vértices da malha do terreno representam pontos navegáveis.
 
-    figura: exemplo de grafo de vértices
+figura: exemplo de grafo de vértices
 
-    === Grafo Dual
+=== Grafo Dual
 
-    Representação de terrenos onde os polígonos da malha do terreno representam regiões navegáveis, e as arestas conectam polígonos adjacentes.
+Representação de terrenos onde os polígonos da malha do terreno representam regiões navegáveis, e as arestas conectam polígonos adjacentes.
 
-    figura: exemplo de grafo dual
+figura: exemplo de grafo dual
 
-  == Avaliação de desempenho e estatísticas
+== Avaliação de desempenho e estatísticas
 
-  ANOVA e post-hoc de Tukey.
+ANOVA e post-hoc de Tukey.
 
-  == Trabalhos relacionados
-    === Johansson
-    === Kapi 
-    === Matriz de diferença
-    figura: matrix de diferença
+== Trabalhos relacionados
+=== Johansson
+=== Kapi 
+=== Matriz de diferença
+figura: matrix de diferença
 
 = Desenvolvimento
 
 Neste capítulo, são apresentados os detalhes do desenvolvimento do trabalho, incluindo a arquitetura do sistema, a implementação dos algoritmos de busca, a geração de terrenos e a instrumentação para coleta de dados e testes.
 
-  == Pipeline
+== Pipeline
 
-  Ruido -> Heightmap -> Representação Navegável -> Algoritmo de Busca -> Coleta de métricas -> Análise estatística
+Ruido -> Heightmap -> Representação Navegável -> Algoritmo de Busca -> Coleta de métricas -> Análise estatística
 
-  figura: pipeline do desenvolvimento
+figura: pipeline do desenvolvimento
 
-  == IFCG e visualizador concorrente
+== IFCG e visualizador concorrente
 
-  Motor gráfico para visualização de terrenos e caminhos encontrados pelos algoritmos de busca, permitindo a inspeção visual dos resultados.
+Motor gráfico para visualização de terrenos e caminhos encontrados pelos algoritmos de busca, permitindo a inspeção visual dos resultados.
 
-  figura: cena renderizada e diagrama taskmaster
+figura: cena renderizada e diagrama taskmaster
 
-  == lwGraph\<T\>
+== lwGraph\<T\>
 
-  Estrutura de dados genérica para representar grafos, utilizada na implementação dos algoritmos de busca e na representação navegável dos terrenos.
+Estrutura de dados genérica para representar grafos, utilizada na implementação dos algoritmos de busca e na representação navegável dos terrenos.
 
-  == search.hpp
+== search.hpp
 
-  Algoritmos de busca implementados em C++, incluindo Dijkstra, A\*, WA\* e GBFS, com suporte a aquisição de dados e coleta de métricas.
+Algoritmos de busca implementados em C++, incluindo Dijkstra, A\*, WA\* e GBFS, com suporte a aquisição de dados e coleta de métricas.
 
-  == Gerador de terrenos
+== Gerador de terrenos
 
-  Ferramenta para geração de terrenos 3D, permitindo a criação de modelos realistas com diferentes características e propriedades.
+Ferramenta para geração de terrenos 3D, permitindo a criação de modelos realistas com diferentes características e propriedades.
 
-  figura: exemplo de diferentes representações navegaveis do mesmo terreno
+figura: exemplo de diferentes representações navegaveis do mesmo terreno
 
-  == GraphModel, GraphFactory, isTranversable
+== GraphModel, GraphFactory, isTranversable
 
-  Classes para modelar, fabricar e verificar a traversabilidade de grafos.
+Classes para modelar, fabricar e verificar a traversabilidade de grafos.
 
-  == Instrumentação
+== Instrumentação
 
-  Ferramentas e técnicas para coleta de dados e testes, incluindo aquisição de métricas e análise estatística.
+Ferramentas e técnicas para coleta de dados e testes, incluindo aquisição de métricas e análise estatística.
 
-    === Statistics
+=== Statistics
 
-    Classe para coletar e exportar métricas.
+Classe para coletar e exportar métricas.
 
-    === acquire.sh
+=== acquire.sh
 
-    Script para aquisição de métricas, executando os algoritmos de busca em diferentes representações navegáveis de terrenos e coletando os resultados.
+Script para aquisição de métricas, executando os algoritmos de busca em diferentes representações navegáveis de terrenos e coletando os resultados.
 
-    === CLI
+=== CLI
 
-    Interface de linha de comando para executar os testes, coletas ou exportações de dados.
+Interface de linha de comando para executar os testes, coletas ou exportações de dados.
 
 = Metodologia
 
 Neste capítulo, são descritos os métodos e procedimentos utilizados para conduzir a pesquisa, incluindo o ambiente experimental, as variáveis analisadas, os níveis de teste, o procedimento de coleta de dados e as métricas utilizadas para avaliação dos resultados.
 
-  == Tipo de pesquisa
+== Tipo de pesquisa
 
-  Definição do tipo de pesquisa realizada, incluindo a abordagem experimental, comparativa e estatística adotada para avaliar o desempenho dos algoritmos de busca em diferentes representações navegáveis de terrenos 3D.
+Definição do tipo de pesquisa realizada, incluindo a abordagem experimental, comparativa e estatística adotada para avaliar o desempenho dos algoritmos de busca em diferentes representações navegáveis de terrenos 3D.
 
-  == Ambiente
+== Ambiente
 
-  Configuração do ambiente experimental, incluindo hardware, software, bibliotecas e ferramentas utilizadas para a implementação dos algoritmos de busca, geração de terrenos e coleta de métricas.
+Configuração do ambiente experimental, incluindo hardware, software, bibliotecas e ferramentas utilizadas para a implementação dos algoritmos de busca, geração de terrenos e coleta de métricas.
 
-  == Variáveis
+== Variáveis
 
-  Variáveis independentes e dependentes analisadas na pesquisa, incluindo as representações navegáveis de terrenos, os algoritmos de busca e as métricas de desempenho coletadas.
+Variáveis independentes e dependentes analisadas na pesquisa, incluindo as representações navegáveis de terrenos, os algoritmos de busca e as métricas de desempenho coletadas.
 
-  figura: tabela de variáveis independentes e dependentes
+figura: tabela de variáveis independentes e dependentes
 
-  == Níveis
+== Níveis
 
-  Definição dos níveis de teste para cada variável, incluindo diferentes representações navegáveis de terrenos, algoritmos de busca e configurações de parâmetros utilizados nos experimentos.
+Definição dos níveis de teste para cada variável, incluindo diferentes representações navegáveis de terrenos, algoritmos de busca e configurações de parâmetros utilizados nos experimentos.
 
-  figura: tabela de níveis de teste para cada variável
+figura: tabela de níveis de teste para cada variável
 
-  == Procedimento e métricas
+== Procedimento e métricas
 
-  Descrição do procedimento de coleta de dados e das métricas utilizadas para avaliar o desempenho dos algoritmos de busca.
+Descrição do procedimento de coleta de dados e das métricas utilizadas para avaliar o desempenho dos algoritmos de busca.
 
-  == Protocolo estatístico
+== Protocolo estatístico
 
-  Descrição do protocolo estatístico utilizado para análise dos dados coletados, incluindo testes de hipótese, intervalos de confiança e modelos de regressão.
+Descrição do protocolo estatístico utilizado para análise dos dados coletados, incluindo testes de hipótese, intervalos de confiança e modelos de regressão.
 
-  == Ameaças
+== Ameaças
 
-  Identificação e análise das ameaças à validade interna e externa do estudo, incluindo possíveis fontes de viés, limitações do método e impacto sobre os resultados obtidos.
+Identificação e análise das ameaças à validade interna e externa do estudo, incluindo possíveis fontes de viés, limitações do método e impacto sobre os resultados obtidos.
 
 = Resultados e Discussão
 
