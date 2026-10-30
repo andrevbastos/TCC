@@ -3,10 +3,11 @@
 # Aquisição de métricas: várias execuções separadas de `tcc stats`, com pausa
 # para arrefecimento entre elas. Uso: ./acquire.sh <scale|lac|pers> <2_5d|voxel|vertex|dual>
 
-RUNS=${RUNS:-10}
+RUNS=${RUNS:-5}
 REPS=${REPS:-10}
 STEPS=${STEPS:-4}
 COOLDOWN=${COOLDOWN:-60}
+BASE_SEED=${BASE_SEED:-20261030}  # fixa: as representações medem os mesmos terrenos em cada execução
 CPU=${CPU:-2}  # P-core (0-3 no i5-1235U): evita migração para E-cores durante as medições
 AC=/sys/class/power_supply/ADP1/online
 
@@ -53,7 +54,7 @@ echo -e "\e[1;32m[Aquisição]\e[0m Saída em $OUT"
 for ((i = 1; i <= RUNS; i++)); do
     RUN_DIR="$OUT/run_$(printf '%02d' "$i")"
     mkdir -p "$RUN_DIR"
-    SEED=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
+    SEED=$((BASE_SEED + i))
     check_ac "antes da execução $i"
     START=$(date +%s)
 

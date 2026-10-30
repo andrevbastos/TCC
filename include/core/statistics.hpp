@@ -8,6 +8,7 @@
 #include <optional>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -151,37 +152,27 @@ struct QueryPair {
     Vertex3D goal;
 };
 
-// Pares em margens opostas: início em z = 0 e fim em z = depth - 1, com x sorteado.
+// As duas diagonais do terreno, de canto a canto.
 inline std::vector<QueryPair> generateQueryPairs(
     const std::vector<float>& noise,
     int width,
     int depth,
-    int heightScale,
-    unsigned int terrainSeed,
-    uint pairCount
+    int heightScale
 ) {
-    std::mt19937 generator(terrainSeed ^ 0x9E3779B9u);
-    std::uniform_int_distribution<int> xDistribution(0, width - 1);
-
     auto surfacePoint = [&](int x, int z) {
         const float y = 1.0f + noise[(z * width) + x] * (static_cast<float>(heightScale) - 1.0f);
         return Vertex3D{static_cast<float>(x), y, static_cast<float>(z)};
     };
 
-    std::vector<QueryPair> pairs;
-    pairs.reserve(pairCount);
-    for (uint i = 0; i < pairCount; ++i) {
-        const int startX = xDistribution(generator);
-        const int goalX = xDistribution(generator);
-        pairs.push_back({surfacePoint(startX, 0), surfacePoint(goalX, depth - 1)});
-    }
-    return pairs;
+    return {
+        {surfacePoint(0, 0), surfacePoint(width - 1, depth - 1)},
+        {surfacePoint(width - 1, 0), surfacePoint(0, depth - 1)}
+    };
 }
 
 void testScale(
     uint steps,
     uint repetitions,
-    uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
     const GraphModel& graphModel,
@@ -205,7 +196,7 @@ void testScale(
         const int heightScale = dimension;
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
-            // Refaz a repetição com um terreno novo até que todas as buscas encontrem caminho.
+            // Refaz a repetição apenas se o grafo sair vazio.
             while (true) {
                 const unsigned int terrainSeed = seedDistribution(seedGenerator);
 
@@ -256,19 +247,15 @@ void testScale(
                     continue;
                 }
 
-                // Snap no maior componente conexo: evita descartar terrenos por pares em ilhas
-                // isoladas pelo critério de transitabilidade (viés de seleção entre modelos).
-                const std::vector<char> largestComponent = largestComponentMask(graph);
                 std::vector<Results> attemptResults;
-                bool failed = false;
 
                 const auto pairs = generateQueryPairs(
-                    noise, config.width, config.height, heightScale, terrainSeed, pairCount
+                    noise, config.width, config.height, heightScale
                 );
 
-                for (std::size_t pairIndex = 0; pairIndex < pairs.size() && !failed; ++pairIndex) {
-                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, largestComponent);
-                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, largestComponent);
+                for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
                     std::cerr << "[snap] " << graphModel.name << " seed=" << terrainSeed
                         << " par=" << pairIndex << ": início=" << start.distance
                         << " fim=" << goal.distance << std::endl;
@@ -296,13 +283,13 @@ void testScale(
                         result.generatedNodes = search.generated;
                         result.peakOpen = search.peakOpen;
 
-                        // Não deve ocorrer com o snap no maior componente; se ocorrer, refaz a repetição.
+                        // Sem filtro de arestas a superfície é conexa; sem caminho, a aquisição é inválida.
                         if (!pathFound) {
-                            std::cerr << "[refeito] " << graphModel.name << " seed=" << terrainSeed
-                                << " par=" << pairIndex << ": " << algorithm.name
-                                << " não encontrou caminho." << std::endl;
-                            failed = true;
-                            break;
+                            throw std::runtime_error(
+                                graphModel.name + " seed=" + std::to_string(terrainSeed)
+                                + " par=" + std::to_string(pairIndex) + ": "
+                                + algorithm.name + " não encontrou caminho."
+                            );
                         }
 
                         result.pathCost = search.cost;
@@ -313,10 +300,6 @@ void testScale(
 
                         attemptResults.push_back(std::move(result));
                     }
-                }
-
-                if (failed) {
-                    continue;
                 }
 
                 for (Results& result : attemptResults) {
@@ -337,7 +320,6 @@ void testScale(
 void testLacunarity(
     uint steps,
     uint repetitions,
-    uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
     const GraphModel& graphModel,
@@ -361,7 +343,7 @@ void testLacunarity(
         const float lacunarity = 1.5f + (static_cast<float>(step) * (2.25f - 1.5f) / static_cast<float>(std::max(steps - 1, 1u)));
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
-            // Refaz a repetição com um terreno novo até que todas as buscas encontrem caminho.
+            // Refaz a repetição apenas se o grafo sair vazio.
             while (true) {
                 const unsigned int terrainSeed = seedDistribution(seedGenerator);
 
@@ -414,19 +396,15 @@ void testLacunarity(
                     continue;
                 }
 
-                // Snap no maior componente conexo: evita descartar terrenos por pares em ilhas
-                // isoladas pelo critério de transitabilidade (viés de seleção entre modelos).
-                const std::vector<char> largestComponent = largestComponentMask(graph);
                 std::vector<Results> attemptResults;
-                bool failed = false;
 
                 const auto pairs = generateQueryPairs(
-                    noise, config.width, config.height, heightScale, terrainSeed, pairCount
+                    noise, config.width, config.height, heightScale
                 );
 
-                for (std::size_t pairIndex = 0; pairIndex < pairs.size() && !failed; ++pairIndex) {
-                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, largestComponent);
-                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, largestComponent);
+                for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
                     std::cerr << "[snap] " << graphModel.name << " seed=" << terrainSeed
                         << " par=" << pairIndex << ": início=" << start.distance
                         << " fim=" << goal.distance << std::endl;
@@ -454,13 +432,13 @@ void testLacunarity(
                         result.generatedNodes = search.generated;
                         result.peakOpen = search.peakOpen;
 
-                        // Não deve ocorrer com o snap no maior componente; se ocorrer, refaz a repetição.
+                        // Sem filtro de arestas a superfície é conexa; sem caminho, a aquisição é inválida.
                         if (!pathFound) {
-                            std::cerr << "[refeito] " << graphModel.name << " seed=" << terrainSeed
-                                << " par=" << pairIndex << ": " << algorithm.name
-                                << " não encontrou caminho." << std::endl;
-                            failed = true;
-                            break;
+                            throw std::runtime_error(
+                                graphModel.name + " seed=" + std::to_string(terrainSeed)
+                                + " par=" + std::to_string(pairIndex) + ": "
+                                + algorithm.name + " não encontrou caminho."
+                            );
                         }
 
                         result.pathCost = search.cost;
@@ -471,10 +449,6 @@ void testLacunarity(
 
                         attemptResults.push_back(std::move(result));
                     }
-                }
-
-                if (failed) {
-                    continue;
                 }
 
                 for (Results& result : attemptResults) {
@@ -495,7 +469,6 @@ void testLacunarity(
 void testPersistence(
     uint steps,
     uint repetitions,
-    uint pairCount,
     unsigned int baseSeed,
     const std::string& outputDir,
     const GraphModel& graphModel,
@@ -518,7 +491,7 @@ void testPersistence(
         const float persistence = 0.3f + (static_cast<float>(step) * (0.7f - 0.3f) / static_cast<float>(std::max(steps - 1, 1u)));
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
-            // Refaz a repetição com um terreno novo até que todas as buscas encontrem caminho.
+            // Refaz a repetição apenas se o grafo sair vazio.
             while (true) {
                 const unsigned int terrainSeed = seedDistribution(seedGenerator);
 
@@ -571,19 +544,15 @@ void testPersistence(
                     continue;
                 }
 
-                // Snap no maior componente conexo: evita descartar terrenos por pares em ilhas
-                // isoladas pelo critério de transitabilidade (viés de seleção entre modelos).
-                const std::vector<char> largestComponent = largestComponentMask(graph);
                 std::vector<Results> attemptResults;
-                bool failed = false;
 
                 const auto pairs = generateQueryPairs(
-                    noise, config.width, config.height, heightScale, terrainSeed, pairCount
+                    noise, config.width, config.height, heightScale
                 );
 
-                for (std::size_t pairIndex = 0; pairIndex < pairs.size() && !failed; ++pairIndex) {
-                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start, largestComponent);
-                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal, largestComponent);
+                for (std::size_t pairIndex = 0; pairIndex < pairs.size(); ++pairIndex) {
+                    const SnapResult start = nearestVertex(graph, pairs[pairIndex].start);
+                    const SnapResult goal = nearestVertex(graph, pairs[pairIndex].goal);
                     std::cerr << "[snap] " << graphModel.name << " seed=" << terrainSeed
                         << " par=" << pairIndex << ": início=" << start.distance
                         << " fim=" << goal.distance << std::endl;
@@ -611,13 +580,13 @@ void testPersistence(
                         result.generatedNodes = search.generated;
                         result.peakOpen = search.peakOpen;
 
-                        // Não deve ocorrer com o snap no maior componente; se ocorrer, refaz a repetição.
+                        // Sem filtro de arestas a superfície é conexa; sem caminho, a aquisição é inválida.
                         if (!pathFound) {
-                            std::cerr << "[refeito] " << graphModel.name << " seed=" << terrainSeed
-                                << " par=" << pairIndex << ": " << algorithm.name
-                                << " não encontrou caminho." << std::endl;
-                            failed = true;
-                            break;
+                            throw std::runtime_error(
+                                graphModel.name + " seed=" + std::to_string(terrainSeed)
+                                + " par=" + std::to_string(pairIndex) + ": "
+                                + algorithm.name + " não encontrou caminho."
+                            );
                         }
 
                         result.pathCost = search.cost;
@@ -628,10 +597,6 @@ void testPersistence(
 
                         attemptResults.push_back(std::move(result));
                     }
-                }
-
-                if (failed) {
-                    continue;
                 }
 
                 for (Results& result : attemptResults) {

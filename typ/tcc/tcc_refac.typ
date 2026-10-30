@@ -2,6 +2,8 @@
 // CONFIGURAÇÃO DO TEMPLATE DE PRÉ-PROJETO (ABNT NBR 15287)
 // ==========================================
 
+#import "@preview/lovelace:0.3.1": *
+
 #let pre_projeto_abnt(
   titulo: "",
   subtitulo: "",
@@ -331,8 +333,9 @@ No entanto, a transição do espaço de busca de 2D para 3D introduziu um aument
   caption: [Comparação entre representações 2D e 3D],
   supplement: "Figura",
 )[
-  // #image("", width: 75%)
-  #v(0.5em)
+  #v(1.5em)
+  #image("images/2d_vs_3d.png", width: 75%)
+  #v(2em)
  Fonte: Elaborado pelo autor.
 ] <fig_2Dx3D> \ #v(-1.5em)
 
@@ -365,47 +368,187 @@ O objetivo geral do estudo é analisar comparativa e estatisticamente o desempen
 
 = Fundamentação Teórica
 
-Este capítulo apresenta os conceitos fundamentais que embasam o trabalho, incluindo grafos, algoritmos de busca, geração procedural de terrenos, representações geométricas e navegáveis de terrenos, avaliação de desempenho e trabalhos relacionados.
+A comparação proposta neste trabalho depende de três conjuntos de conceitos: a teoria de grafos, que modela o espaço de busca; os algoritmos que percorrem esse modelo; e os métodos de representação de terrenos que determinam como o grafo é construído a partir da geometria. Este capítulo apresenta cada um deles, nessa ordem, e termina com os trabalhos que compararam representações semelhantes.
 
 == Grafos
 
-Estrutura de dados composta por vértices e arestas, utilizada para modelar relações entre elementos.
+Grafos são estruturas matemáticas que representam relações entre objetos. Eles consistem em um conjunto de vértices (ou nós) e um conjunto de arestas (ou ligações) que conectam os vértices. A representação de grafos pode ser direcionada ou não direcionada, ponderada ou não ponderada, dependendo das características do problema a ser modelado. 
 
-figura: exemplo de grafo com vértices e arestas 
+\
+#figure(
+  caption: [Exemplo de grafo simples.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/grafo_simples.png", width: 25%)
+  #v(2em)
+ Fonte: Elaborado pelo autor.
+] <fig_2Dx3D> \ #v(-1.5em)
+
+Quando trabalhamos com estruturas de dados complexas, como terrenos 3D, os grafos fornecem uma representação abstrata que facilita a aplicação de algoritmos de busca. Cada vértice representa uma posição no ambiente, enquanto as arestas representam a transitabilidade entre esses pontos.
 
 === Definição
 
-Conjunto de vértices e arestas que conectam pares de vértices, representando relações entre elementos. Pode ser direcionado ou não direcionado, ponderado ou não ponderado.
+Segundo #cite(<rodacki_grafos>, form: "prose"), um grafo G é definido como um par ordenado (@formula_grafo), onde: $G$ é o grafo; $V$ é o conjunto de vértices; e $E$ é o conjunto de arestas. Cada aresta representa a coneção entre dois vértices, podendo ter uma direção associada e um peso.
 
-fórmula: G = (V, E), onde G é o grafo, V é o conjunto de vértices e E é o conjunto de arestas.
+\
+$ G = (V, E) $ <formula_grafo> \
+
+Cada conjunto de vértices e arestas pode ser representado de diferentes maneiras, dependendo da aplicação e das operações que serão realizadas sobre o grafo. As representações mais comuns incluem listas de adjacência, matrizes de adjacência e listas de arestas @rodacki_grafos. 
+
+Dado que um grafo é uma estrutura de dados baseada em conjuntos, naturalmente existem subgrafos. Subgrafos são subconjuntos de vértices e arestas de um grafo, que podem ser utilizados para analisar partes específicas da estrutura ou para simplificar a resolução de problemas complexos.
+
+=== Direcionamento
+
+Na criação de um grafo, é possível defini-lo como direcionado (@fig_dir\.a) ou não direcionado (@fig_dir\.b). Isso é, a conexão entre dois vértices pode ser unidirecional ou bidirecional.
+
+\
+#figure(
+  caption: [Exemplo de grafo direcionado e não direcionado.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #grid(
+    columns: (1fr, 1fr),
+    column-gutter: 2em,
+    row-gutter: 0em,
+    [
+      #image("images/direcionado.png", width: 50%)
+      #v(1.5em)
+      #align(center)[(a) Grafo direcionado]
+    ],
+    [
+      #image("images/nao_direcionado.png", width: 50%)
+      #v(1.5em)
+      #align(center)[(b) Grafo não direcionado]
+    ]
+  )
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_dir> \ #v(-1.5em)
+
+Como visto na @fig_dir, em um grafo direcionado, as arestas possuem uma direção específica, indicando o sentido da conexão entre os vértices. Já em um grafo não direcionado, as arestas não possuem direção, permitindo a travessia em ambos os sentidos. 
+
+A escolha entre grafos direcionados e não direcionados depende do problema a ser modelado. Em muitos casos, como em mapas de ruas ou redes de transporte, as conexões são bidirecionais, enquanto em outros, como fluxos de dados ou hierarquias, as conexões podem ser unidirecionais.
 
 === Pesos
 
-Atribuição de valores numéricos às arestas, representando custos ou distâncias entre vértices. Pode ser constante ou variável, dependendo da aplicação.
+Grafos também podem ser ponderados (@fig_peso\.a), atribuindo valores numéricos às arestas para representar custos ou distâncias entre os vértices.
 
-figura: exemplo de grafo com e sem pesos
+\
+#figure(
+  caption: [Exemplo de grafo ponderado e não ponderado.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #grid(
+    columns: (1fr, 1fr),
+    column-gutter: 2em,
+    row-gutter: 0em,
+    [
+      #image("images/ponderado.png", width: 50%)
+      #v(1.5em)
+      #align(center)[(a) Grafo ponderado]
+    ],
+    [
+      #image("images/nao_ponderado.png", width: 50%)
+      #v(1.5em)
+      #align(center)[(b) Grafo não ponderado]
+    ]
+  )
+  #v(0.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_peso> \ #v(-1.5em)
+
+Ponderar a travessia entre vértices permite representar de forma mais precisa as características do ambiente, como a dificuldade de atravessar determinados terrenos ou a distância entre pontos. Como visto na @fig_peso, a atribuição de pesos às arestas pode influenciar diretamente a escolha do caminho mais eficiente ou mais curto.
+
+O custo de travessia de uma aresta pode representar diferentes aspectos, como distância física, tempo de viagem ou dificuldade de navegação. A escolha de atribuir pesos às arestas depende do contexto do problema e dos objetivos da estrutura.
 
 === Caminho
 
-Sequência de vértices conectados por arestas, representando uma rota entre dois pontos no grafo.
+Um caminho em um grafo é uma sequência de vértices conectados por arestas, representando uma rota entre dois pontos @rodacki_grafos, ilustrado na @fig_caminho. A definição formal de um caminho é uma sequência de vértices $(v_1, v_2, ..., v_n)$ tal que cada par consecutivo ${v_i, v_(i+1)}$ está conectado por uma aresta no grafo.
 
-figura: exemplo de caminho em um grafo
+\
+#figure(
+  caption: [Exemplo de caminho em um grafo.],
+  supplement: "Figura",
+)[
+  #image("images/caminho.png", width: 45%)
+  #v(0.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_caminho> \ #v(-1.5em)
+
+Considerando $v_1$ o vértice inicial e $v_7$ o vértice final, a sequência de vértices $(v_1, v_2, v_3, v_4, v_5, v_6, v_7)$ representada na @fig_caminho é o caminho $v_1 arrow v_7$. Esse caminho é uma das várias rotas possíveis entre os vértices $v_1$ e $v_7$, e a escolha do caminho mais eficiente depende dos pesos das arestas e das características do grafo.
+
+Para todo vértice $v$ em um grafo, é possível determinar se existe um caminho para outro vértice $u$ no mesmo grafo. Entretanto, a existência deste caminho não simboliza a auxência de outro caminho entre $v$ e $u$, podendo haver múltiplos caminhos com diferentes pesos e características. Quando comparados, os caminhos podem apresentar variações significativas em termos de custo, distância ou dificuldade de travessia. Portanto infere-se que exista um caminho mínimo ou ótimo entre dois vértices, que é aquele com o menor custo ou peso total.
 
 === Componente conexo
 
-Subgrafo em que todos os vértices estão conectados entre si, permitindo a existência de caminhos entre quaisquer pares de vértices.
+Dado um grafo, um componente conexo é um subgrafo em que todos os vértices estão conectados entre si, permitindo a existência de caminhos entre quaisquer pares de vértices @rodacki_grafos. 
 
-figura: exemplo de componentes conexos em um grafo
+#figure(
+  caption: [Exemplo de componentes conexos em um grafo.],
+  supplement: "Figura",
+)[
+  // #image("", width: 75%)
+  #v(0.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_componentes_conexos> \ #v(-1.5em)
+
+A identificação de componentes conexos é fundamental para entender a estrutura do grafo e determinar a viabilidade de encontrar caminhos entre diferentes regiões. Uma vez que um vértice pertence a um componente conexo, é possível garantir que existe um caminho para qualquer outro vértice dentro do mesmo componente.
 
 == Busca
 
-Processo de encontrar um caminho entre dois vértices em um grafo, utilizando diferentes estratégias e algoritmos.
+A busca de caminhos em um grafo é o processo de encontrar um caminho mínimo que leva de um vértice inicial a um vértice objetivo. Diferentes algoritmos de busca podem ser aplicados, dependendo das características do grafo e dos requisitos do problema.
 
-figura: diversos caminhos possíveis entre dois vértices em um grafo
+#figure(
+  caption: [Diversos caminhos possíveis entre dois vértices em um grafo.],
+  supplement: "Figura",
+)[
+  // #image("", width: 75%)
+  #v(0.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_caminhos> \ #v(-1.5em)
+
+Sabendo da necessidade de encontrar caminhos mínimos, algoritmos de busca são projetados para explorar o grafo de maneiras específicas, visando otimizar a descoberta de caminhos com base em critérios como custo, distância ou heurísticas.
 
 === Dijkstra
 
-Algoritmo de busca de caminho mínimo em grafos ponderados, garantindo a descoberta do caminho mais curto entre um vértice inicial e todos os outros vértices.
+// Algoritmo de busca de caminho mínimo em grafos ponderados, garantindo a descoberta do caminho mais curto entre um vértice inicial e todos os outros vértices.
+O algoritmo de Dijkstra é um método clássico da busca de caminhos em grafos ponderados, considerando que todos os pesos das arestas são não-negativos. Ele é capaz de encontrar todos os caminhos mínimos a partir de um vértice inicial para todos os demais vértices do grafo @rodacki_grafos. Esse processo gera uma árvore de caminhos mínimos tendo o vértice inicial como raiz.
+
+No implementação do algoritmo de Dijkstra, é considerado o pseudocódigo apresentado por #cite(<rodacki_grafos>, form: "prose"). Nesta capítulo consideraremos um grafo $G = (V, A)$ ponderado de pesos não-negativos, onde $V$ é o conjunto de vértices e $A$ é o conjunto de arestas.
+
+#figure(
+  caption: [Pseudocódigo do algoritmo de Dijkstra.],
+  supplement: "Figura",
+)[
+  #v(-0.5em)
+  #pseudocode-list[
+    Dijkstra$(G, w, s)$
+    + para cada $v in V$ faça
+      + $d_v arrow.l inf$
+      + $p_v arrow.l "nil"$
+    + $d_s arrow.l 0$
+    + $Q arrow.l V$
+    + $S arrow.l nothing$
+    + enquanto $Q != nothing$ faça
+      + $u arrow.l "pop"(Q)$
+      + $S arrow.l S union {u}$
+      + para cada $"vértice" v in "adj"(u)$ faça
+        + se $v in Q$ e $[d_v > d_u + w_(u, v)]$ então
+          + $d_v arrow.l (d_u + w_(u,v))$
+          + $p_v arrow.l u$
+  ]
+  #v(0.5em)
+  Fonte: #cite(<rodacki_grafos>, form: "prose").
+] <fig_dijkstra> \ #v(-1.5em)
+
+Na @fig_dijkstra, o algoritmo de Dijkstra inicializa a distância $d_v$ de todos os vértices a partir do vértice inicial $s$ como infinitos, exceto para o vértice inicial, que tem distância zero para ele mesmo. Em seguida são criadas duas estruturas de dados:
+- $Q$: Uma fila de prioridade mínima (ou _min-PQ_, do inglês _Minimum Priority Queue_) que armazena os vértices ainda não processados e suas distâncias conhecidas em ordem crescente.
+- $S$: Um conjunto que armazena os vértices já processados, guardando o caminho mínimo encontrado até o momento de cada vértice.
+
+
 
 === Heurísticas
 

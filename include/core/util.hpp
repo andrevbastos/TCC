@@ -61,77 +61,21 @@ struct GraphModel {
     GraphFactory create;
 };
 
-// Inclinação máxima transitável (|dy| / distância horizontal), comum a todas as representações.
-// 1.0 corresponde a 45°: o desnível não pode exceder a distância horizontal.
-inline constexpr float MAX_SLOPE = 1.0f;
-
-inline bool isTraversable(const Vertex3D& a, const Vertex3D& b) {
-    const float horizontal = std::hypot(b.x - a.x, b.z - a.z);
-    if (horizontal == 0.0f) return false;
-    return std::abs(b.y - a.y) / horizontal <= MAX_SLOPE;
-}
-
 struct SnapResult {
     std::size_t id = 0;
     double distance = 0.0;
 };
 
-// Marca os vértices do maior componente conexo (BFS). Evita que o snap caia em ilhas
-// isoladas pelo critério de transitabilidade, como triângulos de parede do marching cubes.
-inline std::vector<char> largestComponentMask(const common::lwGraph<Vertex3D>& graph) {
-    const std::size_t numVertices = graph.getOrder();
-    std::vector<std::size_t> component(numVertices, std::numeric_limits<std::size_t>::max());
-    std::size_t bestComponent = 0;
-    std::size_t bestSize = 0;
-    std::size_t componentCount = 0;
-
-    for (std::size_t source = 0; source < numVertices; ++source) {
-        if (component[source] != std::numeric_limits<std::size_t>::max()) continue;
-
-        std::size_t size = 0;
-        std::queue<std::size_t> frontier;
-        frontier.push(source);
-        component[source] = componentCount;
-
-        while (!frontier.empty()) {
-            const std::size_t current = frontier.front();
-            frontier.pop();
-            ++size;
-
-            for (const auto& edge : graph.adj(current)) {
-                if (component[edge.target] != std::numeric_limits<std::size_t>::max()) continue;
-                component[edge.target] = componentCount;
-                frontier.push(edge.target);
-            }
-        }
-
-        if (size > bestSize) {
-            bestSize = size;
-            bestComponent = componentCount;
-        }
-        ++componentCount;
-    }
-
-    std::vector<char> mask(numVertices, 0);
-    for (std::size_t v = 0; v < numVertices; ++v) {
-        mask[v] = component[v] == bestComponent;
-    }
-    return mask;
-}
-
-// Busca linear pelo vértice mais próximo (distância 3D) dentre os permitidos pela máscara;
+// Busca linear pelo vértice mais próximo (distância 3D);
 // usada apenas no setup do experimento.
 inline SnapResult nearestVertex(
     const common::lwGraph<Vertex3D>& graph,
-    const Vertex3D& point,
-    const std::vector<char>& allowed
+    const Vertex3D& point
 ) {
     SnapResult result;
     double bestSq = std::numeric_limits<double>::infinity();
 
     for (std::size_t v = 0; v < graph.getOrder(); ++v) {
-        if (!allowed[v]) continue;
-
         const auto& data = graph.getVertexData(v);
         const double dx = static_cast<double>(data.x) - point.x;
         const double dy = static_cast<double>(data.y) - point.y;
@@ -475,9 +419,6 @@ undirected::lwGraph<Vertex3D> createGrid2_5D(const std::vector<float>& noise, in
     auto addEdge = [&](int from, int to) {
         const auto& a = graph.getVertexData(from);
         const auto& b = graph.getVertexData(to);
-        if (!isTraversable(a, b)) {
-            return;
-        }
 
         const float dx = a.x - b.x;
         const float dy = a.y - b.y;
@@ -541,9 +482,6 @@ undirected::lwGraph<Vertex3D> createVoxelGraph(const std::vector<float>& noise, 
     auto addSurfaceEdge = [&](int x1, int z1, int x2, int z2) {
         const int from = vertexIndex(x1, z1);
         const int to = vertexIndex(x2, z2);
-        if (!isTraversable(graph.getVertexData(from), graph.getVertexData(to))) {
-            return;
-        }
 
         const float dx = static_cast<float>(x2 - x1);
         const float dy = static_cast<float>(columnHeights[to] - columnHeights[from]);
@@ -580,7 +518,7 @@ undirected::lwGraph<Vertex3D> createVertexToVertex(
     }
 
     auto addUniqueEdge = [&](int from, int to) {
-        if (from == to || !isTraversable(graph.getVertexData(from), graph.getVertexData(to))) {
+        if (from == to) {
             return;
         }
 
@@ -694,10 +632,6 @@ undirected::lwGraph<Vertex3D> createPolygonToPolygon(
             }
 
             const size_t neighbor = found->second;
-            if (!isTraversable(centroids[triangle], centroids[neighbor])) {
-                continue;
-            }
-
             const float weight = distance(centroids[triangle], centroids[neighbor]);
             graph.addEdge(triangle, neighbor, weight);
         }

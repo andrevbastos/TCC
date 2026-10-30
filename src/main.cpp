@@ -101,7 +101,6 @@ int main(int argc, char* argv[]) {
     uint repetitions = 5;
     uint steps = 4;
     uint intensity = 100;
-    uint pairCount = 10;
     std::string statsTestName;
     unsigned int statsSeed = static_cast<unsigned int>(time(NULL));
     float heightLimit = 2.5f;
@@ -164,7 +163,6 @@ int main(int argc, char* argv[]) {
         ->required();
     statsCmd->add_option("repetitions", repetitions, "Número de repetições para cada teste")->check(CLI::PositiveNumber)->required();
     statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
-    statsCmd->add_option("--pairs", pairCount, "Pares início/fim por terreno")->check(CLI::PositiveNumber);
     statsCmd->add_option("-s,--seed", statsSeed, "Semente base dos terrenos e pares");
     statsCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
     statsCmd->callback([&]() {
@@ -172,11 +170,11 @@ int main(int argc, char* argv[]) {
         const GraphModel& graphModel = getGraphModel(graphModelName);
 
         if (statsTestName == "scale") {
-            testScale(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
+            testScale(steps, repetitions, statsSeed, path, graphModel, algorithms);
         } else if (statsTestName == "lac") {
-            testLacunarity(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
+            testLacunarity(steps, repetitions, statsSeed, path, graphModel, algorithms);
         } else if (statsTestName == "pers") {
-            testPersistence(steps, repetitions, pairCount, statsSeed, path, graphModel, algorithms);
+            testPersistence(steps, repetitions, statsSeed, path, graphModel, algorithms);
         }
     });
 
@@ -323,12 +321,11 @@ void test(
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
                         auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
 
-                        const std::vector<char> snapMask = largestComponentMask(*graphPtr);
                         const QueryPair pair = generateQueryPairs(
-                            noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity), currentConfig.seed, 1
+                            noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity)
                         ).front();
-                        const SnapResult start = nearestVertex(*graphPtr, pair.start, snapMask);
-                        const SnapResult goal = nearestVertex(*graphPtr, pair.goal, snapMask);
+                        const SnapResult start = nearestVertex(*graphPtr, pair.start);
+                        const SnapResult goal = nearestVertex(*graphPtr, pair.goal);
 
                         return NavigationResult {
                             .graph = std::move(graphPtr),
