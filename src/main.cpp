@@ -38,10 +38,10 @@ std::vector<Algorithm> algorithms = {
 };
 
 std::vector<Color> pathColors = {
-    {1.0f, 0.0f, 0.0f, 1.0f},
-    {0.0f, 1.0f, 0.0f, 1.0f},
-    {0.0f, 0.0f, 1.0f, 1.0f},
-    {1.0f, 1.0f, 0.0f, 1.0f}
+    {0.85f, 0.20f, 0.15f, 1.0f},
+    {0.15f, 0.40f, 0.85f, 1.0f},
+    {0.15f, 0.65f, 0.25f, 1.0f},
+    {0.55f, 0.25f, 0.70f, 1.0f}
 };
 
 const std::vector<GraphModel> graphModels = {
@@ -93,6 +93,7 @@ const GraphModel& getGraphModel(const std::string& name) {
 
 void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir, const GraphModel& graphModel);
 void save(const std::string& target, NoiseConfig noiseConfig, bool saveOctaves);
+void testHeuristics(uint intensity, NoiseConfig noiseConfig, const GraphModel& graphModel); // TEMPORÁRIO: imagens do documento
 // void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
 
 int main(int argc, char* argv[]) {   
@@ -135,6 +136,25 @@ int main(int argc, char* argv[]) {
         test(intensity, noiseConfig, path, getGraphModel(graphModelName));
     });
 
+    // TEMPORÁRIO: Greedy Best-First com heurísticas euclidiana, Manhattan e Chebyshev (imagens do documento).
+    auto heuristicsCmd = app.add_subcommand("heuristics", "Teste visual do Greedy Best-First com diferentes heurísticas");
+    heuristicsCmd->add_option("graph", graphModelName, "Representação do grafo")
+        ->check(CLI::IsMember({"2_5d", "voxel", "vertex", "dual"}))
+        ->required();
+    heuristicsCmd->add_option("intensity,--intensity", intensity, "Intensidade do ruído")->check(CLI::Range(2u, std::numeric_limits<uint>::max()));
+    heuristicsCmd->add_option("width,--width", noiseConfig.width, "Largura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    heuristicsCmd->add_option("height,--height", noiseConfig.height, "Altura do mapa")->check(CLI::Range(2, std::numeric_limits<int>::max()));
+    heuristicsCmd->add_option("octaves,--octaves", noiseConfig.octaves, "Número de oitavas")->check(CLI::Range(1u, 16u));
+    heuristicsCmd->add_option("freq,-f,--freq", noiseConfig.freq, "Frequência do ruído")->check(CLI::PositiveNumber);
+    heuristicsCmd->add_option("lac,--lac", noiseConfig.lac, "Lacunaridade do ruído")->check(CLI::PositiveNumber);
+    heuristicsCmd->add_option("amp,-a,--amp", noiseConfig.amp, "Amplitude do ruído")->check(CLI::PositiveNumber);
+    heuristicsCmd->add_option("pers,--pers", noiseConfig.pers, "Persistência do ruído")->check(CLI::PositiveNumber);
+    heuristicsCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
+    heuristicsCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
+    heuristicsCmd->callback([&]() {
+        testHeuristics(intensity, noiseConfig, getGraphModel(graphModelName));
+    });
+
     std::string saveTarget;
     bool saveOctaves = false;
     auto saveCmd = app.add_subcommand("save", "Gera o ruído e salva como PNG");
@@ -149,6 +169,7 @@ int main(int argc, char* argv[]) {
     saveCmd->add_option("pers,--pers", noiseConfig.pers, "Persistência do ruído")->check(CLI::PositiveNumber);
     saveCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
     saveCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
+    saveCmd->add_option("wave,-w,--wave", noiseConfig.wave, "Comprimento de onda base do ruído (px)")->check(CLI::Range(1, std::numeric_limits<int>::max()));
     saveCmd->add_flag("--save-octaves", saveOctaves, "Salva cada oitava em <destino>/octave_N.png");
     saveCmd->callback([&]() {
         save(saveTarget, noiseConfig, saveOctaves);
@@ -286,7 +307,7 @@ void test(
                     currentConfig.width,
                     intensity,
                     currentConfig.height,
-                    {0.42f, 0.42f, 0.48f, 1.0f}
+                    {0.82f, 0.79f, 0.72f, 1.0f}
                 );
 
                 return GeometryResult {
@@ -517,4 +538,337 @@ void test(
 
     Engine::loop(config);
 	Engine::terminate();
+};
+// TEMPORÁRIO: teste visual do Greedy Best-First com heurísticas euclidiana, Manhattan e Chebyshev,
+// usado apenas para gerar as imagens do documento final.
+void testHeuristics(
+    uint intensity,
+    NoiseConfig noiseConfig,
+    const GraphModel& graphModel
+) {
+    using namespace ifcg;
+
+    struct HeuristicRun {
+        std::string name;
+        HeuristicFuncLW heuristic;
+        Color color;
+    };
+
+    const std::vector<HeuristicRun> runs = {
+        {
+            "Euclidiana",
+            [](const Vertex3D& a, const Vertex3D& b) -> double {
+                const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+                const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+                const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
+                return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+            },
+            {0.85f, 0.20f, 0.15f, 1.0f}
+        },
+        {
+            "Manhattan",
+            [](const Vertex3D& a, const Vertex3D& b) -> double {
+                const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+                const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+                const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
+                return std::abs(dx) + std::abs(dy) + std::abs(dz);
+            },
+            {0.15f, 0.40f, 0.85f, 1.0f}
+        },
+        {
+            "Chebyshev",
+            [](const Vertex3D& a, const Vertex3D& b) -> double {
+                const double dx = static_cast<double>(a.x) - static_cast<double>(b.x);
+                const double dy = static_cast<double>(a.y) - static_cast<double>(b.y);
+                const double dz = static_cast<double>(a.z) - static_cast<double>(b.z);
+                return std::max({std::abs(dx), std::abs(dy), std::abs(dz)});
+            },
+            {0.15f, 0.65f, 0.25f, 1.0f}
+        }
+    };
+
+    const Color terrainColor {0.82f, 0.79f, 0.72f, 1.0f};
+
+    Engine::init(1200, 800, "TCC - Heurísticas");
+    Engine::setup3D();
+
+    // Linhas mais grossas para as imagens. Estado global do OpenGL: vale para todos os GL_LINES.
+    // Em perfil core, larguras > 1 dependem do driver; o intervalo suportado é impresso abaixo.
+    GLfloat lineWidthRange[2] {1.0f, 1.0f};
+    glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
+    std::cout << "Largura de linha suportada: [" << lineWidthRange[0] << ", " << lineWidthRange[1] << "]" << std::endl;
+    glLineWidth(std::min(4.0f, lineWidthRange[1]));
+
+    auto& input {Engine::getInputHandler()};
+    auto& renderer {Engine::getRenderer()};
+    auto& camera {renderer.getCamera()};
+    camera.setPosition(glm::vec3(-25.0f, (float)intensity * 0.9f, -25.0f));
+    camera.setOrientation(glm::vec3(0.6, -0.5, 0.6));
+    renderer.setFarPlane(1000.0f);
+    GLuint shader {renderer.getShaderID()};
+
+    std::shared_ptr<Mesh> geometryPtr = nullptr;
+    std::shared_ptr<Mesh> navigationPtr = nullptr;
+    std::vector<std::shared_ptr<Mesh>> pathPtrs;
+    bool showNavigation = false;
+    bool showPaths = true;
+
+    struct GeometryResult {
+        std::vector<float> noise;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
+
+    struct NavigationResult {
+        std::shared_ptr<undirected::lwGraph<Vertex3D>> graph;
+        std::size_t startId;
+        std::size_t goalId;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
+
+    struct PathResult {
+        size_t runIndex;
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+    };
+
+    bool isGenerating = false;
+    auto generate = [&]() {
+        if (isGenerating) {
+            return;
+        }
+
+        isGenerating = true;
+        std::cout << "Gerando geometria (seed " << noiseConfig.seed << ")." << std::endl;
+
+        const NoiseConfig currentConfig = noiseConfig;
+
+        for (auto& pathPtr : pathPtrs) {
+            if (pathPtr) {
+                renderer.removeMesh(pathPtr);
+            }
+        }
+        pathPtrs.clear();
+
+        Engine::runAsyncThenMain(
+            [currentConfig, intensity, terrainColor]() {
+                auto noise = generateNoiseMap(currentConfig);
+                auto [verticesGeo, indicesGeo] = getMarchingCubeData(
+                    noise,
+                    currentConfig.width,
+                    intensity,
+                    currentConfig.height,
+                    terrainColor
+                );
+
+                return GeometryResult {
+                    .noise = std::move(noise),
+                    .vertices = std::move(verticesGeo),
+                    .indices = std::move(indicesGeo)
+                };
+            },
+            [&, shader, intensity, currentConfig](GeometryResult result) mutable {
+                if (geometryPtr) {
+                    renderer.removeMesh(geometryPtr);
+                }
+
+                geometryPtr = std::make_shared<Mesh>(std::move(result.vertices), std::move(result.indices), shader, GL_TRIANGLES);
+                renderer.addMesh(geometryPtr);
+
+                Engine::runAsyncThenMain(
+                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity, graphModel]() mutable {
+                        const GraphBuildInput graphInput {
+                            .noise = noise,
+                            .vertices = geometryPtr->getVertices(),
+                            .indices = geometryPtr->getIndices(),
+                            .width = currentConfig.width,
+                            .heightScale = static_cast<int>(intensity),
+                            .depth = currentConfig.height
+                        };
+                        auto graph = graphModel.create(graphInput);
+
+                        auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
+                        auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+
+                        const QueryPair pair = generateQueryPairs(
+                            noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity)
+                        ).front();
+                        const SnapResult start = nearestVertex(*graphPtr, pair.start);
+                        const SnapResult goal = nearestVertex(*graphPtr, pair.goal);
+
+                        return NavigationResult {
+                            .graph = std::move(graphPtr),
+                            .startId = start.id,
+                            .goalId = goal.id,
+                            .vertices = std::move(verticesNav),
+                            .indices = std::move(indicesNav)
+                        };
+                    },
+                    [&, shader](NavigationResult navData) mutable {
+                        auto graphPtr = std::move(navData.graph);
+                        const std::size_t startId = navData.startId;
+                        const std::size_t goalId = navData.goalId;
+
+                        if (navigationPtr) {
+                            renderer.removeMesh(navigationPtr);
+                        }
+
+                        navigationPtr = std::make_shared<Mesh>(std::move(navData.vertices), std::move(navData.indices), shader, GL_LINES);
+                        navigationPtr->translate(0.0f, 0.2f, 0.0f);
+                        if (showNavigation) {
+                            renderer.addMesh(navigationPtr);
+                        }
+
+                        if (graphPtr->getOrder() == 0) {
+                            std::cout << "Grafo de navegação vazio; busca de caminhos ignorada." << std::endl;
+                            isGenerating = false;
+                            return;
+                        }
+
+                        pathPtrs.resize(runs.size());
+                        auto pendingPaths = std::make_shared<std::atomic_size_t>(runs.size());
+
+                        for (size_t runIndex = 0; runIndex < runs.size(); ++runIndex) {
+                            Engine::runAsyncThenMain(
+                                [graphPtr, startId, goalId, runIndex, run = runs[runIndex]]() {
+                                    const auto result = search::greedyBestFirst<Vertex3D>(*graphPtr, startId, goalId, run.heuristic);
+
+                                    if (result.path.empty()) {
+                                        std::cout << run.name << ": caminho não encontrado." << std::endl;
+                                        return PathResult {.runIndex = runIndex, .vertices = {}, .indices = {}};
+                                    }
+
+                                    std::cout << run.name
+                                              << ": custo " << result.cost
+                                              << ", expandidos " << result.expanded
+                                              << ", nós no caminho " << result.path.size() << std::endl;
+
+                                    auto [verticesPath, indicesPath] = getMeshFromPath(*graphPtr, result.path, run.color);
+                                    return PathResult {
+                                        .runIndex = runIndex,
+                                        .vertices = std::move(verticesPath),
+                                        .indices = std::move(indicesPath)
+                                    };
+                                },
+                                [&, shader, pendingPaths](PathResult pathData) mutable {
+                                    if (!pathData.vertices.empty() && !pathData.indices.empty()) {
+                                        auto pathPtr = std::make_shared<Mesh>(std::move(pathData.vertices), std::move(pathData.indices), shader, GL_LINES);
+                                        pathPtr->translate(0.0f, 0.4f + 0.15f * static_cast<float>(pathData.runIndex), 0.0f);
+                                        if (showPaths) {
+                                            renderer.addMesh(pathPtr);
+                                        }
+                                        pathPtrs[pathData.runIndex] = std::move(pathPtr);
+                                    }
+
+                                    if (pendingPaths->fetch_sub(1) == 1) {
+                                        isGenerating = false;
+                                    }
+                                },
+                                Priority::Medium
+                            );
+                        }
+                    },
+                    Priority::Medium
+                );
+            },
+            Priority::High
+        );
+    };
+
+    generate();
+    std::mt19937 seedGenerator {std::random_device{}()};
+    input.addKeyCallback(Key::K, KeyAction::PRESS, [&]() {
+        if (isGenerating) {
+            return;
+        }
+
+        noiseConfig.seed = static_cast<unsigned int>(seedGenerator());
+        generate();
+    });
+
+    input.addKeyCallback(Key::I, KeyAction::PRESS, [&camera]() {
+        camera.setPosition(glm::vec3(-0.350095, 89.6943, 22.1546));
+        camera.setOrientation(glm::vec3(0.439334, -0.881492, -8.42847e-08));
+    });
+
+    float rotationStep {glm::radians(1.0f)};
+    input.addKeyCallback(Key::LEFT, KeyAction::HELD, [&camera, &rotationStep]() {
+        camera.rotate(rotationStep, camera.getUp());
+    });
+
+    input.addKeyCallback(Key::RIGHT, KeyAction::HELD, [&camera, &rotationStep]() {
+        camera.rotate(-rotationStep, camera.getUp());
+    });
+
+    auto tilt = [&camera](float angle) {
+        glm::vec3 orient {camera.getOrientation()};
+        glm::vec3 up {camera.getUp()};
+        glm::vec3 right {glm::normalize(glm::cross(orient, up))};
+        glm::vec3 newOrient {glm::rotate(orient, angle, right)};
+
+        if (std::abs(glm::dot(glm::normalize(newOrient), up)) < 0.99f) {
+            camera.setOrientation(newOrient);
+        }
+    };
+
+    input.addKeyCallback(Key::UP, KeyAction::HELD, [tilt, &rotationStep]() {
+        tilt(rotationStep);
+    });
+
+    input.addKeyCallback(Key::DOWN, KeyAction::HELD, [tilt, &rotationStep]() {
+        tilt(-rotationStep);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::HELD, [&camera, &rotationStep]() {
+        rotationStep = glm::radians(4.0f);
+        camera.setSpeed(1.0f);
+    });
+
+    input.addKeyCallback(Key::SHIFT_L, KeyAction::RELEASE, [&camera, &rotationStep]() {
+        rotationStep = glm::radians(1.0f);
+        camera.setSpeed(0.5f);
+    });
+
+    input.addKeyCallback(Key::O, KeyAction::PRESS, [&camera]() {
+        glm::vec3 pos {camera.getPosition()};
+        glm::vec3 orient {camera.getOrientation()};
+        std::cout << "Posição: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        std::cout << "Orientação: (" << orient.x << ", " << orient.y << ", " << orient.z << ")" << std::endl;
+    });
+
+    input.addKeyCallback(Key::Z, KeyAction::PRESS, [&]() {
+        showNavigation = !showNavigation;
+        if (!navigationPtr) {
+            return;
+        }
+
+        if (showNavigation) {
+            renderer.addMesh(navigationPtr);
+        } else {
+            renderer.removeMesh(navigationPtr);
+        }
+    });
+
+    input.addKeyCallback(Key::X, KeyAction::PRESS, [&]() {
+        showPaths = !showPaths;
+        for (auto& pathPtr : pathPtrs) {
+            if (!pathPtr) {
+                continue;
+            }
+
+            if (showPaths) {
+                renderer.addMesh(pathPtr);
+            } else {
+                renderer.removeMesh(pathPtr);
+            }
+        }
+    });
+
+    LoopConfig config = {
+        .mode = LoopMode::Concurrent
+    };
+
+    Engine::loop(config);
+    Engine::terminate();
 };
