@@ -757,7 +757,7 @@ Por fim, são criadas faces conectando cada vértice com seus vizinhos diretos, 
   #text(size: 10pt)[Fonte: Elaborado pelo autor.]
 ] <fig_heightmap_mesh> \ #v(-1.5em)
 
-A criação de mapas de altura pode ser feita a partir de imagens reais, como fotografias aéreas ou imagens de satélite, ou gerada proceduralmente por algoritmos de ruído, como o ruído de Perlin (@perlin).
+A criação de mapas de altura pode ser feita a partir de imagens reais, como fotografias aéreas ou imagens de satélite, ou gerada proceduralmente por algoritmos de ruído, como o ruído de Perlin (@perlin). 
 
 
 
