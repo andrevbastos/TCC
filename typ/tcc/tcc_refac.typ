@@ -877,51 +877,118 @@ O número de oitavas $N$ define quantas camadas são somadas. Com poucas oitavas
 
 Valores comumente usados são próximos de 2 para a lacunaridade e de 0,5 para a persistência, de modo que cada oitava tem o dobro da frequência e metade da amplitude da anterior. Essa combinação é descrita por #cite(<patel_terrain_noise>, form: "prose"), e produz terrenos com grandes elevações e pequenas variações ao mesmo tempo.
 
-== Representações Geométricas de Terrenos
+== Representações Geométricas de Terrenos <representacoes_geometricas>
 
-Formas de representar a geometria (visual) de terrenos em um ambiente 3D, utilizando diferentes técnicas e abstrações.
+Esta seção descreve formas de representar a geometria visual de terrenos em um ambiente 3D. Cada técnica define como o volume ou a superfície do terreno é armazenado, e essa escolha determina quais formas podem ser descritas.
 
-=== Voxels
+=== Voxels <voxels>
 
-Representação volumétrica de terrenos, onde o espaço é dividido em pequenas unidades cúbicas (voxels), permitindo a modelagem de formas complexas e detalhadas.
+O _voxel_ é a unidade cúbica que divide o espaço tridimensional em uma grade regular, de modo análogo ao pixel em imagens bidimensionais. Em uma representação volumétrica de terreno, cada _voxel_ pode indicar se a posição correspondente está preenchida por material ou vazia. Essa abordagem descreve cavidades e estruturas sobrepostas, que um mapa de altura não armazena, já que ele guarda apenas uma altura para cada posição horizontal.
 
 === Marching Cubes/Transvoxel
 
-Algoritmos de reconstrução de superfícies a partir de dados volumétricos, como voxels, permitindo a criação de malhas poligonais suaves e contínuas.
+A extração de uma superfície a partir de um campo volumétrico pode ser feita pelo algoritmo de Marching Cubes, proposto por #cite(<lorensen_cline_marching_cubes>, form: "prose"). Para cada célula do volume, o algoritmo compara os valores dos oito cantos com um limiar, classifica cada canto como acima ou abaixo dele e gera os triângulos correspondentes à configuração resultante. Como essa classificação produz 256 configurações possíveis, o algoritmo usa tabelas de casos para determinar os triângulos de cada uma.
 
-figura: exemplo de reconstrução de superfícies com Marching Cubes e Transvoxel
+O Transvoxel, apresentado por #cite(<lengyel_transvoxel>, form: "prose"), estende essa abordagem a terrenos baseados em voxels em tempo real. Ele acrescenta tabelas de casos para células de transição entre níveis de detalhe distintos, o que evita rachaduras na superfície nas fronteiras entre blocos de resoluções diferentes.
+
+\
+#figure(
+  caption: [Exemplo de reconstrução de superfícies com Marching Cubes e Transvoxel.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_marching_transvoxel> \ #v(-1.5em)
 
 == Representações Navegáveis de Terrenos <representacoes_navegaveis>
 
-Formas de representar a navegação em terrenos, permitindo a movimentação e interação com o ambiente.
+A busca de caminhos depende de uma estrutura que represente as regiões por onde um agente pode se deslocar. Essa estrutura é uma representação navegável, em geral um grafo $G = (V, A)$ (ver @grafos), obtido a partir da geometria do terreno. Seus vértices correspondem a posições ou regiões transitáveis, e suas arestas indicam a passagem entre elas. Diferentes representações partem do mesmo terreno, mas produzem grafos com quantidades distintas de vértices e arestas. Conforme #cite(<algfoor_pathfinding_survey>, form: "prose"), o _pathfinding_ pode ser dividido em duas etapas: a geração do grafo e o algoritmo de busca.
 
 === Grade 2.5D
 
-Representação de terrenos em uma grade bidimensional com informações de altura. Baseada únicamente na altura do terreno.
+A grade 2.5D é uma matriz bidimensional de alturas, em que cada célula corresponde a uma posição do plano horizontal e armazena um único valor de altura. Como grafo, ela corresponde ao mapa de altura (ver @heightmap): cada célula é um vértice, ligado às células vizinhas, e a existência de cada aresta pode depender de um critério de transitabilidade, como a diferença de altura entre as células. Por armazenar uma altura por posição, a grade descreve a superfície do terreno, mas não representa cavidades nem estruturas sobrepostas.
 
-figura: exemplo de grade 2.5D
+\
+#figure(
+  caption: [Exemplo de grade 2.5D.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_grade_25d> \ #v(-1.5em)
 
 === Superfície Voxel
 
-Representação de terrenos utilizando voxels, permitindo a modelagem de superfícies complexas e detalhadas, com informações de altura e volume.
+Na superfície voxel, a representação volumétrica (ver @voxels) fornece os vértices do grafo: cada vértice corresponde a um _voxel_ da superfície, e as arestas ligam _voxels_ vizinhos na grade tridimensional. Diferentemente da grade 2.5D, essa estrutura registra altura e volume, o que permite representar regiões sobrepostas do terreno.
 
-figura: exemplo de superficie voxel
+\
+#figure(
+  caption: [Exemplo de superfície voxel.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_superficie_voxel> \ #v(-1.5em)
 
 === Grafo de Vértices
 
-Representação de terrenos onde os vértices da malha do terreno representam pontos navegáveis.
+No grafo de vértices, cada vértice da malha poligonal do terreno dá origem a um vértice navegável, e cada aresta liga dois vértices que são extremidades de uma mesma aresta da malha. A estrutura reaproveita a topologia da malha, sem criar vértices novos.
 
-figura: exemplo de grafo de vértices
+\
+#figure(
+  caption: [Exemplo de grafo de vértices.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_grafo_vertices> \ #v(-1.5em)
 
 === Grafo Dual
 
-Representação de terrenos onde os polígonos da malha do terreno representam regiões navegáveis, e as arestas conectam polígonos adjacentes.
+No grafo dual, cada polígono da malha corresponde a um vértice, que representa uma região navegável, e dois vértices são ligados por uma aresta quando os polígonos correspondentes compartilham uma aresta da malha. O número de vértices do grafo é, portanto, o número de polígonos da malha, e não o número de seus vértices. Essa construção é a base das malhas de navegação (_navmesh_), nas quais os polígonos são regiões caminháveis e a adjacência entre eles forma o grafo, conforme #cite(<snook_navmesh>, form: "prose"). A mesma ideia de adjacência entre triângulos é empregada na busca em triangulações, como em #cite(<demyen_buro_triangulation>, form: "prose").
 
-figura: exemplo de grafo dual
+\
+#figure(
+  caption: [Exemplo de grafo dual.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_grafo_dual> \ #v(-1.5em)
 
 == Avaliação de desempenho e estatísticas <avaliacao>
 
-ANOVA e post-hoc de Tukey.
+Esta seção apresenta as ferramentas estatísticas usadas para comparar medições de desempenho obtidas em condições diferentes. Medições como o tempo de execução variam de uma execução para outra, de modo que a diferença observada entre as médias de dois grupos pode resultar dessa variação, e não de uma diferença real entre os métodos comparados. Testes de hipótese permitem avaliar se a diferença observada é compatível com essa variação aleatória. Ferramentas desse tipo são usuais na análise de desempenho de sistemas, como discute #cite(<jain1991art>, form: "prose").
+
+=== ANOVA <anova>
+
+A ANOVA compara as médias de uma variável resposta entre dois ou mais grupos definidos por um fator. Sua hipótese nula afirma que todas as médias populacionais são iguais, e a hipótese alternativa afirma que ao menos uma delas difere das demais. A estatística do teste é a razão entre o quadrado médio (MQ) entre os grupos e o quadrado médio dentro dos grupos:
+
+\
+$ F = "MQ"_"entre" / "MQ"_"dentro" $ <formula_anova> \
+
+Valores grandes de $F$ indicam que a variação entre os grupos é grande em relação à variação interna, o que leva à rejeição da hipótese nula ao nível de significância adotado. A validade do teste depende de três pressupostos: independência das observações, normalidade dos resíduos e homocedasticidade, isto é, variâncias iguais entre os grupos @jurandir. A violação desses pressupostos pode alterar o nível de significância real do teste.
+
+=== Teste post hoc de Tukey <tukey>
+
+Quando a ANOVA rejeita a hipótese nula, ela indica que ao menos um par de médias difere, mas não identifica quais pares são. Testes _post hoc_ realizam essas comparações após a ANOVA. O teste de Tukey, ou diferença honestamente significativa (HSD, do inglês _honestly significant difference_), compara todos os pares de médias. Ele controla a taxa de erro da família de comparações, de modo que o número de pares comparados não aumente indevidamente a chance de declarar uma diferença falsa @jurandir.
+
+Para grupos com $n$ observações cada, a menor diferença significativa entre duas médias é dada por:
+
+\
+$ "HSD" = q_(alpha, k, nu) sqrt("MQ"_"dentro" / n) $ <formula_tukey> #v(1.5em)
+
+em que $q$ é a estatística da amplitude studentizada, $k$ é o número de grupos, $nu$ são os graus de liberdade do quadrado médio dentro dos grupos e $alpha$ é o nível de significância. Dois grupos são considerados diferentes quando a diferença absoluta entre suas médias excede o HSD.
 
 == Trabalhos relacionados
 === Johansson
@@ -929,55 +996,215 @@ ANOVA e post-hoc de Tukey.
 === Matriz de diferença
 figura: matrix de diferença
 
-= Desenvolvimento
-
-Neste capítulo, são apresentados os detalhes do desenvolvimento do trabalho, incluindo a arquitetura do sistema, a implementação dos algoritmos de busca, a geração de terrenos e a instrumentação para coleta de dados e testes.
-
 == Pipeline
 
-Ruido -> Heightmap -> Representação Navegável -> Algoritmo de Busca -> Coleta de métricas -> Análise estatística
+Cada execução do experimento segue a mesma sequência de etapas. A partir de uma semente, gera-se um mapa de altura por ruído de Perlin (ver @perlin). Quando o modelo de representação exige geometria, o mapa é convertido em uma malha triangular por extração de superfície. Em seguida, o modelo constrói o grafo navegável, os pares de consulta são associados aos vértices mais próximos do grafo, e os algoritmos de busca são executados sobre ele. As métricas de cada execução são registradas e, ao final, analisadas estatisticamente (ver @avaliacao).
 
-figura: pipeline do desenvolvimento
+\
+#figure(
+  caption: [Etapas do pipeline experimental.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_pipeline> \ #v(-1.5em)
 
-== IFCG e visualizador concorrente
+== IFCG e visualizador concorrente <ifcg>
 
-Motor gráfico para visualização de terrenos e caminhos encontrados pelos algoritmos de busca, permitindo a inspeção visual dos resultados.
+O IFCG é uma biblioteca de motor gráfico escrita em C++ sobre OpenGL, desenvolvida pelo autor e inicialmente vinculada à disciplina de Computação Gráfica do IFC Campus Blumenau#footnote[Disponível em: #link("https://github.com/andrevbastos/ifcg")]. Neste trabalho, ela é a camada de visualização: exibe o terreno gerado, a malha de navegação e os caminhos encontrados pelos algoritmos de busca, permitindo a inspeção visual dos resultados.
 
-figura: cena renderizada e diagrama taskmaster
+=== Arquitetura e _Singleton_
 
-== lwGraph\<T\>
+O núcleo da biblioteca é a classe `Engine`, que reúne a janela, o contexto, o renderizador, o tratamento de entrada e o gerenciador de tarefas. A aplicação mantém uma única janela e um único contexto, e por isso a classe segue o padrão _Singleton_ @gamma1994design: o construtor é privado, e a instância é criada por `Engine::init` e destruída por `Engine::terminate`.
 
-Estrutura de dados genérica para representar grafos, utilizada na implementação dos algoritmos de busca e na representação navegável dos terrenos.
+=== Janela e contexto
 
-== search.hpp
+A classe `Window` encapsula a criação da janela pela biblioteca GLFW e expõe suas dimensões e o identificador da janela. A classe `Context` inicializa a GLFW, carrega as funções do OpenGL com a biblioteca GLAD, processa os eventos da janela e informa o tempo decorrido desde a inicialização.
 
-Algoritmos de busca implementados em C++, incluindo Dijkstra, A\*, WA\* e GBFS, com suporte a aquisição de dados e coleta de métricas.
+=== Renderização e laço principal
 
-== Gerador de terrenos
+A classe `Renderer` mantém a fila de malhas desenhadas a cada quadro, além do _shader_ ativo, da câmera e dos planos de recorte, cujos valores padrão são campo de visão de 90 graus e planos próximo e distante em 0,1 e 100 unidades. O laço principal é executado por `Engine::loop`, que recebe um `LoopConfig` com funções de callback fornecidas pela aplicação. 
 
-Ferramenta para geração de terrenos 3D, permitindo a criação de modelos realistas com diferentes características e propriedades.
+Em cada iteração, as tarefas pendentes destinadas à thread principal são executadas antes da leitura de entrada e novamente antes do corpo do laço. Em seguida, ocorrem a atualização da câmera, a renderização da fila e a troca de buffers. Quando há limite de quadros por segundo, a thread aguarda o tempo restante do quadro.
 
-figura: exemplo de diferentes representações navegaveis do mesmo terreno
+=== Malhas e composição
 
-== GraphModel, GraphFactory, isTranversable
+`MeshBase` define a interface comum das malhas, com a matriz de modelo e as transformações de translação, escala, rotação e reflexão. `Mesh` armazena uma malha indexada, gerencia os buffers de vértices e de índices e a desenha por meio de `glDrawElements`. `MeshTree` implementa o padrão _Composite_ @gamma1994design: seus filhos são malhas simples ou compostas, e o desenho é repassado a cada filho com a matriz de modelo acumulada do nó pai. Dessa forma, uma malha simples e uma composta são tratadas pela mesma interface.
 
-Classes para modelar, fabricar e verificar a traversabilidade de grafos.
+\
+#figure(
+  caption: [Diagrama de classes do padrão _Composite_ nas malhas do IFCG.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_mesh_composite> \ #v(-1.5em)
 
-== Instrumentação
+=== Shaders e buffers
 
-Ferramentas e técnicas para coleta de dados e testes, incluindo aquisição de métricas e análise estatística.
+`Shader` compila e vincula os programas de sombreamento escritos em GLSL (do inglês _OpenGL Shading Language_). As classes `VBO` (do inglês _vertex buffer object_), `VAO` (do inglês _vertex array object_) e `EBO` (do inglês _element buffer object_) encapsulam, respectivamente, os buffers de vértices, a descrição dos atributos de vértice e os buffers de índices. Essa organização segue o pipeline de renderização descrito em #cite(<learnopengl>, form: "prose").
 
-=== Statistics
+=== Câmera e entrada
 
-Classe para coletar e exportar métricas.
+`Camera` atualiza as matrizes de visão e de projeção a partir do campo de visão e dos planos de recorte, e recebe a movimentação pela janela da GLFW. `Keys` associa funções de callback a teclas e ações definidas pela aplicação.
 
-=== acquire.sh
+=== Concorrência e _TaskMaster_
 
-Script para aquisição de métricas, executando os algoritmos de busca em diferentes representações navegáveis de terrenos e coletando os resultados.
+O contexto do OpenGL está associado à thread que o ativa, normalmente a principal, e as chamadas à API devem partir dela. O IFCG separa, portanto, o trabalho computacional, que pode ser executado em paralelo, da atualização da unidade de processamento gráfico (GPU, do inglês _graphics processing unit_), que permanece na thread principal.
 
-=== CLI
+O _TaskMaster_ implementa esse trabalho paralelo como um _pool_ de threads. O número de threads trabalhadoras é uma a menos que o de unidades de processamento disponíveis, mantendo-se pelo menos uma. As tarefas entram em três filas, de prioridade alta, média e baixa, e cada trabalhadora retira a próxima tarefa da fila de maior prioridade que não esteja vazia. A sincronização usa um `mutex` e uma variável de condição, e as threads são `std::jthread`, que recebem um `std::stop_token` para encerramento cooperativo #cite(label("williams2019c++"), form: "prose").
 
-Interface de linha de comando para executar os testes, coletas ou exportações de dados.
+\
+#figure(
+  caption: [Pool de threads e filas de prioridade do _TaskMaster_.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 85%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_taskmaster> \ #v(-1.5em)
+
+`Engine` oferece três operações sobre o _TaskMaster_. `runAsync` envia uma tarefa ao _pool_. `runOnMainThread` enfileira uma função para execução na thread principal, na próxima iteração do laço. `runAsyncThenMain` combina as duas: a tarefa é calculada em uma trabalhadora, e o resultado é entregue a uma função que roda na thread principal. No visualizador, a geração do ruído e da geometria do terreno e a construção do grafo de navegação ocorrem nas trabalhadoras, enquanto a criação das malhas e o envio à GPU ficam na thread principal.
+
+\
+#figure(
+  caption: [Cena renderizada pelo visualizador do TCC.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_cena_visualizador> \ #v(-1.5em)
+
+== lwGraph\<T\> <lwgraph>
+
+O grafo usado nos experimentos é representado pela classe `lwGraph<T>`, uma estrutura genérica em que cada vértice armazena um dado do tipo `T`. A biblioteca Graph, desenvolvida pelo autor, define a versão base `common::lwGraph<T>` e a especialização `undirected::lwGraph<T>`, usada neste trabalho, que trata as arestas como não direcionadas.
+
+Os vértices são armazenados em um vetor contíguo (`std::vector<T>`), e a lista de adjacência é um vetor de vetores de arestas (`std::vector<std::vector<lwEdge>>`). Cada `lwEdge` guarda apenas o índice do vértice de destino e o peso, sem objetos individuais para nós ou arestas. Essa disposição mantém os dados em blocos contíguos, o que favorece a localidade de memória quando a busca percorre os vizinhos de um vértice.
+
+Na especialização não direcionada, `addEdge` insere a aresta nas listas dos dois vértices, de modo que ela vale nos dois sentidos, como descrito em @grafos. Depois de construído, o grafo não é modificado pelos algoritmos de busca, que o recebem por referência constante. Por isso, uma mesma instância pode ser lida por mais de uma thread, sem sincronização adicional.
+
+Para o cálculo de memória, a função `graphMemoryBytes` soma o tamanho do objeto do grafo, os dados dos vértices, os vetores de adjacência e a capacidade alocada para as arestas. Usa-se a capacidade, e não o tamanho, porque ela inclui a folga reservada pelo crescimento dos vetores, que também ocupa memória.
+
+\
+#figure(
+  caption: [Representação do `lwGraph`: vetor de vértices e vetores de adjacência.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 75%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_lwgraph> \ #v(-1.5em)
+
+== search.hpp <search>
+
+Os algoritmos de busca estão no arquivo `search.hpp`, no _namespace_ `search`. Cada um deles é uma função genérica sobre `common::lwGraph<T>`, que recebe o vértice inicial, o vértice objetivo e, quando necessária, uma heurística. Todos retornam uma estrutura `SearchResult`, com o caminho encontrado, o custo acumulado e os contadores de execução. 
+
+Os quatro algoritmos têm implementações separadas. Dijkstra não é tratado como A\* com heurística nula, para que cada função siga a lógica descrita na fundamentação.
+
+=== Algoritmos
+
+Dijkstra ordena a lista aberta pelo custo acumulado `g` e encerra quando o vértice objetivo é retirado da fila. O A\* ordena pela soma `f = g + h`, usando como heurística a distância euclidiana tridimensional entre o vértice e o objetivo. O Weighted A\* usa `f = g + w·h`, com o fator `w` igual a 1,5 nos experimentos. A Greedy Best-First Search (GBFS) ordena somente pela heurística. 
+
+Como o custo acumulado não influencia a ordem, cada vértice entra na lista aberta uma única vez, na primeira vez em que é descoberto. Um custo menor encontrado depois apenas atualiza o pai do vértice e o custo registrado.
+
+=== Aquisição de dados
+
+Os contadores são incrementados dentro dos próprios algoritmos. `expanded` registra os vértices retirados da lista aberta e processados, `generated` registra as inserções na lista aberta e `peakOpen` registra o maior tamanho que a lista atinge durante a busca. Por fazerem parte da execução, esses valores são os mesmos em toda repetição com o mesmo grafo e os mesmos vértices.
+
+O tempo de execução é medido com `std::chrono::steady_clock` ao redor da chamada do algoritmo, sem incluir a construção do grafo nem a geração do terreno. Em seguida, calcula-se o comprimento geométrico do caminho sobre a superfície. Cada segmento é amostrado em subpassos de no máximo 0,25 unidade horizontal, com a altura obtida por interpolação bilinear do mapa de altura. Esse valor independe dos pesos definidos no grafo, ao contrário do custo acumulado.
+
+Os pontos de início e de fim de cada par de consulta são associados ao vértice mais próximo do grafo por busca linear, e a distância de ajuste é registrada. Se algum algoritmo não encontrar caminho, a aquisição é interrompida com erro, pois a ausência de caminho indicaria falha na construção do grafo.
+
+== Gerador de terrenos <gerador>
+
+O gerador produz o mapa de altura de cada terreno a partir de um conjunto de parâmetros e de uma semente. Sua implementação está no _namespace_ `perlin2D`, e os parâmetros ficam reunidos na estrutura `NoiseConfig`: largura e altura do mapa, comprimento de onda base (`wave`), frequência inicial (`freq`), lacunaridade (`lac`), amplitude (`amp`), persistência (`pers`), expoente (`exp`), semente (`seed`) e número de oitavas (`octaves`).
+
+Os gradientes de cada ponto da grade são vetores unitários cuja direção é obtida por uma função de embaralhamento (_hash_) sobre as coordenadas inteiras e a semente. Assim, o mesmo par de coordenadas e semente sempre produz o mesmo gradiente, sem que seja necessário armazenar uma tabela de gradientes. Os valores entre os cantos de cada célula são combinados pela função quíntica de suavização (ver @sec_interpolacao).
+
+Para cada oitava $i$, o gerador sorteia um deslocamento de 0 a 1000 em cada eixo, a partir de um gerador de números aleatórios inicializado com a semente, e usa a semente derivada $"semente" + 1013 i$ para os gradientes. A frequência de cada oitava cresce pela lacunaridade, e a amplitude decresce pela persistência, como descrito em @oitavas.
+
+A soma das oitavas é dividida pela raiz quadrada da soma dos quadrados das amplitudes. Essa normalização impede que a persistência, isoladamente, altere a amplitude do relevo. Em seguida, o valor é multiplicado pelo fator `amp`, limitado ao intervalo $[-1, 1]$, reescalado para $[0, 1]$ e elevado ao expoente `exp`. Cada valor $v$ desse mapa é convertido em uma altura $y = 1 + v (H - 1)$, em que $H$ é a escala vertical do terreno.
+
+A função `generateOctaveMaps` produz um mapa por oitava, normalizado isoladamente, e `saveNoiseAsPNG` grava qualquer mapa em escala de cinza.
+
+\
+#figure(
+  caption: [Diferentes representações navegáveis do mesmo terreno.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  // #image("", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_representacoes_terreno> \ #v(-1.5em)
+
+== GraphModel e GraphFactory <graphmodel>
+
+Cada representação navegável é descrita por uma estrutura `GraphModel`, com três campos: o nome usado na linha de comando e nos arquivos de saída (`name`), a indicação de exigência de geometria (`requiresGeometry`) e a fábrica do grafo (`create`). A fábrica é uma `std::function` que recebe um `GraphBuildInput` e devolve um `NavigationGraph`, alias de `undirected::lwGraph<Vertex3D>`. O `GraphBuildInput` reúne referências ao mapa de altura e à malha extraída, além da largura, da escala vertical e da profundidade do terreno.
+
+O campo `requiresGeometry` indica se a fábrica consome a malha. O laço experimental usa essa indicação para decidir se extrai a geometria antes de construir o grafo. Os quatro modelos registrados são:
+
+- `2_5d` com `createGrid2_5D`, que lê apenas o mapa de altura;
+- `voxel` com `createVoxelGraph`, que lê apenas o mapa de altura;
+- `vertex` com `createVertexToVertex`, que parte da malha;
+- `dual` com `createPolygonToPolygon`, que também parte da malha.
+
+#text()[] \ #v(-1.5em)
+
+A `createGrid2_5D` cria um vértice por pixel do mapa de altura, posicionado na altura $y = 1 + v (H - 1)$. Cada célula se liga aos vizinhos a leste, ao sul, a sudeste e a sudoeste, de modo que a vizinhança é de oito direções. O peso de cada aresta é a distância euclidiana tridimensional entre os vértices.
+
+A `createVoxelGraph` cria um vértice por coluna do volume, com a altura arredondada para um número inteiro de voxels. Cada vértice se liga apenas aos vizinhos a leste e ao sul, ou seja, a vizinhança é de quatro direções sobre a superfície. O peso também é a distância euclidiana tridimensional, o que faz a diferença de altura entre colunas contribuir para o custo.
+
+A `createVertexToVertex` cria um vértice para cada vértice da malha. Para cada triângulo, conecta seus três vértices por arestas, e uma aresta repetida entre triângulos vizinhos é inserida uma única vez. 
+
+A `createPolygonToPolygon` cria um vértice para cada triângulo, posicionado no seu baricentro. Duas faces que compartilham uma aresta da malha são ligadas por uma aresta cujo peso é a distância entre os baricentros. Essa fábrica supõe que vértices compartilhados entre triângulos tenham exatamente as mesmas coordenadas na malha.
+
+Nenhuma fábrica aplica critério de transitabilidade. Todas as conexões geradas são mantidas, e a diferença de altura entre os vértices afeta apenas o peso das arestas.
+
+== Instrumentação <instrumentacao>
+
+A instrumentação reúne os mecanismos que registram as medições durante os testes: o procedimento que gera os terrenos e executa as buscas, a classe que acumula e exporta os resultados, o script que repete as execuções em condições controladas e a interface de linha de comando que dá acesso a esses recursos.
+
+=== Procedimento dos testes <procedimento_testes>
+
+As três variáveis são avaliadas por funções próprias, `testScale`, `testLacunarity` e `testPersistence`, que seguem o mesmo procedimento. Cada teste executa um número de passos. Em cada passo, são gerados terrenos com a configuração correspondente à variável testada. Cada terreno recebe uma semente sorteada a partir da semente base da execução, e seu grafo é construído pela representação selecionada. Em seguida, são usados dois pares de consulta sobre o terreno, e cada algoritmo é executado sobre cada par. Os resultados de um terreno só são registrados depois que todos os pares e algoritmos foram executados.
+
+Na escala, a dimensão do terreno cresce a cada passo, e a altura e o comprimento de onda acompanham a dimensão, de modo que apenas a resolução muda entre os passos. Na lacunaridade e na persistência, a dimensão e o comprimento de onda são fixos, e o parâmetro testado cresce linearmente do primeiro ao último passo. Todos os testes usam seis oitavas.
+
+Se o grafo resultante não tiver vértices, o terreno é refeito com outra semente. Se algum algoritmo não encontrar caminho entre os pares, a execução é interrompida com erro, pois isso indicaria falha na construção do grafo.
+
+=== Statistics <statistics>
+
+A classe `Statistics` acumula em memória os registros de cada execução, protegidos por um mutex, o que permite registrar resultados a partir de mais de uma thread. Cada registro, do tipo `Results`, reúne:
+
+- identificação: algoritmo, valor da variável testada, semente do terreno e índice do par de consulta;
+- grafo: tempo de construção, número de vértices e de arestas e memória estrutural;
+- busca: custo do caminho, tempo de execução, número de vértices do caminho e comprimento geométrico;
+- contadores: vértices expandidos, vértices gerados e pico da lista aberta.
+
+#text()[] \ #v(-1.5em)
+
+A exportação grava um arquivo de valores separados por vírgula (CSV, do inglês _comma-separated values_), com cabeçalho e uma linha por registro. Os campos opcionais ficam vazios quando não se aplicam ao registro, e os valores reais são escritos com até seis casas decimais, sem zeros à direita. O nome da coluna da variável testada é informado pelo próprio teste: Escala, Lacunaridade ou Persistência.
+
+=== acquire.sh <acquire>
+
+O script `acquire.sh` executa `tcc stats` várias vezes para uma combinação de variável e representação, com uma pausa entre as execuções. Seus valores padrão são cinco execuções, dez repetições por passo, quatro passos e uma pausa de arrefecimento de 60 segundos. A semente base é fixa, de modo que as representações medem os mesmos terrenos, e a semente de cada execução é a semente base somada ao índice da execução.
+
+Antes da compilação em modo _Release_, e antes e depois de cada execução, o script verifica se o notebook está ligado à tomada, porque a frequência do processador muda na bateria. Se não estiver, a coleta é abortada. A execução é fixada a um núcleo com `taskset`, e os arquivos de saída e os registros da saída padrão e de erro ficam em uma pasta própria. Um manifesto registra o horário de início, a duração e o código de saída de cada execução.
+
+O script `collect_all.sh` executa `acquire.sh` para as três variáveis e as quatro representações. Ele interrompe a coleta na primeira falha de compilação ou de energia, impede a suspensão do sistema durante a coleta com `systemd-inhibit` e, ao final, lista as execuções cujo código de saída não é zero.
+
+=== Interface de linha de comando (CLI) <cli>
+
+A interface de linha de comando (CLI, do inglês _command-line interface_) é construída com a biblioteca CLI11 e reúne três subcomandos. O subcomando `test` executa uma geração visual com os parâmetros informados. O subcomando `save` grava o mapa de ruído em um arquivo PNG, com a opção de salvar cada oitava separadamente. O subcomando `stats` executa a aquisição de uma variável em uma representação e recebe o número de repetições, o número de passos, a semente base e o diretório de saída. A CLI11 valida os parâmetros e rejeita opções desconhecidas e valores fora dos intervalos permitidos.
 
 = Metodologia
 
