@@ -1208,15 +1208,17 @@ A interface de linha de comando (CLI, do inglês _command-line interface_) é co
 
 = Metodologia
 
-Neste capítulo, são descritos os métodos e procedimentos utilizados para conduzir a pesquisa, incluindo o ambiente experimental, as variáveis analisadas, os níveis de teste, o procedimento de coleta de dados e as métricas utilizadas para avaliação dos resultados.
+Este capítulo descreve o método adotado para responder à questão central deste trabalho. Inicialmente, caracteriza-se o tipo de pesquisa. Em seguida, apresentam-se o ambiente experimental, as variáveis e os níveis de teste, o procedimento de coleta e as métricas, o protocolo estatístico utilizado na análise e as ameaças à validade dos resultados.
 
 == Tipo de pesquisa
 
-Definição do tipo de pesquisa realizada, incluindo a abordagem experimental, comparativa e estatística adotada para avaliar o desempenho dos algoritmos de busca em diferentes representações navegáveis de terrenos 3D.
+Este trabalho caracteriza-se como uma pesquisa experimental de natureza quantitativa, com abordagem comparativa e análise estatística. Os experimentos são conduzidos em terrenos gerados proceduralmente, nos quais cada fator de geração é variado isoladamente, mantendo-se os demais fixos. Os algoritmos de busca e as representações navegáveis são comparados sobre os mesmos terrenos, e as diferenças entre eles são avaliadas por meio de testes estatísticos sobre as medições coletadas.
 
 == Ambiente
 
-Configuração do ambiente experimental, incluindo hardware, software, bibliotecas e ferramentas utilizadas para a implementação dos algoritmos de busca, geração de terrenos e coleta de métricas.
+Os experimentos foram executados em um notebook com processador Intel Core i5-1235U, de arquitetura híbrida, com 12 processadores lógicos e 15 GiB de memória. A coleta foi feita em um sistema isolado, iniciado a partir de um pendrive bootável com Arch Linux, kernel 7.2.14-arch1-1. O código foi compilado com o compilador GNU (GCC, do inglês GNU Compiler Collection) 16.2.1 e com o CMake 4.4.5, em modo Release e padrão C++20. O código dos experimentos corresponde ao commit 87233df do repositório.
+
+As dependências são as seguintes: a biblioteca CLI11, na versão 2.7.2, incluída no repositório; a nlohmann/json, na versão 3.11.3, obtida por URL; as bibliotecas glm 1.0.3 e Mesa 26.2.6, instaladas no sistema; e as bibliotecas IFCG e graph_project, repositórios privados do autor, nos commits 6dc69ea e 98cdadf. Durante a coleta, o governador de frequência era powersave, com o driver intel_pstate, e a busca foi fixada no núcleo 2 com taskset.
 
 == Variáveis
 
@@ -1226,23 +1228,58 @@ figura: tabela de variáveis independentes e dependentes
 
 == Níveis
 
-Definição dos níveis de teste para cada variável, incluindo diferentes representações navegáveis de terrenos, algoritmos de busca e configurações de parâmetros utilizados nos experimentos.
+As variáveis independentes são a representação navegável, o algoritmo de busca e os parâmetros de geração do terreno. Os parâmetros de escala, lacunaridade e persistência são testados um de cada vez, com os demais mantidos nos valores padrão definidos no código. As métricas de desempenho são o tempo de execução, o número de vértices expandidos e o pico da lista aberta. A métrica de qualidade do caminho é o custo relativo, definido como o custo do caminho dividido pelo custo obtido pelo algoritmo de Dijkstra no mesmo terreno, representação e par de consulta. A @tab_variaveis resume essas variáveis.
 
-figura: tabela de níveis de teste para cada variável
+\
+#figure(
+  caption: [Variáveis independentes e dependentes do experimento.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, auto, 1fr),
+    align: left,
+    [*Tipo*], [*Variável*], [*Descrição*],
+    [Independente], [Representação navegável], [Grade 2.5D, superfície voxel, grafo de vértices e grafo dual da malha],
+    [Independente], [Algoritmo de busca], [Dijkstra, A\*, Weighted A\* (peso 1,5) e Greedy Best-First Search],
+    [Independente], [Parâmetro de geração], [Escala, lacunaridade e persistência \ (testados separadamente)],
+    [Dependente (desempenho)], [Tempo de execução], [Tempo da busca, excluída a construção do grafo],
+    [Dependente (desempenho)], [Vértices expandidos], [Esforço da busca, medido em vértices expandidos],
+    [Dependente (desempenho)], [Pico da lista aberta], [Maior número de elementos simultâneos na lista aberta],
+    [Dependente (qualidade)], [Custo relativo], [Custo do caminho dividido pelo custo do Dijkstra no mesmo par de consulta],
+  )
+] <tab_variaveis>
 
 == Procedimento e métricas
 
-Descrição do procedimento de coleta de dados e das métricas utilizadas para avaliar o desempenho dos algoritmos de busca.
+O procedimento de coleta é executado separadamente para cada teste (escala, lacunaridade e persistência) e para cada representação navegável. Em cada teste, o parâmetro avaliado assume quatro níveis, e para cada nível são avaliados 50 terrenos, distribuídos em cinco execuções independentes com dez repetições cada. Cada execução é um processo separado, com semente própria derivada de uma semente base fixa, de modo que todas as representações medem os mesmos terrenos.
+
+Para cada terreno, o mapa de altura é gerado por ruído de Perlin com seis oitavas e convertido no grafo da representação avaliada. Em seguida, são definidas as duas diagonais do terreno como consultas de canto a canto. Os pontos de início e de destino são associados ao vértice mais próximo do grafo, e cada algoritmo é executado sobre cada consulta. Um terreno cujo grafo fica vazio é gerado novamente com outra semente. Se algum algoritmo não encontra caminho, a execução é interrompida, pois isso indicaria falha na construção do grafo.
+
+As métricas registradas são o tempo de execução, medido em torno da chamada de busca e sem a construção do grafo; o número de vértices expandidos; o pico da lista aberta; e o custo relativo, calculado como o custo do caminho dividido pelo custo do algoritmo de Dijkstra na mesma consulta. Entre as execuções, há uma pausa de 60 segundos e uma espera até que a temperatura do processador fique abaixo de 45 °C. Execuções com throttling térmico são refeitas, em até três tentativas, e o manifesto registra cada uma delas.
 
 == Protocolo estatístico
 
-Descrição do protocolo estatístico utilizado para análise dos dados coletados, incluindo testes de hipótese, intervalos de confiança e modelos de regressão.
+A unidade experimental é o terreno. Para cada terreno, calcula-se a média dos logaritmos naturais das medidas das duas consultas, e todas as métricas são analisadas nessa escala logarítmica, já que tempos, contagens e custos tendem a variar de forma multiplicativa.
+
+Os dados são analisados por uma ANOVA em modelo de split-plot, conforme @anova. O nível do parâmetro é um fator entre terrenos, pois cada nível tem seus próprios terrenos. O algoritmo e a representação são fatores dentro do terreno, medidos sobre o mesmo terreno. Cada efeito dentro do terreno é testado contra sua interação com o terreno, e os graus de liberdade são corrigidos pelo método de Greenhouse-Geisser quando a esfericidade não é satisfeita. O nível de significância é α = 0,05.
+
+O teste post-hoc de Tukey, descrito em @tukey, é aplicado depois da ANOVA de duas formas. Dentro do terreno, comparam-se as representações para cada algoritmo e os algoritmos para cada representação, com o erro da interação. Entre níveis, comparam-se os níveis para cada par de algoritmo e representação, tratados como grupos independentes. O custo relativo é analisado apenas para a Weighted A\* e a Greedy Best-First Search, já que o custo relativo do Dijkstra e do A\* é igual a 1 por definição.
+
+A normalidade dos resíduos é verificada pelo teste de Shapiro-Wilk, separadamente dentro do terreno e entre terrenos. Como esse teste rejeita desvios pequenos quando o número de observações é grande, a estatística W é lida junto com o valor de p. As análises são feitas em Python, com as versões listadas na seção de Ambiente.
 
 == Ameaças
 
-Identificação e análise das ameaças à validade interna e externa do estudo, incluindo possíveis fontes de viés, limitações do método e impacto sobre os resultados obtidos.
+Quanto à validade interna, o tempo de execução inclui a inicialização dos vetores de estado da busca, que cresce com o número de vértices e pesa mais, proporcionalmente, em buscas com poucas expansões. Como terrenos cujo grafo fica vazio são descartados e refeitos, a taxa de descarte pode variar entre representações e introduzir viés de seleção. 
+
+Quanto à validade de construção, o peso da Weighted A\* foi fixado em $1.5$, de modo que os resultados se referem a esse valor. O custo relativo é comparável dentro de cada representação, pois usa o mesmo grafo como referência, mas não é diretamente comparável entre representações.
+
+Quanto à validade estatística, os resíduos não seguem distribuição normal pelo teste de Shapiro-Wilk, sobretudo dentro do terreno. A transformação logarítmica e o desenho balanceado, com o mesmo número de terrenos por nível, reduzem o efeito dessa violação sobre a ANOVA, mas os valores de p devem ser lidos com cautela.
+
+Quanto à validade externa, os terrenos são gerados apenas por ruído de Perlin, em um único computador e sem obstáculos dinâmicos. Os resultados se referem a esse tipo de terreno e a esse ambiente.
 
 = Resultados e Discussão
+
+
 
 = Conclusão
 

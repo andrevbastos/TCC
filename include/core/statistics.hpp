@@ -170,6 +170,27 @@ inline std::vector<QueryPair> generateQueryPairs(
     };
 }
 
+// Configuração de ruído do teste de escala, compartilhada com o mcbench (mc_bench.hpp)
+// para que as duas medições usem exatamente o mesmo terreno. lac e pers ficam no padrão
+// do NoiseConfig.
+inline perlin2D::NoiseConfig scaleNoiseConfig(int dimension, unsigned int terrainSeed) {
+    return {
+        .width = dimension,
+        .height = dimension,
+        .wave = dimension / 2,
+        .freq = 1.0f,
+        .amp = 1.0f,
+        .exp = 1.0f,
+        .seed = terrainSeed,
+        .octaves = 6
+    };
+}
+
+// Volume cúbico: a altura acompanha a dimensão no teste de escala.
+inline int scaleHeightScale(int dimension) {
+    return dimension;
+}
+
 void testScale(
     uint steps,
     uint repetitions,
@@ -193,23 +214,14 @@ void testScale(
         const int dimension = 500 + (static_cast<int>(step) * 100);
         // Volume cúbico e terreno esticado: altura e comprimento de onda acompanham a dimensão
         // (heightScale / wave = 2, como em lac/pers), então só a resolução muda entre os passos.
-        const int heightScale = dimension;
+        const int heightScale = scaleHeightScale(dimension);
 
         for (std::size_t repetition = 0; repetition < repetitions; ++repetition) {
             // Refaz a repetição apenas se o grafo sair vazio.
             while (true) {
                 const unsigned int terrainSeed = seedDistribution(seedGenerator);
 
-                perlin2D::NoiseConfig config = {
-                    .width = dimension,
-                    .height = dimension,
-                    .wave = dimension / 2,
-                    .freq = 1.0f,
-                    .amp = 1.0f,
-                    .exp = 1.0f,
-                    .seed = terrainSeed,
-                    .octaves = 6
-                };
+                perlin2D::NoiseConfig config = scaleNoiseConfig(dimension, terrainSeed);
 
                 auto noise = perlin2D::generateNoiseMap(config);
                 std::vector<Vertex> geometryVertices;

@@ -15,6 +15,7 @@
 #include <graph/util/node_data.hpp>
 
 #include "core/statistics.hpp"
+#include "core/mc_bench.hpp"
 #include "core/util.hpp"
 
 namespace fs = std::filesystem;
@@ -197,6 +198,15 @@ int main(int argc, char* argv[]) {
         } else if (statsTestName == "pers") {
             testPersistence(steps, repetitions, statsSeed, path, graphModel, algorithms);
         }
+    });
+
+    std::vector<unsigned int> mcSeeds;
+    std::string mcOutput;
+    auto mcbenchCmd = app.add_subcommand("mcbench", "Mede o tempo do Marching Cubes (terreno do passo 500 de scale)");
+    mcbenchCmd->add_option("seeds", mcSeeds, "Sementes dos terrenos")->required();
+    mcbenchCmd->add_option("-o,--out", mcOutput, "Arquivo CSV de saída")->required();
+    mcbenchCmd->callback([&]() {
+        benchMarchingCubes(mcSeeds, mcOutput);
     });
 
     CLI11_PARSE(app, argc, argv);
