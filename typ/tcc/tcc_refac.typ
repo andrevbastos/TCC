@@ -349,10 +349,10 @@ Para responder à questão central, é necessário realizar uma análise detalha
 
 + #text()[*Comparação entre representações navegáveis.* \
 As mesmas instâncias de terreno são convertidas em quatro grafos diferentes e avaliadas com os mesmos algoritmos:
-  - a partir do mapa de altura: grade de altura (2.5D) e superfície voxel;
+  - a partir do mapa de altura: grade de altura (2.5D) e grade voxelizada;
   - a partir da malha poligonal: grafo de vértices e grafo dual.]
 + #text()[*Metodologia experimental reprodutível.* \
-Os terrenos são gerados proceduralmente (ver @geracao_terrenos) a partir de parâmetros controlados (escala, lacunaridade, persistência) e semente registrada, e os resultados passam por análise estatística (análise de variância, ou ANOVA, e testes post hoc).]
+Os terrenos são gerados proceduralmente (ver @geracao_terrenos) a partir de parâmetros controlados (escala, lacunaridade, persistência e comprimento de onda) e semente registrada, e os resultados passam por análise estatística (análise de variância, ou ANOVA, e testes post hoc).]
 + #text()[*Implementação open-source.* \
 Inclui uma biblioteca de grafos leve e o motor gráfico IFCG, com visualização das malhas e dos caminhos.]
 
@@ -361,8 +361,8 @@ Inclui uma biblioteca de grafos leve e o motor gráfico IFCG, com visualização
 O objetivo geral do estudo é analisar comparativa e estatisticamente o desempenho de algoritmos clássicos de _pathfinding_ em diferentes representações navegáveis de terrenos 3D. Mais especificamente, os objetivos incluem:
 
 + Implementar uma biblioteca de grafos e os algoritmos Dijkstra, A\*,  Weighted A\* e Greedy Best-First Search.
-+ Desenvolver um gerador procedural de terrenos baseado em ruído de Perlin, parametrizado por escala, lacunaridade e persistência.
-+ Construir quatro representações navegáveis a partir do terreno: grade de altura, superfície voxel, grafo de vértices e grafo dual da malha.
++ Desenvolver um gerador procedural de terrenos baseado em ruído de Perlin, parametrizado por escala, lacunaridade, persistência e comprimento de onda.
++ Construir quatro representações navegáveis a partir do terreno: grade de altura, grade voxelizada, grafo de vértices e grafo dual da malha.
 + Desenvolver um ambiente 3D com execução concorrente para visualização das malhas e dos caminhos encontrados.
 + Automatizar a coleta de métricas e analisar estatisticamente os resultados obtidos.
 
@@ -546,15 +546,15 @@ Na implementação do algoritmo de Dijkstra, é considerado o pseudocódigo apre
     + para cada $v in V$ faça
       + $g_v arrow.l inf$
       + $p_v arrow.l "nil"$
-    + $d_s arrow.l 0$
+    + $g_s arrow.l 0$
     + $Q arrow.l V$
     + $S arrow.l nothing$
     + enquanto $Q != nothing$ faça
       + $u arrow.l "pop"(Q)$
       + $S arrow.l S union {u}$
       + para cada $"vértice" v in "adj"(u)$ faça
-        + se $v in Q$ e $[g_v > d_u + W_(u, v)]$ então
-          + $g_v arrow.l (d_u + W_(u,v))$
+        + se $v in Q$ e $[g_v > g_u + W_(u, v)]$ então
+          + $g_v arrow.l (g_u + W_(u,v))$
           + $p_v arrow.l u$
   ]
   #v(0.5em)
@@ -565,9 +565,9 @@ Na @fig_dijkstra, o algoritmo de Dijkstra inicializa a distância $g_v$ de todos
 - $Q$: Uma fila de prioridade mínima (ou _min-PQ_, do inglês _Minimum Priority Queue_) que armazena os vértices ainda não processados ordenados pela menor distância conhecida, de modo que o vértice de menor distância seja sempre o primeiro a sair.
 - $S$: Um conjunto que armazena os vértices cuja distância mínima já foi determinada. Os caminhos são reconstruídos a partir dos predecessores $p_v$.
 
-O laço principal do algoritmo repete-se enquanto $Q$ não estiver vazia. Em cada iteração, a operação $"pop"(Q)$ retorna o vértice $u$ com menor distância estimada $d_u$ e o remove da fila. Em seguida, $u$ é incluído em $S$. Como os pesos são não-negativos, nenhum caminho que passe por vértices ainda não processados pode reduzir $d_u$, o que garante que essa distância já é a mínima.
+O laço principal do algoritmo repete-se enquanto $Q$ não estiver vazia. Em cada iteração, a operação $"pop"(Q)$ retorna o vértice $u$ com menor distância estimada $g_u$ e o remove da fila. Em seguida, $u$ é incluído em $S$. Como os pesos são não-negativos, nenhum caminho que passe por vértices ainda não processados pode reduzir $g_u$, o que garante que essa distância já é a mínima.
 
-Para cada vértice $v$ adjacente a $u$ (ver @lista_adjacencia) que ainda está em $Q$, verifica-se se passar por $u$ produz um caminho melhor do que o já conhecido. Se $g_v > d_u + W_(u,v)$, atualiza-se $g_v$ para $d_u + W_(u,v)$ e registra-se $u$ como predecessor de $v$ em $p_v$. Essa operação é chamada de relaxamento da aresta $(u, v)$.
+Para cada vértice $v$ adjacente a $u$ (ver @lista_adjacencia) que ainda está em $Q$, verifica-se se passar por $u$ produz um caminho melhor do que o já conhecido. Se $g_v > g_u + W_(u,v)$, atualiza-se $g_v$ para $g_u + W_(u,v)$ e registra-se $u$ como predecessor de $v$ em $p_v$. Essa operação é chamada de relaxamento da aresta $(u, v)$.
 
 Ao término do laço, para cada vértice alcançável a partir de $s$, $g_v$ contém a distância mínima entre $s$ e $v$. Os predecessores $p_v$ permitem reconstruir o caminho mínimo, percorrendo-os do destino até $s$.
 
@@ -743,7 +743,7 @@ em que $h(i, j)$ é a altura armazenada naquele ponto. Dessa forma, o plano hori
  Fonte: Elaborado pelo autor.
 ] <fig_mapa_altura> \ #v(-1.5em)
 
-Dessa forma, um pixel totalmente preto ($v = 0$) resultará em uma altura de 0, enquanto um pixel totalmente branco ($v = 255$) atingirá a altura máxima estipulada ($H$), permitindo um controle preciso sobre a amplitude do relevo gerado.
+Dessa forma, um pixel totalmente preto ($v = 0$) resultará na altura mínima, enquanto um pixel totalmente branco ($v = 255$) atingirá a altura máxima estipulada ($H$), permitindo um controle preciso sobre a amplitude do relevo gerado.
 
 Por fim, são criadas faces conectando cada vértice com seus vizinhos diretos, formando uma malha de triângulos que representa a superfície do terreno. Essa malha pode então ser utilizada como cenário de teste para os algoritmos de _pathfinding_, permitindo avaliar seu desempenho em ambientes tridimensionais complexos.
 
@@ -883,17 +883,17 @@ Esta seção descreve formas de representar a geometria visual de terrenos em um
 
 === Voxels <voxels>
 
-O _voxel_ é a unidade cúbica que divide o espaço tridimensional em uma grade regular, de modo análogo ao pixel em imagens bidimensionais. Em uma representação volumétrica de terreno, cada _voxel_ pode indicar se a posição correspondente está preenchida por material ou vazia. Essa abordagem descreve cavidades e estruturas sobrepostas, que um mapa de altura não armazena, já que ele guarda apenas uma altura para cada posição horizontal.
+O _voxel_ é a unidade cúbica que divide o espaço tridimensional em uma grade regular, de modo análogo ao pixel em imagens bidimensionais. Em uma representação volumétrica de terreno, cada _voxel_ pode indicar se a posição correspondente está preenchida por material ou vazia. Essa abordagem descreve cavidades e estruturas sobrepostas, que um mapa de altura não armazena, já que ele guarda apenas uma altura para cada posição horizontal. Neste trabalho, porém, o volume é obtido a partir do próprio mapa de altura: cada coluna é preenchida até a sua altura, arredondada para um número inteiro de _voxels_. Por isso, o volume não contém cavidades nem estruturas sobrepostas, e essa capacidade da representação volumétrica não é explorada.
 
-=== Marching Cubes/Transvoxel
+=== Marching Cubes
 
 A extração de uma superfície a partir de um campo volumétrico pode ser feita pelo algoritmo de Marching Cubes, proposto por #cite(<lorensen_cline_marching_cubes>, form: "prose"). Para cada célula do volume, o algoritmo compara os valores dos oito cantos com um limiar, classifica cada canto como acima ou abaixo dele e gera os triângulos correspondentes à configuração resultante. Como essa classificação produz 256 configurações possíveis, o algoritmo usa tabelas de casos para determinar os triângulos de cada uma.
 
-O Transvoxel, apresentado por #cite(<lengyel_transvoxel>, form: "prose"), estende essa abordagem a terrenos baseados em voxels em tempo real. Ele acrescenta tabelas de casos para células de transição entre níveis de detalhe distintos, o que evita rachaduras na superfície nas fronteiras entre blocos de resoluções diferentes.
+O Transvoxel, apresentado por #cite(<lengyel_transvoxel>, form: "prose"), estende essa abordagem a terrenos baseados em voxels em tempo real. Ele acrescenta tabelas de casos para células de transição entre níveis de detalhe distintos, o que evita rachaduras na superfície nas fronteiras entre blocos de resoluções diferentes. Neste trabalho, o volume é extraído em uma única resolução, e por isso são usadas apenas as tabelas de células regulares do Transvoxel, que correspondem aos casos do Marching Cubes. As células de transição não são utilizadas.
 
 \
 #figure(
-  caption: [Exemplo de reconstrução de superfícies com Marching Cubes e Transvoxel.],
+  caption: [Exemplo de reconstrução de superfície com Marching Cubes.],
   supplement: "Figura",
 )[
   #v(1.5em)
@@ -908,7 +908,7 @@ A busca de caminhos depende de uma estrutura que represente as regiões por onde
 
 === Grade 2.5D
 
-A grade 2.5D é uma matriz bidimensional de alturas, em que cada célula corresponde a uma posição do plano horizontal e armazena um único valor de altura. Como grafo, ela corresponde ao mapa de altura (ver @heightmap): cada célula é um vértice, ligado às células vizinhas, e a existência de cada aresta pode depender de um critério de transitabilidade, como a diferença de altura entre as células. Por armazenar uma altura por posição, a grade descreve a superfície do terreno, mas não representa cavidades nem estruturas sobrepostas.
+A grade 2.5D é uma matriz bidimensional de alturas, em que cada célula corresponde a uma posição do plano horizontal e armazena um único valor de altura. Como grafo, ela corresponde ao mapa de altura (ver @heightmap): cada célula é um vértice, ligado às células vizinhas. Neste trabalho, todas as ligações entre vizinhos são mantidas, e a diferença de altura entre as células afeta apenas o peso das arestas. Por armazenar uma altura por posição, a grade descreve a superfície do terreno, mas não representa cavidades nem estruturas sobrepostas.
 
 \
 #figure(
@@ -921,20 +921,20 @@ A grade 2.5D é uma matriz bidimensional de alturas, em que cada célula corresp
  Fonte: Elaborado pelo autor.
 ] <fig_grade_25d> \ #v(-1.5em)
 
-=== Superfície Voxel
+=== Grade Voxelizada
 
-Na superfície voxel, a representação volumétrica (ver @voxels) fornece os vértices do grafo: cada vértice corresponde a um _voxel_ da superfície, e as arestas ligam _voxels_ vizinhos na grade tridimensional. Diferentemente da grade 2.5D, essa estrutura registra altura e volume, o que permite representar regiões sobrepostas do terreno.
+A grade voxelizada é uma grade 2.5D em que a altura de cada coluna é arredondada para um número inteiro de _voxels_ (ver @voxels). Cada coluna do mapa de altura corresponde a um vértice, posicionado no topo da coluna, e as arestas ligam apenas as colunas vizinhas nas quatro direções do plano horizontal. Como a grade 2.5D, ela armazena uma única altura por posição e não representa cavidades nem regiões sobrepostas. As diferenças em relação à grade 2.5D são a altura discretizada e a vizinhança de quatro direções.
 
 \
 #figure(
-  caption: [Exemplo de superfície voxel.],
+  caption: [Exemplo de grade voxelizada.],
   supplement: "Figura",
 )[
   #v(1.5em)
   // #image("", width: 75%)
   #v(.5em)
  Fonte: Elaborado pelo autor.
-] <fig_superficie_voxel> \ #v(-1.5em)
+] <fig_grade_voxelizada> \ #v(-1.5em)
 
 === Grafo de Vértices
 
@@ -998,7 +998,7 @@ figura: matrix de diferença
 
 == Pipeline
 
-Cada execução do experimento segue a mesma sequência de etapas. A partir de uma semente, gera-se um mapa de altura por ruído de Perlin (ver @perlin). Quando o modelo de representação exige geometria, o mapa é convertido em uma malha triangular por extração de superfície. Em seguida, o modelo constrói o grafo navegável, os pares de consulta são associados aos vértices mais próximos do grafo, e os algoritmos de busca são executados sobre ele. As métricas de cada execução são registradas e, ao final, analisadas estatisticamente (ver @avaliacao).
+Cada execução do experimento segue a mesma sequência de etapas. A partir de uma semente, gera-se um mapa de altura por ruído de Perlin (ver @perlin). Quando o modelo de representação exige geometria, o mapa é convertido em um volume de _voxels_, com cada coluna preenchida até a sua altura arredondada, e esse volume é convertido em uma malha triangular por extração de superfície. Em seguida, o modelo constrói o grafo navegável, os pares de consulta são associados aos vértices mais próximos do grafo, e os algoritmos de busca são executados sobre ele. As métricas de cada execução são registradas e, ao final, analisadas estatisticamente (ver @avaliacao).
 
 \
 #figure(
@@ -1107,21 +1107,23 @@ Para o cálculo de memória, a função `graphMemoryBytes` soma o tamanho do obj
 
 Os algoritmos de busca estão no arquivo `search.hpp`, no _namespace_ `search`. Cada um deles é uma função genérica sobre `common::lwGraph<T>`, que recebe o vértice inicial, o vértice objetivo e, quando necessária, uma heurística. Todos retornam uma estrutura `SearchResult`, com o caminho encontrado, o custo acumulado e os contadores de execução. 
 
-Os quatro algoritmos têm implementações separadas. Dijkstra não é tratado como A\* com heurística nula, para que cada função siga a lógica descrita na fundamentação.
+Os quatro algoritmos têm implementações separadas, e Dijkstra não é tratado como A\* com heurística nula. Todos seguem a mesma estrutura de busca ponto a ponto: a lista aberta começa apenas com o vértice inicial, e a busca termina quando o vértice objetivo é retirado dela. No Dijkstra, isso difere do pseudocódigo da @fig_dijkstra, que insere todos os vértices em $Q$ e só termina quando a fila esvazia. Como os vértices são retirados em ordem de custo, o caminho até o objetivo é o mesmo nas duas formas.
 
 === Algoritmos
 
-Dijkstra ordena a lista aberta pelo custo acumulado `g` e encerra quando o vértice objetivo é retirado da fila. O A\* ordena pela soma `f = g + h`, usando como heurística a distância euclidiana tridimensional entre o vértice e o objetivo. O Weighted A\* usa `f = g + w·h`, com o fator `w` igual a 1,5 nos experimentos. A Greedy Best-First Search (GBFS) ordena somente pela heurística. 
+Dijkstra ordena a lista aberta pelo custo acumulado `g`. O A\* ordena pela soma `f = g + h`, usando como heurística a distância euclidiana tridimensional entre o vértice e o objetivo. O Weighted A\* usa `f = g + w·h`, com o fator `w` igual a 1,5 nos experimentos. A Greedy Best-First Search (GBFS) ordena somente pela heurística. 
 
-Como o custo acumulado não influencia a ordem, cada vértice entra na lista aberta uma única vez, na primeira vez em que é descoberto. Um custo menor encontrado depois apenas atualiza o pai do vértice e o custo registrado.
+Na GBFS, como o custo acumulado não influencia a ordem, cada vértice entra na lista aberta uma única vez, na primeira vez em que é descoberto. Diferentemente do pseudocódigo da @fig_gbfs, a implementação mantém o custo acumulado de cada vértice: um custo menor encontrado depois, enquanto o vértice ainda está na lista aberta, atualiza o pai do vértice e o custo registrado, sem reinseri-lo. Por isso, o caminho retornado pode ter custo menor que o da GBFS clássica.
+
+A lista aberta é uma fila de prioridade sem operação de redução de chave. Nos demais algoritmos, quando um vértice que já está na lista recebe um custo menor, ele é inserido novamente com a nova prioridade, e as entradas antigas são descartadas quando retiradas da fila, se o vértice já tiver sido expandido. Os empates de prioridade são desfeitos pelo menor valor da heurística e, em seguida, pelo menor índice do vértice.
 
 === Aquisição de dados
 
-Os contadores são incrementados dentro dos próprios algoritmos. `expanded` registra os vértices retirados da lista aberta e processados, `generated` registra as inserções na lista aberta e `peakOpen` registra o maior tamanho que a lista atinge durante a busca. Por fazerem parte da execução, esses valores são os mesmos em toda repetição com o mesmo grafo e os mesmos vértices.
+Os contadores são incrementados dentro dos próprios algoritmos. `expanded` registra os vértices retirados da lista aberta e processados, `generated` registra as inserções na lista aberta, incluindo as reinserções de um mesmo vértice, e `peakOpen` registra o maior tamanho que a lista atinge durante a busca, contando também as entradas antigas ainda não descartadas. Por fazerem parte da execução, esses valores são os mesmos em toda repetição com o mesmo grafo e os mesmos vértices.
 
-O tempo de execução é medido com `std::chrono::steady_clock` ao redor da chamada do algoritmo, sem incluir a construção do grafo nem a geração do terreno. Em seguida, calcula-se o comprimento geométrico do caminho sobre a superfície. Cada segmento é amostrado em subpassos de no máximo 0,25 unidade horizontal, com a altura obtida por interpolação bilinear do mapa de altura. Esse valor independe dos pesos definidos no grafo, ao contrário do custo acumulado.
+O tempo de execução é medido com `std::chrono::steady_clock` ao redor da chamada do algoritmo, sem incluir a construção do grafo nem a geração do terreno. Quando uma busca leva menos de 5 ms, a resolução do relógio e a variação entre chamadas pesam sobre a medição. Nesse caso, a busca é repetida até que o tempo somado ultrapasse 5 ms, com no máximo 100 000 repetições, e registra-se a mediana dos tempos e o número de repetições. Buscas mais longas são medidas uma única vez. Separadamente, mede-se o tempo de inicialização dos vetores de estado da busca para o número de vértices do grafo, já que essa inicialização faz parte de cada chamada. Em seguida, calcula-se o comprimento geométrico do caminho sobre a superfície. Cada segmento é amostrado em subpassos de no máximo 0,25 unidade horizontal, com a altura obtida por interpolação bilinear do mapa de altura. Esse valor independe dos pesos definidos no grafo, ao contrário do custo acumulado.
 
-Os pontos de início e de fim de cada par de consulta são associados ao vértice mais próximo do grafo por busca linear, e a distância de ajuste é registrada. Se algum algoritmo não encontrar caminho, a aquisição é interrompida com erro, pois a ausência de caminho indicaria falha na construção do grafo.
+Os pontos de início e de fim de cada par de consulta são associados ao vértice mais próximo do grafo por busca linear, e a distância de ajuste é emitida no registro de diagnóstico da execução. Se algum algoritmo não encontrar caminho, a aquisição é interrompida com erro, pois a ausência de caminho indicaria falha na construção do grafo.
 
 == Gerador de terrenos <gerador>
 
@@ -1161,7 +1163,9 @@ O campo `requiresGeometry` indica se a fábrica consome a malha. O laço experim
 
 A `createGrid2_5D` cria um vértice por pixel do mapa de altura, posicionado na altura $y = 1 + v (H - 1)$. Cada célula se liga aos vizinhos a leste, ao sul, a sudeste e a sudoeste, de modo que a vizinhança é de oito direções. O peso de cada aresta é a distância euclidiana tridimensional entre os vértices.
 
-A `createVoxelGraph` cria um vértice por coluna do volume, com a altura arredondada para um número inteiro de voxels. Cada vértice se liga apenas aos vizinhos a leste e ao sul, ou seja, a vizinhança é de quatro direções sobre a superfície. O peso também é a distância euclidiana tridimensional, o que faz a diferença de altura entre colunas contribuir para o custo.
+A `createVoxelGraph` constrói a grade voxelizada. Ela cria um vértice por pixel do mapa de altura, isto é, por coluna, com a altura arredondada para um número inteiro de voxels, sem construir o volume. Cada vértice se liga apenas aos vizinhos a leste e ao sul, ou seja, a vizinhança é de quatro direções sobre a superfície. O peso também é a distância euclidiana tridimensional, o que faz a diferença de altura entre colunas contribuir para o custo.
+
+Os grafos de vértices e dual partem da malha extraída por Marching Cubes de um volume preenchido até a altura arredondada de cada coluna. Assim, as três representações que não são a grade 2.5D usam alturas discretizadas.
 
 A `createVertexToVertex` cria um vértice para cada vértice da malha. Para cada triângulo, conecta seus três vértices por arestas, e uma aresta repetida entre triângulos vizinhos é inserida uma única vez. 
 
@@ -1175,9 +1179,9 @@ A instrumentação reúne os mecanismos que registram as medições durante os t
 
 === Procedimento dos testes <procedimento_testes>
 
-As três variáveis são avaliadas por funções próprias, `testScale`, `testLacunarity` e `testPersistence`, que seguem o mesmo procedimento. Cada teste executa um número de passos. Em cada passo, são gerados terrenos com a configuração correspondente à variável testada. Cada terreno recebe uma semente sorteada a partir da semente base da execução, e seu grafo é construído pela representação selecionada. Em seguida, são usados dois pares de consulta sobre o terreno, e cada algoritmo é executado sobre cada par. Os resultados de um terreno só são registrados depois que todos os pares e algoritmos foram executados.
+As quatro variáveis são avaliadas por funções próprias, `testScale`, `testLacunarity`, `testPersistence` e `testFrequency`, que seguem o mesmo procedimento. Cada teste executa um número de passos. Em cada passo, são gerados terrenos com a configuração correspondente à variável testada. Cada terreno recebe uma semente sorteada a partir da semente base da execução, e seu grafo é construído pela representação selecionada. Em seguida, são usados dois pares de consulta sobre o terreno, e cada algoritmo é executado sobre cada par. Os resultados de um terreno só são registrados depois que todos os pares e algoritmos foram executados.
 
-Na escala, a dimensão do terreno cresce a cada passo, e a altura e o comprimento de onda acompanham a dimensão, de modo que apenas a resolução muda entre os passos. Na lacunaridade e na persistência, a dimensão e o comprimento de onda são fixos, e o parâmetro testado cresce linearmente do primeiro ao último passo. Todos os testes usam seis oitavas.
+Na escala, a dimensão do terreno cresce a cada passo, e a altura e o comprimento de onda acompanham a dimensão, de modo que apenas a resolução muda entre os passos. A escala, portanto, não é um parâmetro do ruído, e sim a resolução da grade sobre a qual o mesmo relevo é amostrado. Na lacunaridade e na persistência, a dimensão e o comprimento de onda são fixos, e o parâmetro testado cresce linearmente do primeiro ao último passo. No comprimento de onda, a dimensão é fixa, e o comprimento de onda base assume uma lista fixa de valores. Como a frequência do ruído é o inverso do comprimento de onda, esse teste avalia a frequência do relevo. Todos os testes usam seis oitavas.
 
 Se o grafo resultante não tiver vértices, o terreno é refeito com outra semente. Se algum algoritmo não encontrar caminho entre os pares, a execução é interrompida com erro, pois isso indicaria falha na construção do grafo.
 
@@ -1186,25 +1190,32 @@ Se o grafo resultante não tiver vértices, o terreno é refeito com outra semen
 A classe `Statistics` acumula em memória os registros de cada execução, protegidos por um mutex, o que permite registrar resultados a partir de mais de uma thread. Cada registro, do tipo `Results`, reúne:
 
 - identificação: algoritmo, valor da variável testada, semente do terreno e índice do par de consulta;
-- grafo: tempo de construção, número de vértices e de arestas e memória estrutural;
-- busca: custo do caminho, tempo de execução, número de vértices do caminho e comprimento geométrico;
-- contadores: vértices expandidos, vértices gerados e pico da lista aberta.
+- grafo: tempo de construção, número de vértices e de arestas, memória estrutural e, nos grafos de vértices e dual, tempo de extração da malha;
+- busca: custo do caminho, tempo de execução, tempo de busca com repetições e número de repetições, número de vértices do caminho e comprimento geométrico;
+- contadores: vértices expandidos, vértices gerados, pico da lista aberta e chamadas da heurística;
+- terreno: número de máximos locais, fração de células elevadas, desvio padrão da altura e declividade média;
+- consulta: distância em linha reta entre início e destino, razão entre a heurística no início e o custo ótimo, subida acumulada e declividade máxima do caminho;
+- inicialização: tempo de inicialização dos vetores de estado da busca.
 
 #text()[] \ #v(-1.5em)
 
-A exportação grava um arquivo de valores separados por vírgula (CSV, do inglês _comma-separated values_), com cabeçalho e uma linha por registro. Os campos opcionais ficam vazios quando não se aplicam ao registro, e os valores reais são escritos com até seis casas decimais, sem zeros à direita. O nome da coluna da variável testada é informado pelo próprio teste: Escala, Lacunaridade ou Persistência.
+As métricas de terreno e de consulta são calculadas depois das buscas, fora dos intervalos cronometrados. A fração de células elevadas conta as células com altura de pelo menos um desvio padrão acima da média, e os máximos locais são contados entre essas células, com vizinhança de oito direções.
 
-=== acquire.sh <acquire>
+A exportação grava um arquivo de valores separados por vírgula (CSV, do inglês _comma-separated values_), com cabeçalho e uma linha por registro. Os campos opcionais ficam vazios quando não se aplicam ao registro, e os valores reais são escritos com até seis casas decimais, sem zeros à direita. O nome da coluna da variável testada é informado pelo próprio teste: Escala, Lacunaridade, Persistência ou Comprimento de Onda. Cada linha também traz o estado da máquina no início e no fim da execução, com a frequência do núcleo usado e a carga média do sistema, e o pico de memória do processo, que são os mesmos para todos os registros de um arquivo.
 
-O script `acquire.sh` executa `tcc stats` várias vezes para uma combinação de variável e representação, com uma pausa entre as execuções. Seus valores padrão são cinco execuções, dez repetições por passo, quatro passos e uma pausa de arrefecimento de 60 segundos. A semente base é fixa, de modo que as representações medem os mesmos terrenos, e a semente de cada execução é a semente base somada ao índice da execução.
+=== coleta_completa.sh <acquire>
 
-Antes da compilação em modo _Release_, e antes e depois de cada execução, o script verifica se o notebook está ligado à tomada, porque a frequência do processador muda na bateria. Se não estiver, a coleta é abortada. A execução é fixada a um núcleo com `taskset`, e os arquivos de saída e os registros da saída padrão e de erro ficam em uma pasta própria. Um manifesto registra o horário de início, a duração e o código de saída de cada execução.
+O script `coleta_completa.sh` conduz a campanha de coleta. Ele compila o executável em modo _Release_ e realiza cinco execuções. Em cada execução, roda um bloco para cada combinação de variável testada e representação, isto é, 16 blocos, cada um como um processo `tcc stats` separado, com dez repetições por passo e quatro passos. A semente base é fixa, de modo que as representações medem os mesmos terrenos, e a semente de cada execução é a semente base somada ao índice da execução.
 
-O script `collect_all.sh` executa `acquire.sh` para as três variáveis e as quatro representações. Ele interrompe a coleta na primeira falha de compilação ou de energia, impede a suspensão do sistema durante a coleta com `systemd-inhibit` e, ao final, lista as execuções cujo código de saída não é zero.
+A ordem dos blocos dentro de cada execução é embaralhada pelo algoritmo de Fisher-Yates, com um gerador de números pseudoaleatórios inicializado com a semente da execução. Assim, a ordem é reproduzível e muda entre as execuções, o que evita que uma mesma representação seja sempre medida no mesmo momento da campanha, quando o estado térmico da máquina pode ser diferente.
+
+Antes de cada bloco, o script faz uma pausa de 60 segundos e espera até que a temperatura do pacote do processador fique em até 45 °C, com espera máxima de 15 minutos. O turbo do processador é desligado durante a coleta e restaurado ao final, e a execução é fixada a um núcleo com `taskset`. Antes e depois de cada bloco, o script verifica se o notebook está ligado à tomada, porque a frequência do processador muda na bateria. Se não estiver, a coleta é abortada. Os contadores de _throttling_ térmico do núcleo e do pacote são lidos antes e depois de cada bloco. Se houver _throttling_, o bloco é descartado e refeito, em até três tentativas, e na última tentativa o resultado é mantido e sinalizado.
+
+Os arquivos de saída e os registros da saída padrão e de erro de cada bloco ficam em uma pasta própria. Um manifesto registra, para cada tentativa, o horário de início, a duração, o código de saída, os eventos de _throttling_, as temperaturas inicial e final, a posição do bloco na ordem, o _commit_ do código, a existência de alterações não registradas no repositório e as opções de compilação. Cada bloco concluído é anotado em um arquivo de controle, o que permite retomar uma campanha interrompida sem repetir os blocos já concluídos. Durante a coleta, a suspensão do sistema é impedida com `systemd-inhibit`.
 
 === Interface de linha de comando (CLI) <cli>
 
-A interface de linha de comando (CLI, do inglês _command-line interface_) é construída com a biblioteca CLI11 e reúne três subcomandos. O subcomando `test` executa uma geração visual com os parâmetros informados. O subcomando `save` grava o mapa de ruído em um arquivo PNG, com a opção de salvar cada oitava separadamente. O subcomando `stats` executa a aquisição de uma variável em uma representação e recebe o número de repetições, o número de passos, a semente base e o diretório de saída. A CLI11 valida os parâmetros e rejeita opções desconhecidas e valores fora dos intervalos permitidos.
+A interface de linha de comando (CLI, do inglês _command-line interface_) é construída com a biblioteca CLI11 e reúne cinco subcomandos. O subcomando `test` executa uma geração visual com os parâmetros informados, e `heuristics` executa a mesma visualização comparando heurísticas na Greedy Best-First Search. O subcomando `save` grava o mapa de ruído em um arquivo PNG, com a opção de salvar cada oitava separadamente. O subcomando `stats` executa a aquisição de uma variável em uma representação e recebe o número de repetições, o número de passos, a semente base, o diretório de saída e, opcionalmente, os índices dos passos a executar. O subcomando `mcbench` mede o tempo de extração do Marching Cubes para uma lista de sementes. A CLI11 valida os parâmetros e rejeita opções desconhecidas e valores fora dos intervalos permitidos.
 
 = Metodologia
 
@@ -1216,19 +1227,15 @@ Este trabalho caracteriza-se como uma pesquisa experimental de natureza quantita
 
 == Ambiente
 
-Os experimentos foram executados em um notebook com processador Intel Core i5-1235U, de arquitetura híbrida, com 12 processadores lógicos e 15 GiB de memória. A coleta foi feita em um sistema isolado, iniciado a partir de um pendrive bootável com Arch Linux, kernel 7.2.14-arch1-1. O código foi compilado com o compilador GNU (GCC, do inglês GNU Compiler Collection) 16.2.1 e com o CMake 4.4.5, em modo Release e padrão C++20. O código dos experimentos corresponde ao commit 87233df do repositório.
+Os experimentos foram executados em um notebook com processador Intel Core i5-1235U, de arquitetura híbrida, com 12 processadores lógicos e 15 GiB de memória. A coleta foi feita em um sistema isolado, iniciado a partir de um pendrive bootável com Arch Linux, kernel 7.2.14-arch1-1. O código foi compilado com o compilador GCC 16.2.1 e com o CMake 4.4.5, em modo Release e padrão C++20.
 
-As dependências são as seguintes: a biblioteca CLI11, na versão 2.7.2, incluída no repositório; a nlohmann/json, na versão 3.11.3, obtida por URL; as bibliotecas glm 1.0.3 e Mesa 26.2.6, instaladas no sistema; e as bibliotecas IFCG e graph_project, repositórios privados do autor, nos commits 6dc69ea e 98cdadf. Durante a coleta, o governador de frequência era powersave, com o driver intel_pstate, e a busca foi fixada no núcleo 2 com taskset.
+As dependências são as seguintes: a biblioteca CLI11, na versão 2.7.2, incluída no repositório; a nlohmann/json, na versão 3.11.3, obtida por URL; as bibliotecas glm 1.0.3 e Mesa 26.2.6, instaladas no sistema; e as bibliotecas IFCG e graph_project, repositórios privados do autor, nos commits 6dc69ea e 98cdadf. 
+
+Durante a coleta, o governador de frequência era powersave, com o driver intel_pstate, e a busca foi fixada no núcleo 2 com taskset. O turbo do processador permaneceu desligado em todas as coletas, para reduzir a ocorrência de throttling térmico.
 
 == Variáveis
 
-Variáveis independentes e dependentes analisadas na pesquisa, incluindo as representações navegáveis de terrenos, os algoritmos de busca e as métricas de desempenho coletadas.
-
-figura: tabela de variáveis independentes e dependentes
-
-== Níveis
-
-As variáveis independentes são a representação navegável, o algoritmo de busca e os parâmetros de geração do terreno. Os parâmetros de escala, lacunaridade e persistência são testados um de cada vez, com os demais mantidos nos valores padrão definidos no código. As métricas de desempenho são o tempo de execução, o número de vértices expandidos e o pico da lista aberta. A métrica de qualidade do caminho é o custo relativo, definido como o custo do caminho dividido pelo custo obtido pelo algoritmo de Dijkstra no mesmo terreno, representação e par de consulta. A @tab_variaveis resume essas variáveis.
+As variáveis independentes são a representação navegável, o algoritmo de busca e os parâmetros de geração do terreno. Os parâmetros de escala, lacunaridade, persistência e comprimento de onda são testados um de cada vez, com os demais mantidos nos valores padrão definidos no código. As métricas de desempenho são o tempo de busca, o número de vértices expandidos e o pico da lista aberta. A métrica de qualidade do caminho é o custo relativo, definido como o custo do caminho dividido pelo custo obtido pelo algoritmo de Dijkstra no mesmo terreno, representação e par de consulta. A @tab_variaveis resume essas variáveis.
 
 \
 #figure(
@@ -1239,23 +1246,29 @@ As variáveis independentes são a representação navegável, o algoritmo de bu
     columns: (auto, auto, 1fr),
     align: left,
     [*Tipo*], [*Variável*], [*Descrição*],
-    [Independente], [Representação navegável], [Grade 2.5D, superfície voxel, grafo de vértices e grafo dual da malha],
+    [Independente], [Representação navegável], [Grade 2.5D, grade voxelizada, grafo de vértices e grafo dual da malha],
     [Independente], [Algoritmo de busca], [Dijkstra, A\*, Weighted A\* (peso 1,5) e Greedy Best-First Search],
-    [Independente], [Parâmetro de geração], [Escala, lacunaridade e persistência \ (testados separadamente)],
-    [Dependente (desempenho)], [Tempo de execução], [Tempo da busca, excluída a construção do grafo],
+    [Independente], [Parâmetro de geração], [Escala, lacunaridade, persistência e comprimento de onda \ (testados separadamente)],
+    [Dependente (desempenho)], [Tempo de busca], [Tempo da busca, excluída a construção do grafo, com mediana de repetições nas buscas abaixo de 5 ms],
     [Dependente (desempenho)], [Vértices expandidos], [Esforço da busca, medido em vértices expandidos],
     [Dependente (desempenho)], [Pico da lista aberta], [Maior número de elementos simultâneos na lista aberta],
     [Dependente (qualidade)], [Custo relativo], [Custo do caminho dividido pelo custo do Dijkstra no mesmo par de consulta],
   )
 ] <tab_variaveis>
 
+== Níveis
+
+Na escala, a dimensão do terreno assume os valores 500, 600, 700 e 800, com altura e comprimento de onda acompanhando a dimensão. Na lacunaridade, o valor varia de 1,5 a 2,25 em quatro níveis equidistantes, com dimensão 500 e comprimento de onda 250. Na persistência, o valor varia de 0,3 a 0,7 nos mesmos moldes. No comprimento de onda, o valor base assume 100, 150, 250 e 400, com dimensão 500, lacunaridade 2 e persistência 0,5. Todos os testes usam seis oitavas.
+
 == Procedimento e métricas
 
-O procedimento de coleta é executado separadamente para cada teste (escala, lacunaridade e persistência) e para cada representação navegável. Em cada teste, o parâmetro avaliado assume quatro níveis, e para cada nível são avaliados 50 terrenos, distribuídos em cinco execuções independentes com dez repetições cada. Cada execução é um processo separado, com semente própria derivada de uma semente base fixa, de modo que todas as representações medem os mesmos terrenos.
+O procedimento de coleta é executado separadamente para cada teste (escala, lacunaridade, persistência e comprimento de onda) e para cada representação navegável. Em cada teste, o parâmetro avaliado assume quatro níveis, e para cada nível são avaliados 50 terrenos, distribuídos em cinco execuções independentes com dez repetições cada. Cada execução é um processo separado, com semente própria derivada de uma semente base fixa, de modo que todas as representações medem os mesmos terrenos.
 
 Para cada terreno, o mapa de altura é gerado por ruído de Perlin com seis oitavas e convertido no grafo da representação avaliada. Em seguida, são definidas as duas diagonais do terreno como consultas de canto a canto. Os pontos de início e de destino são associados ao vértice mais próximo do grafo, e cada algoritmo é executado sobre cada consulta. Um terreno cujo grafo fica vazio é gerado novamente com outra semente. Se algum algoritmo não encontra caminho, a execução é interrompida, pois isso indicaria falha na construção do grafo.
 
-As métricas registradas são o tempo de execução, medido em torno da chamada de busca e sem a construção do grafo; o número de vértices expandidos; o pico da lista aberta; e o custo relativo, calculado como o custo do caminho dividido pelo custo do algoritmo de Dijkstra na mesma consulta. Entre as execuções, há uma pausa de 60 segundos e uma espera até que a temperatura do processador fique abaixo de 45 °C. Execuções com throttling térmico são refeitas, em até três tentativas, e o manifesto registra cada uma delas.
+As métricas registradas são o tempo de busca, medido em torno da chamada de busca e sem a construção do grafo, com a mediana de repetições nas buscas abaixo de 5 ms (ver @search); o número de vértices expandidos; o pico da lista aberta; e o custo relativo, calculado como o custo do caminho dividido pelo custo do algoritmo de Dijkstra na mesma consulta. Antes de cada bloco, há uma pausa de 60 segundos e uma espera até que a temperatura do processador fique em até 45 °C. Blocos com _throttling_ térmico são refeitos, em até três tentativas, e o manifesto registra cada uma delas. A ordem dos blocos é embaralhada em cada execução (ver @acquire).
+
+A extração da malha pelo algoritmo de Marching Cubes é medida em cada terreno dos grafos de vértices e dual, separadamente do tempo de construção do grafo. Como esses dois grafos usam a mesma malha, esse custo se soma ao tempo de construção de ambos.
 
 == Protocolo estatístico
 
@@ -1269,7 +1282,7 @@ A normalidade dos resíduos é verificada pelo teste de Shapiro-Wilk, separadame
 
 == Ameaças
 
-Quanto à validade interna, o tempo de execução inclui a inicialização dos vetores de estado da busca, que cresce com o número de vértices e pesa mais, proporcionalmente, em buscas com poucas expansões. Como terrenos cujo grafo fica vazio são descartados e refeitos, a taxa de descarte pode variar entre representações e introduzir viés de seleção. 
+Quanto à validade interna, o tempo de busca inclui a inicialização dos vetores de estado da busca, que cresce com o número de vértices e pesa mais, proporcionalmente, em buscas com poucas expansões. Esse tempo de inicialização é medido separadamente para cada grafo, o que permite estimar a sua parcela no tempo de busca.
 
 Quanto à validade de construção, o peso da Weighted A\* foi fixado em $1.5$, de modo que os resultados se referem a esse valor. O custo relativo é comparável dentro de cada representação, pois usa o mesmo grafo como referência, mas não é diretamente comparável entre representações.
 

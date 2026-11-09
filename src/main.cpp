@@ -26,7 +26,8 @@ std::vector<Algorithm> algorithms = {
         "Dijkstra",
         [](const common::lwGraph<Vertex3D>& graph, std::size_t start, std::size_t goal, HeuristicFuncLW heuristic) {
             return search::dijkstra(graph, start, goal);
-        }
+        },
+        false
     },
     {"A*", search::aStar<Vertex3D>},
     {"Greedy Best-First", search::greedyBestFirst<Vertex3D>},
@@ -178,7 +179,7 @@ int main(int argc, char* argv[]) {
 
     auto statsCmd = app.add_subcommand("stats", "Executa aquisição de estatísticas");
     statsCmd->add_option("test", statsTestName, "Variável de terreno testada")
-        ->check(CLI::IsMember({"scale", "lac", "pers"}))
+        ->check(CLI::IsMember({"scale", "lac", "pers", "frequency"}))
         ->required();
     statsCmd->add_option("graph", graphModelName, "Representação do grafo")
         ->check(CLI::IsMember({"2_5d", "voxel", "vertex", "dual"}))
@@ -187,16 +188,20 @@ int main(int argc, char* argv[]) {
     statsCmd->add_option("steps", steps, "Número de passos para cada teste")->check(CLI::PositiveNumber)->required();
     statsCmd->add_option("-s,--seed", statsSeed, "Semente base dos terrenos e pares");
     statsCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
+    std::vector<uint> statsLevels;
+    statsCmd->add_option("--level", statsLevels, "Índices dos passos a executar (padrão: todos)");
     statsCmd->callback([&]() {
         std::cout << "Seed base: " << statsSeed << std::endl;
         const GraphModel& graphModel = getGraphModel(graphModelName);
 
         if (statsTestName == "scale") {
-            testScale(steps, repetitions, statsSeed, path, graphModel, algorithms);
+            testScale(steps, repetitions, statsSeed, path, graphModel, algorithms, statsLevels);
         } else if (statsTestName == "lac") {
-            testLacunarity(steps, repetitions, statsSeed, path, graphModel, algorithms);
+            testLacunarity(steps, repetitions, statsSeed, path, graphModel, algorithms, statsLevels);
         } else if (statsTestName == "pers") {
-            testPersistence(steps, repetitions, statsSeed, path, graphModel, algorithms);
+            testPersistence(steps, repetitions, statsSeed, path, graphModel, algorithms, statsLevels);
+        } else if (statsTestName == "frequency") {
+            testFrequency(steps, repetitions, statsSeed, path, graphModel, algorithms, statsLevels);
         }
     });
 
