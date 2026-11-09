@@ -172,7 +172,7 @@ fi
 MANIFEST="$OUT/manifest.csv"
 CHECKPOINT="$OUT/checkpoint.csv"
 # Colunas de acquire.sh primeiro (exit_code segue na 5ª), novas no fim
-[[ -f "$MANIFEST" ]] || echo "run,seed,inicio,duracao_s,exit_code,tentativa,mantida,throttle_core,throttle_pkg,throttle_ms,temp_inicio_c,temp_fim_c,teste,grafo,ordem,commit,git_sujo,build_type,cxx_flags,cxx_flags_release" > "$MANIFEST"
+[[ -f "$MANIFEST" ]] || echo "run,seed,inicio,duracao_s,exit_code,tentativa,mantida,throttle_core,throttle_pkg,throttle_ms,temp_inicio_c,temp_fim_c,teste,grafo,ordem,commit,git_sujo,build_type,cxx_flags,cxx_flags_release,warmup" > "$MANIFEST"
 [[ -f "$CHECKPOINT" ]] || echo "run,teste,grafo" > "$CHECKPOINT"
 
 LEVEL_ARGS=()
@@ -230,6 +230,8 @@ for ((i = 1; i <= RUNS; i++)); do
             CODE=$?
 
             END=$(date +%s)
+            # O tcc informa no stdout se fez o warm-up antes de cada busca cronometrada
+            WARMUP=$(grep -m1 -oP '^warmup=\K[01]' "$RUN_DIR/stdout.log" || echo 0)
             read -r C1 P1 MS1 <<< "$(throttle_snapshot)"
             DC=$((C1 - C0)); DP=$((P1 - P0)); DMS=$((MS1 - MS0))
             check_ac "durante $TEST/$GRAPH, execução $i, resultados dela inválidos"
@@ -239,7 +241,7 @@ for ((i = 1; i <= RUNS; i++)); do
             if ((THROTTLED && a < ATTEMPTS)); then
                 KEEP=0
             fi
-            echo "$i,$SEED,$(date -d "@$START" +%FT%T),$((END - START)),$CODE,$a,$KEEP,$DC,$DP,$DMS,$TEMP_START,$(temp_c),$TEST,$GRAPH,$((o + 1)),$COMMIT,$GIT_DIRTY,$BUILD_TYPE,\"$CXX_FLAGS\",\"$CXX_FLAGS_RELEASE\"" >> "$MANIFEST"
+            echo "$i,$SEED,$(date -d "@$START" +%FT%T),$((END - START)),$CODE,$a,$KEEP,$DC,$DP,$DMS,$TEMP_START,$(temp_c),$TEST,$GRAPH,$((o + 1)),$COMMIT,$GIT_DIRTY,$BUILD_TYPE,\"$CXX_FLAGS\",\"$CXX_FLAGS_RELEASE\",$WARMUP" >> "$MANIFEST"
 
             if ((KEEP == 0)); then
                 mv "$RUN_DIR" "$OUT/${TEST}_${GRAPH}/descartada_run_$(printf '%02d' "$i")_t$a"

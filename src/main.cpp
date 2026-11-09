@@ -192,6 +192,7 @@ int main(int argc, char* argv[]) {
     statsCmd->add_option("--level", statsLevels, "Índices dos passos a executar (padrão: todos)");
     statsCmd->callback([&]() {
         std::cout << "Seed base: " << statsSeed << std::endl;
+        std::cout << "warmup=" << (SEARCH_WARMUP ? 1 : 0) << std::endl;
         const GraphModel& graphModel = getGraphModel(graphModelName);
 
         if (statsTestName == "scale") {

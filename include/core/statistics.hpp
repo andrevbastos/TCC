@@ -261,7 +261,7 @@ inline int scaleHeightScale(int dimension) {
 }
 
 // Comprimentos de onda base do teste de frequência.
-inline constexpr std::array<int, 4> FREQUENCY_WAVES {100, 150, 250, 400};
+inline constexpr std::array<int, 4> FREQUENCY_WAVES {200, 275, 350, 500};
 
 // Passos selecionados por --level (vazio: todos). Usado no piloto para rodar só os extremos.
 inline bool levelSelected(const std::vector<uint>& levels, std::size_t step) {
@@ -379,6 +379,11 @@ void testScale(
                             .graphMemory = graphMemory,
                             .mcExtractionTime = mcExtractionTime
                         };
+
+                        // Warm-up: a mesma busca, no mesmo grafo e par, uma vez sem cronômetro.
+                        if (SEARCH_WARMUP) {
+                            (void)algorithm.run(graph, start.id, goal.id, heuristic);
+                        }
 
                         const auto executionStart = std::chrono::steady_clock::now();
                         const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
@@ -590,6 +595,11 @@ void testLacunarity(
                             .mcExtractionTime = mcExtractionTime
                         };
 
+                        // Warm-up: a mesma busca, no mesmo grafo e par, uma vez sem cronômetro.
+                        if (SEARCH_WARMUP) {
+                            (void)algorithm.run(graph, start.id, goal.id, heuristic);
+                        }
+
                         const auto executionStart = std::chrono::steady_clock::now();
                         const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
                         const auto executionEnd = std::chrono::steady_clock::now();
@@ -799,6 +809,11 @@ void testPersistence(
                             .mcExtractionTime = mcExtractionTime
                         };
 
+                        // Warm-up: a mesma busca, no mesmo grafo e par, uma vez sem cronômetro.
+                        if (SEARCH_WARMUP) {
+                            (void)algorithm.run(graph, start.id, goal.id, heuristic);
+                        }
+
                         const auto executionStart = std::chrono::steady_clock::now();
                         const auto search = algorithm.run(graph, start.id, goal.id, heuristic);
                         const auto executionEnd = std::chrono::steady_clock::now();
@@ -889,6 +904,7 @@ void testPersistence(
 
 // Um fator por vez: só o comprimento de onda base varia (FREQUENCY_WAVES); dimensão,
 // lacunaridade, persistência e oitavas ficam nos valores fixos de lac/pers.
+// Com lac = 2, a última oitava de wave = 200 fica em 2⁵ / 200 = 0,16 ciclo por unidade.
 void testFrequency(
     uint steps,
     uint repetitions,
@@ -901,7 +917,7 @@ void testFrequency(
     if (steps != FREQUENCY_WAVES.size()) {
         throw std::invalid_argument(
             "frequency tem exatamente " + std::to_string(FREQUENCY_WAVES.size())
-            + " passos (wave 100, 150, 250, 400); recebido " + std::to_string(steps) + "."
+            + " passos (wave 200, 275, 350, 500); recebido " + std::to_string(steps) + "."
         );
     }
 
@@ -1016,6 +1032,11 @@ void testFrequency(
                             .graphMemory = graphMemory,
                             .mcExtractionTime = mcExtractionTime
                         };
+
+                        // Warm-up: a mesma busca, no mesmo grafo e par, uma vez sem cronômetro.
+                        if (SEARCH_WARMUP) {
+                            (void)algorithm.run(graph, start.id, goal.id, heuristic);
+                        }
 
                         const auto executionStart = std::chrono::steady_clock::now();
                         const auto search = algorithm.run(graph, start.id, goal.id, heuristic);

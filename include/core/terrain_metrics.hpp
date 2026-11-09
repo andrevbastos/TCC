@@ -182,6 +182,9 @@ inline double measureSearchStateInit(std::size_t numVertices) {
 // Repetições internas para buscas curtas
 // ---------------------------------------------------------------------------------------
 
+// Antes de cada cronometragem de busca, a mesma busca roda uma vez sem cronômetro.
+inline constexpr bool SEARCH_WARMUP = true;
+
 inline constexpr double SHORT_SEARCH_THRESHOLD_S = 0.005;
 inline constexpr std::size_t SHORT_SEARCH_MAX_REPETITIONS = 100000;
 
