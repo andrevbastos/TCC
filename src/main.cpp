@@ -471,8 +471,8 @@ void test(
     });
 
     input.addKeyCallback(Key::I, KeyAction::PRESS, [&camera]() {
-        camera.setPosition(glm::vec3(-0.350095, 89.6943, 22.1546));
-        camera.setOrientation(glm::vec3(0.439334, -0.881492, -8.42847e-08));
+        camera.setPosition(glm::vec3(3.1593, 23.8903, -5.96752));
+        camera.setOrientation(glm::vec3(0.26217, -0.481512, 0.818203));
     });
 
     float rotationStep {glm::radians(1.0f)};
