@@ -1317,7 +1317,419 @@ Quanto à validade estatística, os resíduos não seguem distribuição normal 
 
 Quanto à validade externa, os terrenos são gerados apenas por ruído de Perlin, em um único computador e sem obstáculos dinâmicos. Os resultados se referem a esse tipo de terreno e a esse ambiente.
 
-= Resultados e Discussão
+= Resultados <resultados>
+
+// TODO(tcc): parágrafo de abertura. O texto antigo (no bloco comentado no fim do capítulo) já tem o conteúdo; manter: (1) valores em escala original são médias geométricas dos terrenos; (2) ANOVA split-plot com correção de Greenhouse-Geisser, α = 0,05; (3) Shapiro-Wilk rejeita normalidade dos resíduos dentro do terreno (p < 0,001), remetendo à seção de Ameaças; (4) novo: o capítulo é organizado por métrica, os efeitos de algoritmo e representação aparecem uma vez em @res_comuns, e a ANOVA completa e o Tukey ficam nos apêndices (@apendice_anova, @apendice_tukey).
+
+== Efeitos comuns aos testes <res_comuns>
+
+// TODO(tcc): este é o "achado transversal" — escrever uma vez, sem repetir por teste. Pontos, com o número de apoio (tabelas abaixo):
+// - Ordem dos algoritmos no tempo igual nos 4 testes: GBFS ≪ WA* ≪ Dijkstra ≈ A*. Ex. escala: 2,3 / 104,3 / 386,0 / 414,1 ms (@tab_comum_tempo).
+// - Dijkstra × A* no tempo: não diferem na grade 2.5D em nenhum teste (razão 0,965–1,010; p ≥ 0,088); na grade voxelizada o A* é ~20% mais lento (razão Dij/A* 0,79–0,82). Ver @tab_tukey_alg.
+// - A* expande 23–27% menos vértices que o Dijkstra (marginais: 660 544/860 130 = 0,77 na escala), mas isso não vira ganho de tempo. Na voxelizada, não há diferença nos expandidos (razão 1,03–1,04; p ≥ 0,104 em todos os testes).
+// - Dijkstra expande exatamente o mesmo número de vértices na grade 2.5D e na voxelizada (razão 1,000; p = 1,000) em todos os testes. No texto antigo isso só aparecia na persistência — é um padrão geral.
+// - Pico da lista aberta inverte a ordem: Dijkstra tem o menor pico, WA* o maior; razão Dij/A* entre 0,38 e 0,58 em todos os casos (@tab_comum_pico).
+// - Representações no tempo: 2.5D < voxelizada < vértices < dual nos 4 testes; dual ≈ 7× a 2.5D (244,7/33,0 na escala). No pico, a voxelizada é a menor e o grafo de vértices o maior.
+// - Interação A × R com η²p alto (0,84–0,93 em tempo, expandidos e pico; @apendice_anova). Exemplo concreto: a WA* acelera ~8–19× sobre o Dijkstra na 2.5D, mas só 1,06–1,23× na voxelizada.
+// - Custo relativo: WA* fica 3–4% acima do ótimo (1,030–1,037) e GBFS 18–28% (1,179–1,281); WA*/GBFS entre 0,78 e 0,92 em todas as representações (p < 0,001). Grafo de vértices tem o maior custo relativo nos 4 testes.
+
+\
+#figure(
+  caption: [Tempo de busca (ms) por algoritmo e representação em cada teste.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, right, right, right, right),
+    [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
+    [Dijkstra], [386,0], [212,7], [243,1], [203,9],
+    [A\*], [414,1], [220,7], [255,6], [212,8],
+    [WA\*], [104,3], [48,5], [68,5], [33,7],
+    [GBFS], [2,3], [1,4], [1,7], [1,3],
+    table.hline(stroke: 0.5pt),
+    [Grade 2.5D], [33,0], [18,0], [21,5], [15,6],
+    [Grade voxelizada], [43,6], [25,5], [27,0], [24,7],
+    [Grafo de vértices], [110,4], [57,4], [76,2], [47,9],
+    [Grafo dual], [244,7], [122,3], [160,9], [106,0],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_comum_tempo>
+
+\
+#figure(
+  caption: [Vértices expandidos por algoritmo e representação em cada teste.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, right, right, right, right),
+    [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
+    [Dijkstra], [860 130], [507 375], [553 502], [490 377],
+    [A\*], [660 544], [373 948], [421 981], [359 044],
+    [WA\*], [154 972], [75 438], [103 208], [51 794],
+    [GBFS], [1 797], [1 299], [1 629], [1 214],
+    table.hline(stroke: 0.5pt),
+    [Grade 2.5D], [40 678], [23 887], [28 148], [20 463],
+    [Grade voxelizada], [86 526], [54 257], [57 075], [52 689],
+    [Grafo de vértices], [128 806], [73 738], [97 346], [61 488],
+    [Grafo dual], [349 077], [194 481], [251 068], [166 960],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_comum_exp>
+
+\
+#figure(
+  caption: [Pico da lista aberta por algoritmo e representação em cada teste.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, right, right, right, right),
+    [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
+    [Dijkstra], [2 048], [1 523], [1 741], [1 463],
+    [A\*], [4 180], [3 190], [3 500], [3 094],
+    [WA\*], [6 743], [4 951], [5 401], [4 754],
+    [GBFS], [2 882], [2 186], [2 335], [2 134],
+    table.hline(stroke: 0.5pt),
+    [Grade 2.5D], [3 912], [2 934], [3 166], [2 829],
+    [Grade voxelizada], [2 074], [1 600], [1 668], [1 607],
+    [Grafo de vértices], [5 182], [3 806], [4 356], [3 583],
+    [Grafo dual], [3 958], [2 943], [3 340], [2 818],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_comum_pico>
+
+\
+#figure(
+  caption: [Custo relativo por algoritmo e representação em cada teste.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, right, right, right, right),
+    [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
+    [WA\*], [1,037], [1,034], [1,030], [1,036],
+    [GBFS], [1,228], [1,204], [1,281], [1,179],
+    table.hline(stroke: 0.5pt),
+    [Grade 2.5D], [1,123], [1,099], [1,142], [1,087],
+    [Grade voxelizada], [1,116], [1,105], [1,137], [1,095],
+    [Grafo de vértices], [1,157], [1,145], [1,173], [1,133],
+    [Grafo dual], [1,118], [1,115], [1,142], [1,107],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_comum_custo>
+
+== Tempo de busca <res_tempo>
+
+// TODO(tcc): focar no efeito do nível (@tab_nivel_tempo). Pontos:
+// - Escala: tempo quase triplica de 500 para 800 (razão 2,81; η²p = 0,901), e a escala afeta todos os algoritmos e representações quase igualmente (N × A e N × R com η²p ≤ 0,08).
+// - Persistência é o parâmetro de maior efeito: ×4,09 de 0,3 para 0,7 (η²p = 0,951), com N × R forte (η²p = 0,915).
+// - Lacunaridade: ×2,23 (η²p = 0,853). Comprimento de onda tem efeito inverso: o tempo cai para 0,41 de 200 para 500 (η²p = 0,885).
+// - Fora da escala, as interações com o nível são fortes (N × A: 0,64–0,79; N × R: 0,70–0,92), ou seja, o parâmetro de geração não afeta os algoritmos igualmente.
+// - A WA* é a mais sensível ao terreno: razão extremo/extremo de até 39,9 na persistência, 10,7 na lacunaridade e 0,07 no comprimento de onda, enquanto o Dijkstra e o A* ficam entre 1,2 e 4,9 na lacunaridade e na persistência (@tab_tukey_niveis).
+// - Citar as figuras @fig_res_escala_tempo a @fig_res_comp_tempo.
+
+\
+#figure(
+  caption: [Tempo de busca (ms) por nível em cada teste, com o efeito do nível na ANOVA.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
+    align: (left, right, right, right, right, right, right, right),
+    [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
+    [Escala], [46,1 \ #text(size: 9pt)[(500)]], [69,7 \ #text(size: 9pt)[(600)]], [93,1 \ #text(size: 9pt)[(700)]], [129,7 \ #text(size: 9pt)[(800)]], [2,81], [< 0,001], [0,901],
+    [Lacunaridade], [29,6 \ #text(size: 9pt)[(1,5)]], [35,8 \ #text(size: 9pt)[(1,75)]], [46,2 \ #text(size: 9pt)[(2)]], [65,9 \ #text(size: 9pt)[(2,25)]], [2,23], [< 0,001], [0,853],
+    [Persistência], [27,5 \ #text(size: 9pt)[(0,3)]], [37,2 \ #text(size: 9pt)[(0,433)]], [61,8 \ #text(size: 9pt)[(0,567)]], [112,5 \ #text(size: 9pt)[(0,7)]], [4,09], [< 0,001], [0,951],
+    [Comprimento de onda], [58,6 \ #text(size: 9pt)[(200)]], [42,3 \ #text(size: 9pt)[(275)]], [32,8 \ #text(size: 9pt)[(350)]], [24,1 \ #text(size: 9pt)[(500)]], [0,41], [< 0,001], [0,885],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_nivel_tempo>
+
+\
+#figure(
+  caption: [Tempo de busca em função da escala, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/scale_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_escala_tempo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Tempo de busca em função da lacunaridade, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/lac_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_lac_tempo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Tempo de busca em função da persistência, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/pers_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_pers_tempo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Tempo de busca em função do comprimento de onda base, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/frequency_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_comp_tempo> \ #v(-1.5em)
+
+== Vértices expandidos <res_expandidos>
+
+// TODO(tcc): efeito do nível (@tab_nivel_exp), curto, por contraste com o tempo. Pontos:
+// - Mesma direção do tempo em todos os testes: escala ×2,49, lacunaridade ×2,10, persistência ×3,80, comprimento de onda ×0,44 (η²p 0,79–0,93).
+// - Na lacunaridade, o Dijkstra nas grades 2.5D e voxelizada não muda com o nível (razão 1,00; p ≥ 0,529): o aumento vem dos algoritmos guiados por heurística.
+// - WA* de novo é a mais sensível (até 36,97 na persistência; 0,06 no comprimento de onda).
+// - Figuras por teste no @apendice_figuras.
+
+\
+#figure(
+  caption: [Vértices expandidos por nível em cada teste, com o efeito do nível na ANOVA.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
+    align: (left, right, right, right, right, right, right, right),
+    [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
+    [Escala], [69 781 \ #text(size: 9pt)[(500)]], [100 618 \ #text(size: 9pt)[(600)]], [129 516 \ #text(size: 9pt)[(700)]], [174 030 \ #text(size: 9pt)[(800)]], [2,49], [< 0,001], [0,828],
+    [Lacunaridade], [47 145 \ #text(size: 9pt)[(1,5)]], [56 213 \ #text(size: 9pt)[(1,75)]], [70 756 \ #text(size: 9pt)[(2)]], [99 115 \ #text(size: 9pt)[(2,25)]], [2,10], [< 0,001], [0,790],
+    [Persistência], [43 945 \ #text(size: 9pt)[(0,3)]], [57 721 \ #text(size: 9pt)[(0,433)]], [92 691 \ #text(size: 9pt)[(0,567)]], [167 002 \ #text(size: 9pt)[(0,7)]], [3,80], [< 0,001], [0,929],
+    [Comprimento de onda], [88 368 \ #text(size: 9pt)[(200)]], [63 768 \ #text(size: 9pt)[(275)]], [50 966 \ #text(size: 9pt)[(350)]], [38 539 \ #text(size: 9pt)[(500)]], [0,44], [< 0,001], [0,840],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_nivel_exp>
+
+== Pico da lista aberta <res_pico>
+
+// TODO(tcc): efeito do nível (@tab_nivel_pico). Pontos:
+// - Cresce menos que o tempo e os expandidos: escala ×1,63, lacunaridade ×1,35, persistência ×1,80, comprimento de onda ×0,76, mas com os maiores η²p do nível (0,935–0,983), ou seja, varia pouco entre terrenos.
+// - Escala: N × R não significativa (p = 0,098); nos outros três testes N × R é forte (η²p 0,73–0,91).
+// - WA* (e, em menor grau, o A*): a direção do efeito depende da representação (WA*: lacunaridade 0,64–2,35, comprimento de onda 0,43–1,91; A*: persistência 0,97–2,30, comprimento de onda 0,71–1,21).
+
+\
+#figure(
+  caption: [Pico da lista aberta por nível em cada teste, com o efeito do nível na ANOVA.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
+    align: (left, right, right, right, right, right, right, right),
+    [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
+    [Escala], [2 783 \ #text(size: 9pt)[(500)]], [3 354 \ #text(size: 9pt)[(600)]], [3 925 \ #text(size: 9pt)[(700)]], [4 541 \ #text(size: 9pt)[(800)]], [1,63], [< 0,001], [0,976],
+    [Lacunaridade], [2 361 \ #text(size: 9pt)[(1,5)]], [2 509 \ #text(size: 9pt)[(1,75)]], [2 780 \ #text(size: 9pt)[(2)]], [3 193 \ #text(size: 9pt)[(2,25)]], [1,35], [< 0,001], [0,940],
+    [Persistência], [2 305 \ #text(size: 9pt)[(0,3)]], [2 538 \ #text(size: 9pt)[(0,433)]], [3 161 \ #text(size: 9pt)[(0,567)]], [4 155 \ #text(size: 9pt)[(0,7)]], [1,80], [< 0,001], [0,983],
+    [Comprimento de onda], [3 025 \ #text(size: 9pt)[(200)]], [2 688 \ #text(size: 9pt)[(275)]], [2 472 \ #text(size: 9pt)[(350)]], [2 284 \ #text(size: 9pt)[(500)]], [0,76], [< 0,001], [0,935],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_nivel_pico>
+
+== Custo relativo <res_custo>
+
+// TODO(tcc): só WA* e GBFS. Efeito do nível (@tab_nivel_custo). Pontos:
+// - Escala não afeta o custo relativo (p = 0,059; η²p = 0,037), e as interações com o nível também não são significativas, exceto N × A (p = 0,035, η²p = 0,043).
+// - Persistência e lacunaridade pioram a qualidade (1,072 → 1,270; 1,075 → 1,170), e o comprimento de onda a melhora (1,156 → 1,065).
+// - O efeito vem quase todo da GBFS: N × A com η²p 0,90–0,98 nesses três testes; a razão extremo/extremo da GBFS é 1,34–1,63 na persistência, enquanto a WA* fica entre 0,97 e 1,02 em todos os testes (@tab_tukey_niveis).
+// - Figuras por teste no @apendice_figuras.
+
+\
+#figure(
+  caption: [Custo relativo por nível em cada teste, com o efeito do nível na ANOVA.],
+  supplement: "Tabela",
+)[
+  #table(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
+    align: (left, right, right, right, right, right, right, right),
+    [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
+    [Escala], [1,125 \ #text(size: 9pt)[(500)]], [1,130 \ #text(size: 9pt)[(600)]], [1,128 \ #text(size: 9pt)[(700)]], [1,132 \ #text(size: 9pt)[(800)]], [1,006], [0,059], [0,037],
+    [Lacunaridade], [1,075 \ #text(size: 9pt)[(1,5)]], [1,096 \ #text(size: 9pt)[(1,75)]], [1,125 \ #text(size: 9pt)[(2)]], [1,170 \ #text(size: 9pt)[(2,25)]], [1,088], [< 0,001], [0,861],
+    [Persistência], [1,072 \ #text(size: 9pt)[(0,3)]], [1,099 \ #text(size: 9pt)[(0,433)]], [1,164 \ #text(size: 9pt)[(0,567)]], [1,270 \ #text(size: 9pt)[(0,7)]], [1,185], [< 0,001], [0,963],
+    [Comprimento de onda], [1,156 \ #text(size: 9pt)[(200)]], [1,113 \ #text(size: 9pt)[(275)]], [1,090 \ #text(size: 9pt)[(350)]], [1,065 \ #text(size: 9pt)[(500)]], [0,921], [< 0,001], [0,906],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_nivel_custo>
+
+// TODO(tcc): texto antigo do capítulo, mantido só como referência para a reescrita. Apagar quando a prosa nova estiver pronta.
+/*
+= Resultados <resultados>
+
+Este capítulo apresenta os resultados dos quatro testes de geração, executados separadamente, conforme descrito em @niveis. Para cada teste, reportam-se as médias geométricas marginais por nível, por algoritmo e por representação, seguidas dos efeitos da ANOVA em modelo split-plot e das comparações de Tukey. Os valores em escala original são médias geométricas, obtidas a partir da média dos logaritmos naturais dos terrenos. Dentro do terreno, o teste de Shapiro-Wilk rejeita a normalidade dos resíduos em todas as métricas (p < 0,001), o que é tratado na seção de Ameaças.
+
+== Escala <res_escala>
+
+No teste de escala, a dimensão do terreno assume os valores 500, 600, 700 e 800.
+
+=== Tempo de busca
+
+As médias geométricas do tempo de busca crescem com a escala: 46,1 ms no nível 500, 69,7 ms no nível 600, 93,1 ms no nível 700 e 129,7 ms no nível 800 (F(3; 196) = 595,01; p < 0,001; η² parcial = 0,901). Por algoritmo, as médias são de 386,0 ms para o Dijkstra, 414,1 ms para o A\*, 104,3 ms para a Weighted A\* e 2,3 ms para a Greedy Best-First Search (F(1,20; 234,3) = 35 531,32; p < 0,001). Por representação, são de 33,0 ms na grade 2.5D, 43,6 ms na grade voxelizada, 110,4 ms no grafo de vértices e 244,7 ms no grafo dual (F(1,84; 360,6) = 22 039,06; p < 0,001). Todas as interações são significativas (p ≤ 0,011), e a interação entre algoritmo e representação tem a maior magnitude (F(1,97; 385,7) = 1 802,37; η² parcial = 0,902).
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade 2.5D (razão 0,965; p = 0,088) nem no grafo de vértices (razão 1,035; p = 0,111). Nas demais representações, a diferença entre os dois é significativa. Entre os níveis 500 e 800, a razão das médias situa-se entre 2,64 e 2,93 para o Dijkstra e o A\*, entre 2,26 e 2,52 para a Greedy Best-First Search e entre 2,75 e 3,95 para a Weighted A\*, com p < 0,001 em todas as combinações. A @fig_res_escala_tempo apresenta as médias por algoritmo e representação.
+
+\
+#figure(
+  caption: [Tempo de busca em função da escala, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/scale_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_escala_tempo> \ #v(-1.5em)
+
+=== Vértices expandidos
+
+O número de vértices expandidos cresce de 69 781 no nível 500 para 174 030 no nível 800 (F(3; 196) = 314,92; p < 0,001; η² parcial = 0,828). Por algoritmo, são de 860 130 para o Dijkstra, 660 544 para o A\*, 154 972 para a Weighted A\* e 1 797 para a Greedy Best-First Search (F(1,74; 340,2) = 42 398,75; p < 0,001). Por representação, são de 40 678 na grade 2.5D, 86 526 na grade voxelizada, 128 806 no grafo de vértices e 349 077 no grafo dual (F(1,77; 347,0) = 19 442,74; p < 0,001). As interações entre nível e algoritmo (F(5,21; 340,2) = 13,00; p < 0,001) e entre nível, algoritmo e representação (F(6,99; 456,5) = 2,90; p = 0,006) são significativas, e a interação entre nível e representação também é (F(5,31; 347,0) = 2,31; p = 0,040).
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade voxelizada (razão 1,034; p = 0,117). Nas grades 2.5D, no grafo de vértices e no grafo dual, as razões são de 1,532, 1,466 e 1,239, respectivamente, todas com p < 0,001. A razão entre os níveis 800 e 500 situa-se entre 2,56 e 2,67 para o Dijkstra e o A\*, entre 2,63 e 3,70 para a Weighted A\* e entre 1,74 e 1,92 para a Greedy Best-First Search, com p < 0,001 em todas as combinações.
+
+=== Pico da lista aberta
+
+O pico da lista aberta cresce de 2 783 no nível 500 para 4 541 no nível 800 (F(3; 196) = 2 650,32; p < 0,001; η² parcial = 0,976). Por algoritmo, são de 2 048 para o Dijkstra, 4 180 para o A\*, 6 743 para a Weighted A\* e 2 882 para a Greedy Best-First Search (F(1,83; 357,7) = 18 998,76; p < 0,001). Por representação, são de 3 912 na grade 2.5D, 2 074 na grade voxelizada, 5 182 no grafo de vértices e 3 958 no grafo dual (F(2,57; 503,6) = 25 116,99; p < 0,001). A interação entre nível e representação não é significativa (F(7,71; 503,6) = 1,70; p = 0,098), enquanto as interações entre nível e algoritmo (F(5,48; 357,7) = 2,55; p = 0,024) e a tripla (F(10,52; 687,2) = 1,88; p = 0,042) são.
+
+Dentro do terreno, o Dijkstra e o A\* diferem em todas as representações, com razões entre 0,419 e 0,581 (p < 0,001). A razão entre os níveis 800 e 500 situa-se entre 1,56 e 1,81 em todas as combinações, com os seis pares significativos em cada uma.
+
+=== Custo relativo
+
+O custo relativo é analisado apenas para a Weighted A\* e a Greedy Best-First Search. A média geométrica é de 1,037 para a Weighted A\* e de 1,228 para a Greedy Best-First Search (F(1,00; 196,0) = 11 037,79; p < 0,001). O efeito do nível não é significativo (F(3; 196) = 2,53; p = 0,059), mas a interação entre nível e algoritmo é (F(3,00; 196,0) = 2,92; p = 0,035). Por representação, as médias são de 1,123 na grade 2.5D, 1,116 na grade voxelizada, 1,157 no grafo de vértices e 1,118 no grafo dual (F(2,63; 515,6) = 282,35; p < 0,001). A interação entre algoritmo e representação é significativa (F(2,58; 504,8) = 323,65; p < 0,001; η² parcial = 0,623).
+
+Dentro do terreno, o custo relativo da Weighted A\* corresponde a 0,814 a 0,886 do custo da Greedy Best-First Search, conforme a representação, com p < 0,001 em todos os casos.
+
+== Lacunaridade <res_lacunaridade>
+
+No teste de lacunaridade, o parâmetro varia de 1,5 a 2,25, com dimensão 500 (ver @niveis).
+
+=== Tempo de busca
+
+As médias geométricas do tempo de busca são de 29,6 ms em 1,5, 35,8 ms em 1,75, 46,2 ms em 2 e 65,9 ms em 2,25 (F(3; 196) = 378,02; p < 0,001; η² parcial = 0,853). Por algoritmo, são de 212,7 ms para o Dijkstra, 220,7 ms para o A\*, 48,5 ms para a Weighted A\* e 1,4 ms para a Greedy Best-First Search (F(1,20; 235,4) = 33 976,09; p < 0,001). Por representação, são de 18,0 ms na grade 2.5D, 25,5 ms na grade voxelizada, 57,4 ms no grafo de vértices e 122,3 ms no grafo dual (F(2,25; 440,0) = 17 449,55; p < 0,001). As três interações são significativas (p < 0,001), com η² parcial de 0,429 na interação tripla.
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade 2.5D (razão 1,010; p = 0,930) nem no grafo dual (razão 0,981; p = 0,642). Entre os níveis 2,25 e 1,5, as razões são de 1,20 a 2,42 para o Dijkstra e o A\*, de 1,80 a 10,73 para a Weighted A\* e de 1,13 a 2,12 para a Greedy Best-First Search, com p < 0,001 para o par extremo em todas as combinações. A @fig_res_lac_tempo apresenta as médias.
+
+\
+#figure(
+  caption: [Tempo de busca em função da lacunaridade, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/lac_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_lac_tempo> \ #v(-1.5em)
+
+=== Vértices expandidos
+
+Os vértices expandidos crescem de 47 145 em 1,5 para 99 115 em 2,25 (F(3; 196) = 246,01; p < 0,001; η² parcial = 0,790). Por algoritmo, são de 507 375 para o Dijkstra, 373 948 para o A\*, 75 438 para a Weighted A\* e 1 299 para a Greedy Best-First Search (F(1,62; 317,1) = 39 976,26; p < 0,001). Por representação, são de 23 887 na grade 2.5D, 54 257 na grade voxelizada, 73 738 no grafo de vértices e 194 481 no grafo dual (F(2,12; 415,7) = 16 510,66; p < 0,001). As interações entre nível e algoritmo, entre nível e representação e a tripla são significativas (p < 0,001), com η² parcial de 0,382 na interação tripla.
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade voxelizada (razão 1,037; p = 0,104). Para o Dijkstra, a razão entre os níveis 2,25 e 1,5 não é significativa na grade 2.5D (razão 1,000; p = 0,529) nem na grade voxelizada (razão 1,000; p = 0,632). Nas demais combinações, as razões variam de 1,03 a 9,98, com p < 0,001 para o par extremo.
+
+=== Pico da lista aberta
+
+O pico da lista aberta varia de 2 361 em 1,5 a 3 193 em 2,25 (F(3; 196) = 1 021,63; p < 0,001; η² parcial = 0,940). Por algoritmo, são de 1 523 para o Dijkstra, 3 190 para o A\*, 4 951 para a Weighted A\* e 2 186 para a Greedy Best-First Search (F(1,97; 385,3) = 18 327,68; p < 0,001). Por representação, são de 2 934 na grade 2.5D, 1 600 na grade voxelizada, 3 806 no grafo de vértices e 2 943 no grafo dual (F(2,57; 504,4) = 16 950,97; p < 0,001). As interações entre nível e algoritmo, entre nível e representação e a tripla são significativas (p < 0,001).
+
+Dentro do terreno, o Dijkstra e o A\* diferem em todas as representações, com razões entre 0,387 e 0,550 (p < 0,001). Entre os níveis 2,25 e 1,5, as razões situam-se entre 0,64 e 2,35, com pelo menos cinco dos seis pares significativos em cada combinação.
+
+=== Custo relativo
+
+A média geométrica do custo relativo é de 1,034 para a Weighted A\* e de 1,204 para a Greedy Best-First Search (F(1,00; 196,0) = 8 528,73; p < 0,001). O efeito do nível é significativo (F(3; 196) = 405,34; p < 0,001; η² parcial = 0,861), com médias de 1,075 em 1,5 e de 1,170 em 2,25. Por representação, as médias são de 1,100 na grade 2.5D, 1,106 na grade voxelizada, 1,145 no grafo de vértices e 1,115 no grafo dual (F(2,64; 518,2) = 347,17; p < 0,001). Dentro do terreno, o custo relativo da Weighted A\* corresponde a 0,832 a 0,902 do custo da Greedy Best-First Search, conforme a representação, com p < 0,001 em todos os casos.
+
+== Persistência <res_persistencia>
+
+No teste de persistência, o parâmetro varia de 0,3 a 0,7, com lacunaridade 2 (ver @niveis).
+
+=== Tempo de busca
+
+As médias geométricas do tempo de busca são de 27,5 ms em 0,3, 37,2 ms em 0,433, 61,8 ms em 0,567 e 112,5 ms em 0,7 (F(3; 196) = 1 277,93; p < 0,001; η² parcial = 0,951). Por algoritmo, são de 243,1 ms para o Dijkstra, 255,6 ms para o A\*, 68,5 ms para a Weighted A\* e 1,7 ms para a Greedy Best-First Search (F(1,30; 254,3) = 32 733,41; p < 0,001). Por representação, são de 21,5 ms na grade 2.5D, 27,0 ms na grade voxelizada, 76,2 ms no grafo de vértices e 160,9 ms no grafo dual (F(2,04; 399,2) = 26 240,93; p < 0,001). Todas as interações são significativas (p < 0,001), com η² parcial de 0,915 na interação entre nível e representação.
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade 2.5D (razão 0,990; p = 0,894) nem no grafo dual (razão 0,966; p = 0,072). Entre os níveis 0,7 e 0,3, as razões situam-se entre 1,36 e 39,93, com p < 0,001 para o par extremo em todas as combinações. A @fig_res_pers_tempo apresenta as médias.
+
+\
+#figure(
+  caption: [Tempo de busca em função da persistência, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/pers_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_pers_tempo> \ #v(-1.5em)
+
+=== Vértices expandidos
+
+Os vértices expandidos crescem de 43 945 em 0,3 para 167 002 em 0,7 (F(3; 196) = 855,22; p < 0,001; η² parcial = 0,929). Por algoritmo, são de 553 502 para o Dijkstra, 421 981 para o A\*, 103 208 para a Weighted A\* e 1 629 para a Greedy Best-First Search (F(1,79; 350,6) = 33 595,96; p < 0,001). Por representação, são de 28 148 na grade 2.5D, 57 075 na grade voxelizada, 97 346 no grafo de vértices e 251 068 no grafo dual (F(1,92; 377,0) = 22 922,07; p < 0,001). As interações entre nível e algoritmo, entre nível e representação e a tripla são significativas (p < 0,001).
+
+Dentro do terreno, o Dijkstra tem o mesmo número médio de vértices expandidos na grade 2.5D e na grade voxelizada (razão 1,000; p = 1,000). O Dijkstra e o A\* não diferem na grade voxelizada (razão 1,030; p = 0,183). Nas demais representações, as razões são de 1,549 na grade 2.5D, 1,474 no grafo de vértices e 1,260 no grafo dual, com p < 0,001.
+
+=== Pico da lista aberta
+
+O pico da lista aberta cresce de 2 305 em 0,3 para 4 155 em 0,7 (F(3; 196) = 3 813,67; p < 0,001; η² parcial = 0,983). Por algoritmo, são de 1 741 para o Dijkstra, 3 500 para o A\*, 5 401 para a Weighted A\* e 2 335 para a Greedy Best-First Search (F(1,88; 368,8) = 15 877,84; p < 0,001). Por representação, são de 3 166 na grade 2.5D, 1 668 na grade voxelizada, 4 356 no grafo de vértices e 3 340 no grafo dual (F(2,66; 522,1) = 22 882,36; p < 0,001). Todas as interações são significativas (p < 0,001), com η² parcial de 0,829 na interação tripla.
+
+Entre os níveis 0,7 e 0,3, as razões do Dijkstra situam-se entre 1,92 e 2,52, e as da Greedy Best-First Search entre 1,16 e 1,97, com p < 0,001 em todas as combinações. Para a Weighted A\*, as razões vão de 0,62 a 3,23, com p < 0,001 em todas as combinações. Para o A\* na grade 2.5D, a razão é de 0,97 e não é significativa (p = 0,319); nas demais representações, as razões vão de 1,63 a 2,30, com p < 0,001.
+
+=== Custo relativo
+
+A média geométrica do custo relativo é de 1,030 para a Weighted A\* e de 1,281 para a Greedy Best-First Search (F(1,00; 196,0) = 17 052,56; p < 0,001). O efeito do nível é significativo (F(3; 196) = 1 680,31; p < 0,001; η² parcial = 0,963), com médias de 1,072 em 0,3 e de 1,270 em 0,7. Por representação, as médias são de 1,142 na grade 2.5D, 1,137 na grade voxelizada, 1,173 no grafo de vértices e 1,142 no grafo dual (F(2,55; 500,4) = 183,54; p < 0,001). Dentro do terreno, o custo relativo da Weighted A\* corresponde a 0,784 a 0,820 do custo da Greedy Best-First Search, conforme a representação, com p < 0,001 em todos os casos.
+
+== Comprimento de onda <res_comprimento>
+
+No teste de comprimento de onda, o valor base assume 200, 275, 350 e 500, com dimensão 500 (ver @niveis).
+
+=== Tempo de busca
+
+As médias geométricas do tempo de busca são de 58,6 ms em 200, 42,3 ms em 275, 32,8 ms em 350 e 24,1 ms em 500 (F(3; 196) = 504,09; p < 0,001; η² parcial = 0,885). Por algoritmo, são de 203,9 ms para o Dijkstra, 212,8 ms para o A\*, 33,7 ms para a Weighted A\* e 1,3 ms para a Greedy Best-First Search (F(1,11; 217,7) = 33 657,63; p < 0,001). Por representação, são de 15,6 ms na grade 2.5D, 24,7 ms na grade voxelizada, 47,9 ms no grafo de vértices e 106,0 ms no grafo dual (F(2,08; 407,6) = 17 349,38; p < 0,001). Todas as interações são significativas (p < 0,001), com η² parcial de 0,487 na interação tripla.
+
+Dentro do terreno, o Dijkstra e o A\* não diferem na grade 2.5D (razão 1,010; p = 0,923) nem no grafo dual (razão 0,976; p = 0,434). Entre os níveis 500 e 200, as razões situam-se entre 0,065 e 0,892, com p < 0,001 em todas as combinações. A @fig_res_comp_tempo apresenta as médias.
+
+\
+#figure(
+  caption: [Tempo de busca em função do comprimento de onda base, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/frequency_tempo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_res_comp_tempo> \ #v(-1.5em)
+
+=== Vértices expandidos
+
+Os vértices expandidos decrescem de 88 368 em 200 para 38 539 em 500 (F(3; 196) = 344,06; p < 0,001; η² parcial = 0,840). Por algoritmo, são de 490 377 para o Dijkstra, 359 044 para o A\*, 51 794 para a Weighted A\* e 1 214 para a Greedy Best-First Search (F(1,37; 269,0) = 40 812,30; p < 0,001). Por representação, são de 20 463 na grade 2.5D, 52 689 na grade voxelizada, 61 488 no grafo de vértices e 166 960 no grafo dual (F(1,94; 380,0) = 17 395,19; p < 0,001). As interações são significativas (p < 0,001), com η² parcial de 0,463 na interação tripla.
+
+Dentro do terreno, o Dijkstra e o A\* diferem na grade 2.5D (razão 1,723; p < 0,001), no grafo de vértices (razão 1,518; p < 0,001) e no grafo dual (razão 1,292; p < 0,001), mas não na grade voxelizada (razão 1,030; p = 0,234).
+
+=== Pico da lista aberta
+
+O pico da lista aberta decresce de 3 025 em 200 para 2 284 em 500 (F(3; 196) = 940,57; p < 0,001; η² parcial = 0,935). Por algoritmo, são de 1 463 para o Dijkstra, 3 094 para o A\*, 4 754 para a Weighted A\* e 2 134 para a Greedy Best-First Search (F(1,78; 348,5) = 20 493,12; p < 0,001). Por representação, são de 2 829 na grade 2.5D, 1 607 na grade voxelizada, 3 583 no grafo de vértices e 2 818 no grafo dual (F(2,32; 454,3) = 18 279,91; p < 0,001). As interações entre nível e representação e a tripla são significativas (p < 0,001), e a interação entre nível e algoritmo também (F(5,33; 348,5) = 31,03; p < 0,001; η² parcial = 0,322).
+
+Entre os níveis 500 e 200, as razões variam de 0,43 a 1,91. Para o Dijkstra, situam-se entre 0,63 e 0,73, e para a Greedy Best-First Search, entre 0,71 e 0,95, com p < 0,001 em todos os casos. Para o A\*, vão de 0,71 a 1,21, e para a Weighted A\*, de 0,43 (grade 2.5D) a 1,91 (grade voxelizada). Os seis pares são significativos em 14 das 16 combinações; nas demais, são quatro para o A\* na grade 2.5D e cinco para a Greedy Best-First Search na grade 2.5D.
+
+=== Custo relativo
+
+A média geométrica do custo relativo é de 1,036 para a Weighted A\* e de 1,180 para a Greedy Best-First Search (F(1,00; 196,0) = 9 437,10; p < 0,001). O efeito do nível é significativo (F(3; 196) = 626,39; p < 0,001; η² parcial = 0,906), com médias de 1,156 em 200 e de 1,065 em 500. Por representação, as médias são de 1,087 na grade 2.5D, 1,095 na grade voxelizada, 1,134 no grafo de vértices e 1,107 no grafo dual (F(2,58; 506,4) = 407,60; p < 0,001). Dentro do terreno, o custo relativo da Weighted A\* corresponde a 0,849 a 0,923 do custo da Greedy Best-First Search, conforme a representação, com p < 0,001 em todos os casos.
+*/
+
+= Discussões
 
 
 
@@ -1335,3 +1747,362 @@ Quanto à validade externa, os terrenos são gerados apenas por ruído de Perlin
 ]
 
 #bibliography("referencias.bib", style: "associacao-brasileira-de-normas-tecnicas.csl", title: none)
+
+#pagebreak()
+
+#heading(numbering: none)[Apêndice A -- Análise de variância] <apendice_anova>
+
+// TODO(tcc): uma frase de introdução: N = nível, A = algoritmo, R = representação; gl e p com correção de Greenhouse-Geisser nos efeitos dentro do terreno.
+
+\
+#figure(
+  caption: [ANOVA split-plot do teste de escala.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
+    table.cell(rowspan: 7)[Tempo],
+    [N], [595,01], [3; 196], [< 0,001], [0,901],
+    [A], [35531,32], [1,20; 234,3], [< 0,001], [0,995],
+    [N × A], [5,85], [3,59; 234,3], [< 0,001], [0,082],
+    [R], [22039,06], [1,84; 360,6], [< 0,001], [0,991],
+    [N × R], [4,96], [5,52; 360,6], [< 0,001], [0,071],
+    [A × R], [1802,37], [1,97; 385,7], [< 0,001], [0,902],
+    [N × A × R], [2,83], [5,90; 385,7], [0,011], [0,042],
+    table.cell(rowspan: 7)[Expandidos],
+    [N], [314,92], [3; 196], [< 0,001], [0,828],
+    [A], [42398,75], [1,74; 340,2], [< 0,001], [0,995],
+    [N × A], [13,00], [5,21; 340,2], [< 0,001], [0,166],
+    [R], [19442,74], [1,77; 347,0], [< 0,001], [0,990],
+    [N × R], [2,31], [5,31; 347,0], [0,040], [0,034],
+    [A × R], [1728,46], [2,33; 456,5], [< 0,001], [0,898],
+    [N × A × R], [2,90], [6,99; 456,5], [0,006], [0,042],
+    table.cell(rowspan: 7)[Pico da lista aberta],
+    [N], [2650,32], [3; 196], [< 0,001], [0,976],
+    [A], [18998,76], [1,83; 357,7], [< 0,001], [0,990],
+    [N × A], [2,55], [5,48; 357,7], [0,024], [0,038],
+    [R], [25116,99], [2,57; 503,6], [< 0,001], [0,992],
+    [N × R], [1,70], [7,71; 503,6], [0,098], [0,025],
+    [A × R], [1061,61], [3,51; 687,2], [< 0,001], [0,844],
+    [N × A × R], [1,88], [10,52; 687,2], [0,042], [0,028],
+    table.cell(rowspan: 7)[Custo relativo],
+    [N], [2,53], [3; 196], [0,059], [0,037],
+    [A], [11037,79], [1,00; 196,0], [< 0,001], [0,983],
+    [N × A], [2,92], [3,00; 196,0], [0,035], [0,043],
+    [R], [282,35], [2,63; 515,6], [< 0,001], [0,590],
+    [N × R], [1,13], [7,89; 515,6], [0,340], [0,017],
+    [A × R], [323,65], [2,58; 504,8], [< 0,001], [0,623],
+    [N × A × R], [1,19], [7,73; 504,8], [0,302], [0,018],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_anova_escala>
+
+\
+#figure(
+  caption: [ANOVA split-plot do teste de lacunaridade.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
+    table.cell(rowspan: 7)[Tempo],
+    [N], [378,02], [3; 196], [< 0,001], [0,853],
+    [A], [33976,09], [1,20; 235,4], [< 0,001], [0,994],
+    [N × A], [115,81], [3,60; 235,4], [< 0,001], [0,639],
+    [R], [17449,55], [2,25; 440,0], [< 0,001], [0,989],
+    [N × R], [150,85], [6,74; 440,0], [< 0,001], [0,698],
+    [A × R], [1730,39], [2,53; 495,1], [< 0,001], [0,898],
+    [N × A × R], [49,17], [7,58; 495,1], [< 0,001], [0,429],
+    table.cell(rowspan: 7)[Expandidos],
+    [N], [246,01], [3; 196], [< 0,001], [0,790],
+    [A], [39976,26], [1,62; 317,1], [< 0,001], [0,995],
+    [N × A], [98,47], [4,85; 317,1], [< 0,001], [0,601],
+    [R], [16510,66], [2,12; 415,7], [< 0,001], [0,988],
+    [N × R], [149,46], [6,36; 415,7], [< 0,001], [0,696],
+    [A × R], [1592,49], [2,82; 553,1], [< 0,001], [0,890],
+    [N × A × R], [40,39], [8,47; 553,1], [< 0,001], [0,382],
+    table.cell(rowspan: 7)[Pico da lista aberta],
+    [N], [1021,63], [3; 196], [< 0,001], [0,940],
+    [A], [18327,68], [1,97; 385,3], [< 0,001], [0,989],
+    [N × A], [38,32], [5,90; 385,3], [< 0,001], [0,370],
+    [R], [16950,97], [2,57; 504,4], [< 0,001], [0,989],
+    [N × R], [172,42], [7,72; 504,4], [< 0,001], [0,725],
+    [A × R], [1086,84], [3,35; 656,9], [< 0,001], [0,847],
+    [N × A × R], [149,75], [10,05; 656,9], [< 0,001], [0,696],
+    table.cell(rowspan: 7)[Custo relativo],
+    [N], [405,34], [3; 196], [< 0,001], [0,861],
+    [A], [8528,73], [1,00; 196,0], [< 0,001], [0,978],
+    [N × A], [582,53], [3,00; 196,0], [< 0,001], [0,899],
+    [R], [347,17], [2,64; 518,2], [< 0,001], [0,639],
+    [N × R], [64,25], [7,93; 518,2], [< 0,001], [0,496],
+    [A × R], [366,38], [2,71; 531,2], [< 0,001], [0,651],
+    [N × A × R], [27,35], [8,13; 531,2], [< 0,001], [0,295],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_anova_lac>
+
+\
+#figure(
+  caption: [ANOVA split-plot do teste de persistência.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
+    table.cell(rowspan: 7)[Tempo],
+    [N], [1277,93], [3; 196], [< 0,001], [0,951],
+    [A], [32733,41], [1,30; 254,3], [< 0,001], [0,994],
+    [N × A], [250,80], [3,89; 254,3], [< 0,001], [0,793],
+    [R], [26240,93], [2,04; 399,2], [< 0,001], [0,993],
+    [N × R], [705,70], [6,11; 399,2], [< 0,001], [0,915],
+    [A × R], [1576,88], [2,47; 483,7], [< 0,001], [0,889],
+    [N × A × R], [151,67], [7,40; 483,7], [< 0,001], [0,699],
+    table.cell(rowspan: 7)[Expandidos],
+    [N], [855,22], [3; 196], [< 0,001], [0,929],
+    [A], [33595,96], [1,79; 350,6], [< 0,001], [0,994],
+    [N × A], [200,83], [5,37; 350,6], [< 0,001], [0,755],
+    [R], [22922,07], [1,92; 377,0], [< 0,001], [0,992],
+    [N × R], [650,07], [5,77; 377,0], [< 0,001], [0,909],
+    [A × R], [1487,09], [2,78; 545,7], [< 0,001], [0,884],
+    [N × A × R], [128,36], [8,35; 545,7], [< 0,001], [0,663],
+    table.cell(rowspan: 7)[Pico da lista aberta],
+    [N], [3813,67], [3; 196], [< 0,001], [0,983],
+    [A], [15877,84], [1,88; 368,8], [< 0,001], [0,988],
+    [N × A], [97,05], [5,65; 368,8], [< 0,001], [0,598],
+    [R], [22882,36], [2,66; 522,1], [< 0,001], [0,992],
+    [N × R], [621,89], [7,99; 522,1], [< 0,001], [0,905],
+    [A × R], [1143,78], [4,05; 792,8], [< 0,001], [0,854],
+    [N × A × R], [316,05], [12,14; 792,8], [< 0,001], [0,829],
+    table.cell(rowspan: 7)[Custo relativo],
+    [N], [1680,31], [3; 196], [< 0,001], [0,963],
+    [A], [17052,56], [1,00; 196,0], [< 0,001], [0,989],
+    [N × A], [2527,82], [3,00; 196,0], [< 0,001], [0,975],
+    [R], [183,54], [2,55; 500,4], [< 0,001], [0,484],
+    [N × R], [119,00], [7,66; 500,4], [< 0,001], [0,646],
+    [A × R], [99,41], [2,48; 485,1], [< 0,001], [0,337],
+    [N × A × R], [104,48], [7,43; 485,1], [< 0,001], [0,615],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_anova_pers>
+
+\
+#figure(
+  caption: [ANOVA split-plot do teste de comprimento de onda.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
+    table.cell(rowspan: 7)[Tempo],
+    [N], [504,09], [3; 196], [< 0,001], [0,885],
+    [A], [33657,63], [1,11; 217,7], [< 0,001], [0,994],
+    [N × A], [176,43], [3,33; 217,7], [< 0,001], [0,730],
+    [R], [17349,38], [2,08; 407,6], [< 0,001], [0,989],
+    [N × R], [206,03], [6,24; 407,6], [< 0,001], [0,759],
+    [A × R], [2494,24], [2,33; 457,6], [< 0,001], [0,927],
+    [N × A × R], [61,97], [7,00; 457,6], [< 0,001], [0,487],
+    table.cell(rowspan: 7)[Expandidos],
+    [N], [344,06], [3; 196], [< 0,001], [0,840],
+    [A], [40812,30], [1,37; 269,0], [< 0,001], [0,995],
+    [N × A], [166,40], [4,12; 269,0], [< 0,001], [0,718],
+    [R], [17395,19], [1,94; 380,0], [< 0,001], [0,989],
+    [N × R], [178,09], [5,82; 380,0], [< 0,001], [0,732],
+    [A × R], [2330,12], [2,53; 495,1], [< 0,001], [0,922],
+    [N × A × R], [56,38], [7,58; 495,1], [< 0,001], [0,463],
+    table.cell(rowspan: 7)[Pico da lista aberta],
+    [N], [940,57], [3; 196], [< 0,001], [0,935],
+    [A], [20493,12], [1,78; 348,5], [< 0,001], [0,991],
+    [N × A], [31,03], [5,33; 348,5], [< 0,001], [0,322],
+    [R], [18279,91], [2,32; 454,3], [< 0,001], [0,989],
+    [N × R], [218,75], [6,95; 454,3], [< 0,001], [0,770],
+    [A × R], [2134,16], [3,19; 625,2], [< 0,001], [0,916],
+    [N × A × R], [253,19], [9,57; 625,2], [< 0,001], [0,795],
+    table.cell(rowspan: 7)[Custo relativo],
+    [N], [626,39], [3; 196], [< 0,001], [0,906],
+    [A], [9437,10], [1,00; 196,0], [< 0,001], [0,980],
+    [N × A], [778,08], [3,00; 196,0], [< 0,001], [0,923],
+    [R], [407,60], [2,58; 506,4], [< 0,001], [0,675],
+    [N × R], [69,48], [7,75; 506,4], [< 0,001], [0,515],
+    [A × R], [449,56], [2,60; 509,7], [< 0,001], [0,696],
+    [N × A × R], [22,84], [7,80; 509,7], [< 0,001], [0,259],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_anova_comp>
+
+
+#heading(numbering: none)[Apêndice B -- Comparações de Tukey] <apendice_tukey>
+
+// TODO(tcc): uma frase de introdução para cada tabela; a lista completa das comparações está em analise/saida/tukey_*.csv.
+
+\
+#figure(
+  caption: [Razão das médias geométricas Dijkstra / A\* (p) por representação; \ na última linha de cada teste, Weighted A\* / Greedy Best-First Search.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Teste*], [*Métrica*], [*Grade \ 2.5D*], [*Grade \ voxelizada*], [*Grafo de \ vértices*], [*Grafo \ dual*],
+    table.cell(rowspan: 4)[Escala], [Tempo], [0,965 (0,088)], [0,793 (< 0,001)], [1,035 (0,111)], [0,953 (0,009)],
+    [Expandidos], [1,532 (< 0,001)], [1,034 (0,117)], [1,466 (< 0,001)], [1,239 (< 0,001)],
+    [Pico da lista aberta], [0,419 (< 0,001)], [0,561 (< 0,001)], [0,446 (< 0,001)], [0,549 (< 0,001)],
+    [Custo (WA\* / GBFS)], [0,886 (< 0,001)], [0,814 (< 0,001)], [0,834 (< 0,001)], [0,847 (< 0,001)],
+    table.cell(rowspan: 4)[Lacuna-\ ridade], [Tempo], [1,010 (0,930)], [0,813 (< 0,001)], [1,072 (< 0,001)], [0,981 (0,642)],
+    [Expandidos], [1,664 (< 0,001)], [1,037 (0,104)], [1,526 (< 0,001)], [1,287 (< 0,001)],
+    [Pico da lista aberta], [0,387 (< 0,001)], [0,550 (< 0,001)], [0,445 (< 0,001)], [0,548 (< 0,001)],
+    [Custo (WA\* / GBFS)], [0,902 (< 0,001)], [0,832 (< 0,001)], [0,847 (< 0,001)], [0,856 (< 0,001)],
+    table.cell(rowspan: 4)[Persis-\ tência], [Tempo], [0,990 (0,894)], [0,821 (< 0,001)], [1,044 (0,014)], [0,966 (0,072)],
+    [Expandidos], [1,549 (< 0,001)], [1,030 (0,183)], [1,474 (< 0,001)], [1,260 (< 0,001)],
+    [Pico da lista aberta], [0,419 (< 0,001)], [0,581 (< 0,001)], [0,454 (< 0,001)], [0,555 (< 0,001)],
+    [Custo (WA\* / GBFS)], [0,820 (< 0,001)], [0,784 (< 0,001)], [0,800 (< 0,001)], [0,810 (< 0,001)],
+    table.cell(rowspan: 4)[Comp. de \ onda], [Tempo], [1,010 (0,923)], [0,814 (< 0,001)], [1,050 (0,010)], [0,976 (0,434)],
+    [Expandidos], [1,723 (< 0,001)], [1,030 (0,234)], [1,518 (< 0,001)], [1,292 (< 0,001)],
+    [Pico da lista aberta], [0,376 (< 0,001)], [0,560 (< 0,001)], [0,438 (< 0,001)], [0,542 (< 0,001)],
+    [Custo (WA\* / GBFS)], [0,923 (< 0,001)], [0,849 (< 0,001)], [0,869 (< 0,001)], [0,874 (< 0,001)],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_tukey_alg>
+
+\
+#figure(
+  caption: [Razão entre o último e o primeiro nível, por teste e algoritmo: \ mínimo e máximo entre as representações.],
+  supplement: "Tabela",
+)[
+  #set text(size: 9pt)
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, left, right, right, right, right),
+    [*Teste*], [*Algoritmo*], [*Tempo*], [*Expandidos*], [*Pico*], [*Custo*],
+    table.cell(rowspan: 4)[Escala \ (800/500)], [Dijkstra], [2,64–2,81], [2,56–2,58], [1,58–1,61], [—],
+    [A\*], [2,69–2,93], [2,57–2,67], [1,56–1,64], [—],
+    [WA\*], [2,75–3,95], [2,62–3,70], [1,60–1,81], [0,998–1,003#super[3]],
+    [GBFS], [2,26–2,52], [1,74–1,92], [1,61–1,66], [1,008–1,021#super[3]],
+    table.cell(rowspan: 4)[Lacunaridade \ (2,25/1,5)], [Dijkstra], [1,20–1,95], [1,00–1,72#super[2]], [1,34–1,53], [—],
+    [A\*], [1,29–2,42], [1,03–2,22], [0,85–1,45], [—],
+    [WA\*], [1,80–10,73], [1,77–9,98], [0,64–2,35], [0,976–1,009],
+    [GBFS], [1,13–2,12], [1,20–2,20], [1,07–1,44], [1,132–1,288],
+    table.cell(rowspan: 4)[Persistência \ (0,7/0,3)], [Dijkstra], [1,36–3,74], [1,00–2,95], [1,92–2,52], [—],
+    [A\*], [1,44–4,95], [1,05–4,20], [0,97–2,30#super[1]], [—],
+    [WA\*], [2,44–39,93], [2,39–36,97], [0,61–3,23], [0,968–0,991],
+    [GBFS], [1,36–4,77], [1,64–6,11], [1,16–1,97], [1,337–1,631],
+    table.cell(rowspan: 4)[Comp. de onda \ (500/200)], [Dijkstra], [0,47–0,85], [0,57–1,00], [0,63–0,73], [—],
+    [A\*], [0,45–0,80], [0,49–1,00#super[1]], [0,71–1,21], [—],
+    [WA\*], [0,07–0,48], [0,06–0,47], [0,43–1,91], [0,977–1,024],
+    [GBFS], [0,45–0,89], [0,45–0,82], [0,71–0,94], [0,792–0,897],
+  )
+  #v(.5em)
+  Sobrescrito: número de representações em que o par extremo não é significativo (p ≥ 0,05). \
+  Fonte: Elaborado pelo autor.
+] <tab_tukey_niveis>
+
+#heading(numbering: none)[Apêndice C -- Figuras complementares] <apendice_figuras>
+
+\
+#figure(
+  caption: [Vértices expandidos em função da escala, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_scale_expandidos.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_scale_expandidos> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Custo relativo em função da escala, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_scale_custo_relativo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_scale_custo_relativo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Vértices expandidos em função da lacunaridade, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_lac_expandidos.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_lac_expandidos> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Custo relativo em função da lacunaridade, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_lac_custo_relativo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_lac_custo_relativo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Vértices expandidos em função da persistência, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_pers_expandidos.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_pers_expandidos> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Custo relativo em função da persistência, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_pers_custo_relativo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_pers_custo_relativo> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Vértices expandidos em função do comprimento de onda base, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_frequency_expandidos.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_frequency_expandidos> \ #v(-1.5em)
+
+\
+#figure(
+  caption: [Custo relativo em função do comprimento de onda base, \ por algoritmo e representação.],
+  supplement: "Figura",
+)[
+  #v(1.5em)
+  #image("images/apendice/fig_frequency_custo_relativo.png", width: 100%)
+  #v(.5em)
+ Fonte: Elaborado pelo autor.
+] <fig_apx_frequency_custo_relativo> \ #v(-1.5em)
+
