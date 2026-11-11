@@ -285,6 +285,18 @@
   corpo
 }
 
+// Tabela no padrão ABNT/IBGE: aberta nas laterais, sem linhas internas, com traços
+// apenas no topo, abaixo do cabeçalho (primeira linha) e no fim. Aceita os mesmos
+// argumentos de `table` e deve ser usada dentro de um `figure`, que cuida do título.
+#let tabela-abnt(..args) = table(
+  stroke: none,
+  ..args.named(),
+  table.hline(y: 0, stroke: 0.8pt),
+  table.hline(y: 1, stroke: 0.5pt),
+  ..args.pos(),
+  table.hline(stroke: 0.8pt),
+)
+
 #let citacao_longa(texto) = {
   pad(left: 4cm, right: 0cm)[
     #set text(size: 10pt)
@@ -316,10 +328,23 @@
   
   lista_ilustracoes: true,
   lista_tabelas: true,
-  // TODO(tcc): acrescentar conforme o texto for escrito: GBFS (Greedy Best-First Search), WA* (Weighted A*),
-  // BFS (Breadth-First Search, se citar o componente conexo), CSV, HSD (Tukey). Revisar no fim se todas aparecem no texto.
   lista_siglas: (
-    "SIG": [Sigla]
+    "ANOVA": [Análise de variância],
+    "API": [_Application Programming Interface_ (interface de programação de aplicações)],
+    "CLI": [_Command-Line Interface_ (interface de linha de comando)],
+    "CSV": [_Comma-Separated Values_ (valores separados por vírgula)],
+    "EBO": [_Element Buffer Object_ (objeto de buffer de índices)],
+    "FPS": [_Frames Per Second_ (quadros por segundo)],
+    "GBFS": [Greedy Best-First Search],
+    "GLSL": [_OpenGL Shading Language_ (linguagem de sombreamento do OpenGL)],
+    "GPU": [_Graphics Processing Unit_ (unidade de processamento gráfico)],
+    "HSD": [_Honestly Significant Difference_ (diferença honestamente significativa)],
+    "IFC": [Instituto Federal Catarinense],
+    "MQ": [Quadrado médio],
+    "TCC": [Trabalho de Conclusão de Curso],
+    "VAO": [_Vertex Array Object_ (objeto de arranjo de vértices)],
+    "VBO": [_Vertex Buffer Object_ (objeto de buffer de vértices)],
+    "WA*": [Weighted A\*],
   )
 )
 
@@ -498,7 +523,7 @@ Um caminho em um grafo é uma sequência de vértices conectados por arestas, re
 
 Considerando $v_1$ o vértice inicial e $v_7$ o vértice final, a sequência de vértices $(v_1, v_2, v_3, v_4, v_5, v_6, v_7)$ representada na @fig_caminho é o caminho $v_1 arrow v_7$. Esse caminho é uma das várias rotas possíveis entre os vértices $v_1$ e $v_7$, e a escolha do caminho mais eficiente depende dos pesos das arestas e das características do grafo.
 
-Para todo vértice $v$ em um grafo, é possível determinar se existe um caminho para outro vértice $u$ no mesmo grafo. Entretanto, a existência de um caminho não impede a existência de outros caminhos entre $v$ e $u$, podendo haver múltiplos caminhos com diferentes pesos e características. Quando comparados, os caminhos podem apresentar variações significativas em termos de custo, distância ou dificuldade de travessia. Se existe ao menos um caminho entre $v$ e $u$, e o grafo não contém ciclos de peso negativo, existe um caminho mínimo ou ótimo entre eles, que é aquele com o menor custo ou peso total.
+Para todo vértice $v$ em um grafo, é possível determinar se existe um caminho para outro vértice $u$ no mesmo grafo. Entretanto, a existência de um caminho não impede a existência de outros caminhos entre $v$ e $u$, podendo haver múltiplos caminhos com diferentes pesos e características. Quando comparados, os caminhos podem apresentar variações significativas em termos de custo, distância ou dificuldade de travessia. Se existe ao menos um caminho entre $v$ e $u$, e o grafo não contém ciclos de peso negativo, existe um caminho mínimo ou ótimo entre eles, que é aquele com o menor custo ou peso total @cormen2009introduction.
 
 === Componente conexo
 
@@ -632,7 +657,7 @@ $ h(n) = max(|x_2 - x_1|, |y_2 - y_1|, |z_2 - z_1|) $ <formula_chebyshev> \
 
 A escolha da heurística depende de ela ser compatível com o custo das arestas. A euclidiana é admissível quando nenhuma aresta custa menos que a distância em linha reta entre seus extremos. A Chebyshev é admissível quando os movimentos diagonais custam o mesmo que os movimentos retos. Já a Manhattan superestima a distância real quando há movimentos diagonais, o que pode levar a caminhos não ótimos.
 
-Como a heurística define a ordem de exploração, ela altera tanto o número de vértices visitados quanto a qualidade do caminho encontrado. Uma heurística admissível garante o caminho ótimo, enquanto uma heurística que superestima o custo pode explorar menos vértices e, ainda assim, não encontrar o menor caminho.
+Como a heurística define a ordem de exploração, ela altera tanto o número de vértices visitados quanto a qualidade do caminho encontrado. Uma heurística admissível garante o caminho ótimo @astar, enquanto uma heurística que superestima o custo pode explorar menos vértices e, ainda assim, não encontrar o menor caminho.
 
 === A\* <a_star>
 
@@ -841,7 +866,7 @@ $ f(a_0, a_1, w) = a_0 + (a_1 - a_0) dot S(w) $ <formula_interpolacao> \
 
 ==== Oitavas <oitavas>
 
-Uma única oitava do ruído tem um nível de detalhe fixo. Para obter relevos com variações em diferentes escalas, somam-se várias oitavas, cada uma com frequência e amplitude próprias. Para a oitava $i$, com $i = 0, 1, ..., N-1$, tem-se
+Uma única oitava do ruído tem um nível de detalhe fixo. Para obter relevos com variações em diferentes escalas, somam-se várias oitavas, cada uma com frequência e amplitude próprias @patel_terrain_noise. Para a oitava $i$, com $i = 0, 1, ..., N-1$, tem-se
 
 \
 $ f_i = f dot l^i, quad a_i = a_0 dot p^i $ <formula_frequencia_amplitude> #v(1.5em)
@@ -1018,10 +1043,42 @@ $ "HSD" = q_(alpha, k, nu) sqrt("MQ"_"dentro" / n) $ <formula_tukey> #v(1.5em)
 em que $q$ é a estatística da amplitude studentizada, $k$ é o número de grupos, $nu$ são os graus de liberdade do quadrado médio dentro dos grupos e $alpha$ é o nível de significância. Dois grupos são considerados diferentes quando a diferença absoluta entre suas médias excede o HSD.
 
 == Trabalhos relacionados
+
+Esta seção apresenta dois estudos que avaliam o desempenho de algoritmos de _pathfinding_ e indica em que este trabalho difere de cada um.
+
 === Johansson
-=== Kapi 
+
+#cite(<johansson2024adapting>, form: "prose") avalia os algoritmos Dijkstra e A\*, este com as heurísticas euclidiana e de Manhattan (ver @heuristicas), adaptados a ambientes tridimensionais. As métricas são o tempo de execução e o consumo de memória. O ambiente de teste é estruturado em _voxels_ (ver @voxels), de modo que o espaço de busca é uma grade de blocos cúbicos uniformes.
+
+Este trabalho difere em dois pontos. O primeiro é a representação: o mesmo terreno, gerado por ruído de Perlin, é convertido em quatro grafos, e a grade voxelizada é apenas um deles (ver @representacoes_navegaveis). O segundo é o conjunto de algoritmos, que inclui Weighted A\* e Greedy Best-First Search, além de Dijkstra e A\*.
+
+=== Kapi
+
+#cite(<Kapi2022>, form: "prose") comparam algoritmos de busca em mapas de grade, entre eles A\*, Jump Point Search e Theta\* @nash2007thetastar, pelo tempo de execução e pelo número de vértices expandidos. Os experimentos são restritos a grades bidimensionais planas.
+
+Em relação a esse estudo, este trabalho considera a terceira dimensão: a altura do terreno entra no peso das arestas e na heurística, que é a distância euclidiana tridimensional. Em contrapartida, Jump Point Search e Theta\* não são avaliados aqui.
+
 === Matriz de diferença
-figura: matrix de diferença
+
+A @tab_matriz_diferenca resume as diferenças entre este trabalho e os dois estudos.
+
+\
+#figure(
+  caption: [Diferenças entre este trabalho e os trabalhos relacionados.],
+  supplement: "Tabela",
+)[
+  #tabela-abnt(
+    columns: (auto, 1fr, 1fr, 1fr),
+    align: left,
+    [*Critério*], [*Este trabalho*], [*Johansson (2024)*], [*Kapi (2022)*],
+    [Espaço de busca], [Terrenos 3D gerados por ruído de Perlin], [Ambientes 3D em _voxels_], [Grades 2D planas],
+    [Representações], [Grade 2.5D, grade voxelizada, grafo de vértices e grafo dual], [Grade de _voxels_], [Grade 2D],
+    [Algoritmos], [Dijkstra, A\*, Weighted A\* e Greedy Best-First Search], [Dijkstra e A\*], [A\*, Jump Point Search e Theta\*],
+    [Métricas], [Tempo de busca, vértices expandidos, pico da lista aberta e custo relativo], [Tempo de execução e consumo de memória], [Tempo de execução e vértices expandidos],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_matriz_diferenca>
 
 == Pipeline
 
@@ -1083,20 +1140,20 @@ Em cada iteração, as tarefas pendentes destinadas à thread principal são exe
 
 O contexto do OpenGL está associado à thread que o ativa, normalmente a principal, e as chamadas à API devem partir dela. O IFCG separa, portanto, o trabalho computacional, que pode ser executado em paralelo, da atualização da unidade de processamento gráfico (GPU, do inglês _graphics processing unit_), que permanece na thread principal.
 
-O _TaskMaster_ implementa esse trabalho paralelo como um _pool_ de threads. O número de threads trabalhadoras é uma a menos que o de unidades de processamento disponíveis, mantendo-se pelo menos uma. As tarefas entram em três filas, de prioridade alta, média e baixa, e cada trabalhadora retira a próxima tarefa da fila de maior prioridade que não esteja vazia @ladeira. A sincronização usa um `mutex` e uma variável de condição, e as threads são `std::jthread`, que recebem um `std::stop_token` para encerramento cooperativo #cite(label("williams2019c++"), form: "prose").
+O _TaskMaster_ (@fig_taskmaster) implementa esse trabalho paralelo como um _pool_ de threads. O número de threads trabalhadoras é uma a menos que o de unidades de processamento disponíveis, mantendo-se pelo menos uma. As tarefas entram em três filas, de prioridade alta, média e baixa, e cada trabalhadora retira a próxima tarefa da fila de maior prioridade que não esteja vazia @ladeira. A sincronização usa um `mutex` e uma variável de condição, e as threads são `std::jthread`, que recebem um `std::stop_token` para encerramento cooperativo #cite(label("williams2019c++"), form: "prose").
 
 \
 #figure(
-  caption: [Pool de threads e filas de prioridade do _TaskMaster_.],
+  caption: [Diagrama de classes do _TaskMaster_.],
   supplement: "Figura",
 )[
   #v(1.5em)
-  // #image("", width: 85%)
+  #image("images/task_master.png", width: 100%)
   #v(.5em)
  Fonte: Elaborado pelo autor.
 ] <fig_taskmaster> \ #v(-1.5em)
 
-`Engine` oferece três operações sobre o _TaskMaster_. `runAsync` envia uma tarefa ao _pool_. `runOnMainThread` enfileira uma função para execução na thread principal, na próxima iteração do laço. `runAsyncThenMain` combina as duas: a tarefa é calculada em uma trabalhadora, e o resultado é entregue a uma função que roda na thread principal. No visualizador, a geração do ruído e da geometria do terreno e a construção do grafo de navegação ocorrem nas trabalhadoras, enquanto a criação das malhas e o envio à GPU ficam na thread principal.
+`Engine` oferece três operações sobre o _TaskMaster_. `runAsync` envia uma tarefa ao _pool_. `runOnMainThread` enfileira uma função para execução na thread principal, na próxima iteração do laço. `runAsyncThenMain` combina as duas: a tarefa é calculada em uma trabalhadora, e o resultado é entregue a uma função que roda na thread principal. No visualizador, a geração do ruído e da geometria do terreno e a construção do grafo de navegação ocorrem nas trabalhadoras, enquanto a criação das malhas e o envio à GPU ficam na thread principal. A avaliação do _TaskMaster_ nesse tipo de uso está resumida no #link(<apendice_taskmaster>)[Apêndice D].
 
 \
 #figure(
@@ -1269,7 +1326,7 @@ As variáveis independentes são a representação navegável, o algoritmo de bu
   caption: [Variáveis independentes e dependentes do experimento.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr),
     align: left,
     [*Tipo*], [*Variável*], [*Descrição*],
@@ -1336,7 +1393,7 @@ O algoritmo é o fator de maior efeito sobre o custo relativo, com η²p entre 0
   caption: [Tempo de busca (ms) por algoritmo e representação em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, right, right, right, right),
     [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
@@ -1359,7 +1416,7 @@ O algoritmo é o fator de maior efeito sobre o custo relativo, com η²p entre 0
   caption: [Vértices expandidos por algoritmo e representação em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, right, right, right, right),
     [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
@@ -1382,7 +1439,7 @@ O algoritmo é o fator de maior efeito sobre o custo relativo, com η²p entre 0
   caption: [Pico da lista aberta por algoritmo e representação em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, right, right, right, right),
     [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
@@ -1405,7 +1462,7 @@ O algoritmo é o fator de maior efeito sobre o custo relativo, com η²p entre 0
   caption: [Custo relativo por algoritmo e representação em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, right, right, right, right),
     [*Fator*], [*Escala*], [*Lacunaridade*], [*Persistência*], [*Comp. de onda*],
@@ -1433,10 +1490,10 @@ No comprimento de onda, o tempo de busca cai para 0,41 do valor inicial entre 20
 
 \
 #figure(
-  caption: [Tempo de busca (ms) por nível em cada teste, com o efeito do nível na ANOVA.],
+  caption: [Tempo de busca (ms) por nível em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
     align: (left, right, right, right, right, right, right, right),
     [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
@@ -1501,10 +1558,10 @@ A exceção é o Dijkstra nas grades 2.5D e voxelizada, cujo número de vértice
 
 \
 #figure(
-  caption: [Vértices expandidos por nível em cada teste, com o efeito do nível na ANOVA.],
+  caption: [Vértices expandidos por nível em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
     align: (left, right, right, right, right, right, right, right),
     [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
@@ -1523,10 +1580,10 @@ O pico da lista aberta segue a direção do tempo: sobe na escala, na lacunarida
 
 \
 #figure(
-  caption: [Pico da lista aberta por nível em cada teste, com o efeito do nível na ANOVA.],
+  caption: [Pico da lista aberta por nível em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
     align: (left, right, right, right, right, right, right, right),
     [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
@@ -1547,10 +1604,10 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 
 \
 #figure(
-  caption: [Custo relativo por nível em cada teste, com o efeito do nível na ANOVA.],
+  caption: [Custo relativo por nível em cada teste.],
   supplement: "Tabela",
 )[
-  #table(
+  #tabela-abnt(
     columns: (auto, 1fr, 1fr, 1fr, 1fr, auto, auto, auto),
     align: (left, right, right, right, right, right, right, right),
     [*Teste*], [*Nível 1*], [*Nível 2*], [*Nível 3*], [*Nível 4*], [*Razão 4/1*], [*p*], [*η²p*],
@@ -1565,11 +1622,47 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 
 = Discussões
 
+Os resultados respondem em parte à questão central deste trabalho. As explicações causais propostas a seguir são hipóteses, que não foram isoladas experimentalmente.
 
+== Esforço de busca e tempo
+
+A expectativa de que menos expansões levem a uma busca mais rápida não se confirma para o A\*. Ele expande entre 23% e 27% menos vértices que o Dijkstra (@tab_comum_exp), mas essa redução não aparece no tempo: na grade 2.5D os dois não diferem, e na grade voxelizada o Dijkstra é mais rápido (@tab_comum_tempo). Uma hipótese para esse resultado está no custo por vértice. O pico da lista aberta do A\* é cerca de duas vezes o do Dijkstra em todos os testes (@tab_comum_pico), o que sugere mais operações sobre a estrutura de prioridade, além do cálculo da heurística a cada vértice gerado. Confirmar essa hipótese exigiria medir essas operações separadamente.
+
+A Greedy Best-First Search está no extremo oposto. Na escala, ela expande cerca de 480 vezes menos vértices que o Dijkstra e é o algoritmo mais rápido em todos os testes. O ganho tem um custo, já que seus caminhos ficam entre 18% e 28% mais longos que os do Dijkstra (@tab_comum_custo). A Weighted A\*, com peso 1,5, fica em um ponto intermediário, com custo entre 3% e 4% acima do de referência. A ponderação da heurística, na formulação de #cite(<pohl1970heuristic>, form: "prose"), troca a garantia de caminho ótimo por uma busca menos extensa, e os valores observados seguem essa troca. Além disso, a Weighted A\* é mais rápida que o Dijkstra e que o A\*, mas tem o maior pico da lista aberta (@tab_comum_pico). Tempo e memória, portanto, não devem ser tratados como um único critério.
+
+== Efeito da representação
+
+A ordem entre as representações depende do algoritmo. Na escala, o Dijkstra leva 216,0 ms na grade 2.5D e 135,4 ms na grade voxelizada, enquanto a Weighted A\* leva 22,6 ms na grade 2.5D e 128,2 ms na voxelizada (@res_comuns). A escolha da representação, portanto, só pode ser feita em conjunto com a do algoritmo. Considerando os algoritmos em conjunto, a grade 2.5D é a representação mais rápida e o grafo dual, a mais lenta, em todos os testes. Em expansões, o grafo dual também lidera, o que é coerente com a sua construção, na qual cada polígono da malha se torna um vértice (@tab_comum_exp).
+
+O grafo de vértices tem o maior custo relativo médio entre as representações. Esse resultado deve ser lido com cautela, porque o custo relativo toma como referência o Dijkstra de cada representação e, por isso, não é diretamente comparável entre elas, como discutido nas ameaças à validade.
+
+Além disso, o tempo de busca não inclui a construção dos grafos. No grafo de vértices e no grafo dual, a extração da malha pelo Marching Cubes soma-se a essa construção. Esse custo foi medido separadamente, mas não é apresentado nos resultados, e uma comparação de desempenho total depende dele.
+
+== Efeito das características do terreno
+
+A escala aumenta o esforço sem alterar significativamente a qualidade relativa do caminho. O tempo de busca quase triplica entre os níveis extremos (razão 2,81), enquanto o custo relativo não varia de forma significativa (p = 0,059). Lacunaridade e persistência, que aumentam o detalhe do relevo, elevam tempo, expansões e custo. O mesmo sentido se observa quando o comprimento de onda base diminui, pois as feições do relevo ficam menores: o tempo de busca cai para 0,41 do valor inicial quando o valor sobe de 200 para 500 (@tab_nivel_tempo).
+
+A persistência tem o maior efeito sobre o tempo, que quadruplica entre os níveis extremos (razão 4,09). O custo também responde a ela, mas de forma desigual entre os algoritmos. O custo da Greedy Best-First Search aumenta entre 1,34 e 1,63 vez em todas as representações, enquanto o da Weighted A\* diminui levemente (@tab_tukey_niveis). Uma hipótese é que a Greedy Best-First Search, que orienta a expansão apenas pela estimativa até o destino e ignora o custo já percorrido, siga caminhos mais longos em relevos mais irregulares. Essa hipótese não foi testada diretamente.
+
+A Weighted A\* também mostra que o efeito do terreno depende da representação: sob variação de persistência, seu tempo cresce 39,93 vezes na grade 2.5D e apenas 2,44 vezes na grade voxelizada (@fig_res_pers_tempo). Já o Dijkstra é a exceção nas grades, pois seu número de vértices expandidos só muda com a escala, e não com lacunaridade, persistência ou comprimento de onda (razão de 1,00). A causa dessa constância não foi investigada.
+
+== Implicações e limitações
+
+Nas condições testadas, a escolha do algoritmo depende da prioridade. Quando o tempo de busca é o critério central, a Greedy Best-First Search é a mais rápida, ao custo de caminhos mais longos. Quando a qualidade do caminho importa, o Dijkstra serve de referência, e o A\* não oferece ganho de tempo sobre ele nesta implementação. A Weighted A\* ocupa um meio-termo, com caminhos próximos do Dijkstra e picos maiores da lista aberta.
+
+Esses resultados se referem a terrenos gerados por ruído de Perlin, em um único computador, sem obstáculos dinâmicos e com peso 1,5 para a Weighted A\*. Os valores de p, por sua vez, devem ser lidos com cautela, como indicam as ameaças à validade estatística.
 
 = Conclusão
 
+Este trabalho buscou responder qual é a influência da representação navegável de um terreno 3D e das características do terreno no desempenho e na qualidade da busca de algoritmos clássicos. Os resultados indicam que ambas as escolhas alteram o desempenho, mas que o sentido e a magnitude desse efeito dependem do algoritmo. Não há uma combinação que seja a melhor em todos os critérios: a escolha depende de a prioridade ser o tempo de busca, o esforço de expansão ou a qualidade do caminho.
 
+Nas condições testadas, a Greedy Best-First Search é a mais rápida em todos os testes, mas seus caminhos ficam entre 18% e 28% mais longos que os do Dijkstra (@tab_comum_custo). O Dijkstra serve de referência de qualidade, e o A\* expande menos vértices sem reduzir o tempo de busca. A Weighted A\* ocupa um meio-termo, com caminhos próximos aos do Dijkstra, ao custo de picos maiores da lista aberta (@tab_comum_pico).
+
+Os objetivos propostos foram cumpridos. A biblioteca de grafos e os quatro algoritmos foram implementados, um gerador de terrenos por ruído de Perlin foi desenvolvido com os quatro parâmetros, as quatro representações navegáveis foram construídas, e as métricas foram coletadas automaticamente e analisadas por ANOVA com testes de Tukey. O ambiente 3D com execução concorrente foi implementado como ferramenta de visualização das malhas e dos caminhos. Ele não participa da coleta das métricas de busca, e a avaliação do seu gerenciador de tarefas está resumida no #link(<apendice_taskmaster>)[Apêndice D].
+
+Assim, este trabalho contribui com uma comparação entre representações navegáveis avaliadas sobre os mesmos terrenos, com uma metodologia experimental reproduzível e com uma implementação de código aberto, que inclui a biblioteca de grafos e o motor IFCG (ver @gerador e @ifcg).
+
+Os resultados se restringem a terrenos gerados por ruído de Perlin, a um único computador, a um cenário sem obstáculos dinâmicos e a um único peso para a Weighted A\*. Trabalhos futuros podem estender a comparação a terrenos reais, a obstáculos dinâmicos e a outros pesos, além de incluir o custo de construção dos grafos, que hoje não entra na análise apresentada. A escolha conjunta de representação e algoritmo, portanto, deve considerar tanto o tipo de terreno quanto a prioridade da aplicação.
 
 #pagebreak()
 
@@ -1586,7 +1679,7 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 
 #heading(numbering: none)[Apêndice A -- Análise de variância] <apendice_anova>
 
-// TODO(tcc): uma frase de introdução: N = nível, A = algoritmo, R = representação; gl e p com correção de Greenhouse-Geisser nos efeitos dentro do terreno.
+Este apêndice apresenta a ANOVA em modelo split-plot de cada teste: escala (@tab_anova_escala), lacunaridade (@tab_anova_lac), persistência (@tab_anova_pers) e comprimento de onda (@tab_anova_comp). Nas tabelas, N é o nível do parâmetro testado, A é o algoritmo e R é a representação navegável. Nos efeitos dentro do terreno, os graus de liberdade (gl) e o valor de p trazem a correção de Greenhouse-Geisser.
 
 \
 #figure(
@@ -1595,7 +1688,7 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, left, right, right, right, right),
     [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
@@ -1643,7 +1736,7 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
     align: (left, left, right, right, right, right),
     [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
@@ -1691,9 +1784,9 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
-    align: (left, left, right, right, right, right),
+    align: (left, left, center, center, center, center),
     [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
     table.cell(rowspan: 7)[Tempo],
     [N], [1277,93], [3; 196], [< 0,001], [0,951],
@@ -1739,9 +1832,9 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
-    align: (left, left, right, right, right, right),
+    align: (left, left, center, center, center, center),
     [*Métrica*], [*Efeito*], [*F*], [*gl*], [*p*], [*η²p*],
     table.cell(rowspan: 7)[Tempo],
     [N], [504,09], [3; 196], [< 0,001], [0,885],
@@ -1783,18 +1876,18 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 
 #heading(numbering: none)[Apêndice B -- Comparações de Tukey] <apendice_tukey>
 
-// TODO(tcc): uma frase de introdução para cada tabela; a lista completa das comparações está em analise/saida/tukey_*.csv.
+Este apêndice resume as comparações do teste de Tukey. A @tab_tukey_alg traz, para cada teste e representação, a razão entre as médias geométricas do Dijkstra e do A\* no tempo de busca, nos vértices expandidos e no pico da lista aberta, com o valor de p entre parênteses. No custo relativo, a razão é entre a Weighted A\* e a Greedy Best-First Search. A @tab_tukey_niveis traz a razão entre o último e o primeiro nível de cada teste, por algoritmo, com o menor e o maior valor entre as quatro representações.
 
 \
 #figure(
-  caption: [Razão das médias geométricas Dijkstra / A\* (p) por representação; \ na última linha de cada teste, Weighted A\* / Greedy Best-First Search.],
+  caption: [Razão das médias geométricas do Dijkstra (p) por representação.],
   supplement: "Tabela",
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
-    align: (left, left, right, right, right, right),
+    align: (left, left, center, center, center, center),
     [*Teste*], [*Métrica*], [*Grade \ 2.5D*], [*Grade \ voxelizada*], [*Grafo de \ vértices*], [*Grafo \ dual*],
     table.cell(rowspan: 4)[Escala], [Tempo], [0,965 (0,088)], [0,793 (< 0,001)], [1,035 (0,111)], [0,953 (0,009)],
     [Expandidos], [1,532 (< 0,001)], [1,034 (0,117)], [1,466 (< 0,001)], [1,239 (< 0,001)],
@@ -1824,9 +1917,9 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 )[
   #set text(size: 9pt)
   #set par(justify: false)
-  #table(
+  #tabela-abnt(
     columns: (auto, auto, 1fr, 1fr, 1fr, 1fr),
-    align: (left, left, right, right, right, right),
+    align: (left, left, center, center, center, center),
     [*Teste*], [*Algoritmo*], [*Tempo*], [*Expandidos*], [*Pico*], [*Custo*],
     table.cell(rowspan: 4)[Escala \ (800/500)], [Dijkstra], [2,64–2,81], [2,56–2,58], [1,58–1,61], [—],
     [A\*], [2,69–2,93], [2,57–2,67], [1,56–1,64], [—],
@@ -1851,6 +1944,8 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
 ] <tab_tukey_niveis>
 
 #heading(numbering: none)[Apêndice C -- Figuras complementares] <apendice_figuras>
+
+Este apêndice reúne as figuras de vértices expandidos e de custo relativo dos quatro testes, que complementam as figuras de tempo de busca da @res_tempo. Em cada figura, os pontos são médias geométricas dos terrenos, e as barras indicam o intervalo de confiança de 95%. O custo relativo é apresentado apenas para a Weighted A\* e a Greedy Best-First Search.
 
 \
 #figure(
@@ -1939,4 +2034,44 @@ Essa variação vem sobretudo da Greedy Best-First Search. Na persistência, seu
   #v(.5em)
  Fonte: Elaborado pelo autor.
 ] <fig_apx_frequency_custo_relativo> \ #v(-1.5em)
+
+#heading(numbering: none)[Apêndice D -- Avaliação do TaskMaster] <apendice_taskmaster>
+
+Este apêndice resume a avaliação do _TaskMaster_ (ver @ifcg), feita em um estudo complementar a este trabalho. O estudo foi desenvolvido pelo autor na disciplina de Programação de Alto Desempenho e apresentado como pôster na MEPEC 2026, em coautoria com Paulo César Rodacki Gomes, Ricardo de la Rocha Ladeira e Jurandir Domingues Junior. O código está em repositório público#footnote[Disponível em: #link("https://github.com/andrevbastos/pad")].
+
+O experimento mede a geração de um terreno, que compreende o mapa de altura por ruído de Perlin (ver @perlin) e a construção da malha triangular correspondente. A busca de caminhos não faz parte dessa avaliação.
+
+São comparados dois modos. No sequencial, a geração ocorre na thread principal, a mesma que executa o laço de renderização. No paralelo, a thread principal apenas delega a geração ao _TaskMaster_, que a executa nas threads trabalhadoras. Cada modo é avaliado em dois cenários: isolado, sem o motor gráfico, e integrado ao IFCG, com a taxa de quadros limitada a 60 quadros por segundo (FPS, do inglês _frames per second_).
+
+A dimensão do terreno varia de 100 × 100 a 1000 × 1000 vértices, em dez níveis, com seis oitavas. Cada execução gera 20 terrenos por nível, e são feitas cinco execuções por modo, o que resulta em 100 medições por nível. O ambiente difere do descrito na Metodologia: o processador é o mesmo, mas com o governador de frequência _performance_, o turbo desligado, a rede desativada e pausas de 10 segundos entre as execuções. O modo sequencial é fixado no núcleo 2, e o paralelo usa todos os núcleos. O estudo também varia o número de oitavas, com resultados no mesmo sentido, que não são reproduzidos aqui.
+
+A @tab_taskmaster apresenta o cenário integrado ao motor gráfico. No modo sequencial, a taxa de quadros cai de 38,69 FPS, na menor dimensão, para 0,44 FPS, na maior, porque cada geração bloqueia a thread principal. No modo paralelo, a taxa permanece entre 59 e 60 FPS em todas as dimensões, isto é, no limite configurado. Esse resultado indica que a thread principal não é bloqueada pela geração, e não um aumento da capacidade de renderização.
+
+\
+#figure(
+  caption: [Tempo de geração e taxa de quadros por dimensão do terreno, no cenário integrado ao motor gráfico.],
+  supplement: "Tabela",
+)[
+  #tabela-abnt(
+    columns: (auto, 1fr, 1fr, 1fr, 1fr),
+    align: (left, center, center, center, center),
+    [*Dimensão*], [*Tempo seq. (ms)*], [*FPS seq.*], [*Tempo par. (ms)*], [*FPS par.*],
+    [100 × 100], [25,6], [38,69], [49,8], [59,31],
+    [200 × 200], [99,0], [10,06], [179,9], [59,31],
+    [300 × 300], [218,2], [4,57], [411,5], [59,31],
+    [400 × 400], [380,0], [2,63], [703,3], [59,26],
+    [500 × 500], [585,3], [1,71], [1071,0], [59,25],
+    [600 × 600], [842,4], [1,19], [1511,0], [59,25],
+    [700 × 700], [1131,7], [0,88], [2045,3], [59,25],
+    [800 × 800], [1481,8], [0,67], [2658,7], [59,25],
+    [900 × 900], [1871,7], [0,53], [3333,7], [59,25],
+    [1000 × 1000], [2295,0], [0,44], [3897,5], [59,59],
+  )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
+] <tab_taskmaster>
+
+No cenário isolado, a execução completa, com 400 terrenos somados os testes de dimensão e de oitavas, leva em média 250,32 s no modo sequencial e 46,69 s no paralelo, uma razão de 5,36.
+
+Em contrapartida, o tempo de geração de cada terreno é maior no modo paralelo: entre 1,7 e 1,9 vez o do sequencial no cenário integrado (@tab_taskmaster) e entre 2,1 e 2,2 vezes no isolado. A causa dessa diferença não foi isolada. O processador combina núcleos de desempenho e de eficiência, e o modo paralelo distribui as tarefas entre todos eles, enquanto o sequencial usa um único núcleo de desempenho. Além disso, a avaliação não inclui a busca de caminhos e, portanto, não mede o efeito do _TaskMaster_ sobre os algoritmos comparados neste trabalho.
 
