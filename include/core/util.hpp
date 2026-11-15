@@ -264,7 +264,8 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromPath(const
     return {vertices, indices};
 };
 
-inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromGraph(const common::lwGraph<Vertex3D>& graph, float intensity, Color color) {
+// shadeByHeight: escurece a cor proporcionalmente à altura do vértice (y / intensity).
+inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromGraph(const common::lwGraph<Vertex3D>& graph, float intensity, Color color, bool shadeByHeight = true) {
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
@@ -273,9 +274,11 @@ inline std::pair<std::vector<Vertex>, std::vector<GLuint>> getMeshFromGraph(cons
     for (std::size_t i = 0; i < numVertices; ++i) {
         const auto& data {graph.getVertexData(i)};
         Vertex vertex {data.x, data.y, data.z, color.r, color.g, color.b, color.a};
-        
-        auto dim = (float)(data.y) / (float)(intensity);
-        vertex = vertex * Vertex{1.0f, 1.0f, 1.0f, dim, dim, dim, 1.0f};
+
+        if (shadeByHeight) {
+            auto dim = (float)(data.y) / (float)(intensity);
+            vertex = vertex * Vertex{1.0f, 1.0f, 1.0f, dim, dim, dim, 1.0f};
+        }
 
         vertices.emplace_back(vertex);
     }

@@ -9,6 +9,10 @@
 #include <stdexcept>
 #include <limits>
 #include <cstdlib>
+#include <cstdio>
+#include <optional>
+#include <numeric>
+#include <algorithm>
 #include <CLI11/CLI11.hpp>
 #include <ifcg/components/task.hpp>
 #include <graph/common/lw_graph.hpp>
@@ -93,7 +97,19 @@ const GraphModel& getGraphModel(const std::string& name) {
     return *model;
 }
 
-void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir, const GraphModel& graphModel);
+// Aparência do teste visual, usada para gerar as imagens das representações.
+struct VisualConfig {
+    unsigned int windowWidth = 1200;
+    unsigned int windowHeight = 800;
+    float lineWidth = 1.0f;
+    float pointSize = 0.0f;                 // 0: vértices não são desenhados
+    std::optional<Color> navColor;          // sem valor: cor padrão, escurecida pela altura
+    Color pointColor {0.85f, 0.25f, 0.10f, 1.0f};
+    Color terrainColor {0.82f, 0.79f, 0.72f, 1.0f};
+    bool showPaths = true;
+};
+
+void test(uint intensity, NoiseConfig noiseConfig, const std::string& saveDir, const GraphModel& graphModel, const VisualConfig& visual);
 void save(const std::string& target, NoiseConfig noiseConfig, bool saveOctaves);
 void testHeuristics(uint intensity, NoiseConfig noiseConfig, const GraphModel& graphModel); // TEMPORÁRIO: imagens do documento
 // void stats(uint repetitions, uint steps, uint intensity, float heightLimit);
@@ -134,8 +150,42 @@ int main(int argc, char* argv[]) {
     testCmd->add_option("exp,-e,--exp", noiseConfig.exp, "Exponente do ruído")->check(CLI::PositiveNumber);
     testCmd->add_option("seed,-s,--seed", noiseConfig.seed, "Semente do gerador de números aleatórios")->check(CLI::PositiveNumber);
     testCmd->add_option("savePath,--save", path, "Diretório para salvar os resultados")->check(CLI::ExistingDirectory);
+
+    VisualConfig visual;
+    std::string windowSize;
+    std::vector<float> navColor, pointColor, terrainColor;
+    bool noPaths = false;
+    const auto colorOption = [&](const char* name, std::vector<float>& target, const char* description) {
+        testCmd->add_option(name, target, description)
+            ->expected(4)
+            ->delimiter(',')
+            ->check(CLI::Range(0.0f, 1.0f));
+    };
+    testCmd->add_option("--line-width", visual.lineWidth, "Espessura das linhas em px")->check(CLI::PositiveNumber);
+    testCmd->add_option("--point-size", visual.pointSize, "Tamanho dos vértices do grafo em px (0 desliga)")->check(CLI::NonNegativeNumber);
+    colorOption("--nav-color", navColor, "Cor das arestas do grafo, r,g,b,a (desliga o escurecimento pela altura)");
+    colorOption("--point-color", pointColor, "Cor dos vértices do grafo, r,g,b,a");
+    colorOption("--terrain-color", terrainColor, "Cor da malha do terreno, r,g,b,a");
+    testCmd->add_option("--window", windowSize, "Tamanho da janela, LxA (ex.: 1920x1080)")
+        ->check([](const std::string& value) -> std::string {
+            unsigned int w {0}, h {0};
+            char extra {0};
+            if (std::sscanf(value.c_str(), "%ux%u%c", &w, &h, &extra) != 2 || w == 0 || h == 0) {
+                return "formato esperado: LxA, por exemplo 1920x1080";
+            }
+            return "";
+        });
+    testCmd->add_flag("--no-paths", noPaths, "Começa com os caminhos ocultos (alternar com X)");
+
     testCmd->callback([&]() {
-        test(intensity, noiseConfig, path, getGraphModel(graphModelName));
+        const auto toColor = [](const std::vector<float>& v) { return Color{v[0], v[1], v[2], v[3]}; };
+        if (!navColor.empty()) visual.navColor = toColor(navColor);
+        if (!pointColor.empty()) visual.pointColor = toColor(pointColor);
+        if (!terrainColor.empty()) visual.terrainColor = toColor(terrainColor);
+        if (!windowSize.empty()) std::sscanf(windowSize.c_str(), "%ux%u", &visual.windowWidth, &visual.windowHeight);
+        visual.showPaths = !noPaths;
+
+        test(intensity, noiseConfig, path, getGraphModel(graphModelName), visual);
     });
 
     // TEMPORÁRIO: Greedy Best-First com heurísticas euclidiana, Manhattan e Chebyshev (imagens do documento).
@@ -255,14 +305,27 @@ void test(
     uint intensity,
     NoiseConfig noiseConfig,
     const std::string& saveDir,
-    const GraphModel& graphModel
+    const GraphModel& graphModel,
+    const VisualConfig& visual
 ) {
     using namespace ifcg;
 
     srand(static_cast<unsigned>(time(NULL)));
 
-    Engine::init(1200, 800, "TCC");
+    Engine::init(visual.windowWidth, visual.windowHeight, "TCC");
     Engine::setup3D();
+
+    // Estado global do OpenGL: vale para todas as linhas (grafo e caminhos) e pontos.
+    // Em perfil core, larguras de linha > 1 dependem do driver; o intervalo suportado é impresso abaixo.
+    if (visual.lineWidth != 1.0f) {
+        GLfloat lineWidthRange[2] {1.0f, 1.0f};
+        glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
+        std::cout << "Largura de linha suportada: [" << lineWidthRange[0] << ", " << lineWidthRange[1] << "]" << std::endl;
+        glLineWidth(std::clamp(visual.lineWidth, lineWidthRange[0], lineWidthRange[1]));
+    }
+    if (visual.pointSize > 0.0f) {
+        glPointSize(visual.pointSize);
+    }
 
     auto& input {Engine::getInputHandler()};
     auto& renderer {Engine::getRenderer()};
@@ -274,9 +337,10 @@ void test(
 
     std::shared_ptr<Mesh> geometryPtr = nullptr;
     std::shared_ptr<Mesh> navigationPtr = nullptr;
+    std::shared_ptr<Mesh> navPointsPtr = nullptr;
     std::vector<std::shared_ptr<Mesh>> pathPtrs;
     bool showNavigation = true;
-    bool showPaths = true;
+    bool showPaths = visual.showPaths;
 
     struct GeometryResult {
         std::vector<float> noise;
@@ -290,6 +354,8 @@ void test(
         std::size_t goalId;
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
+        std::vector<Vertex> pointVertices;
+        std::vector<GLuint> pointIndices;
     };
 
     struct PathResult {
@@ -315,7 +381,7 @@ void test(
         pathPtrs.clear();
 
         Engine::runAsyncThenMain(
-            [currentConfig, intensity]() {
+            [currentConfig, intensity, terrainColor = visual.terrainColor]() {
                 std::cout << "Gerando mapa." << std::endl;
                 auto noise = generateNoiseMap(currentConfig);
                 auto [verticesGeo, indicesGeo] = getMarchingCubeData(
@@ -323,7 +389,7 @@ void test(
                     currentConfig.width,
                     intensity,
                     currentConfig.height,
-                    {0.82f, 0.79f, 0.72f, 1.0f}
+                    terrainColor
                 );
 
                 return GeometryResult {
@@ -344,7 +410,7 @@ void test(
 
                 std::cout << "Gerando navegação." << std::endl;
                 Engine::runAsyncThenMain(
-                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity, graphModel]() mutable {
+                    [&geometryPtr, currentConfig, noise = std::move(result.noise), intensity, graphModel, visual]() mutable {
                         const GraphBuildInput graphInput {
                             .noise = noise,
                             .vertices = geometryPtr->getVertices(),
@@ -356,7 +422,18 @@ void test(
                         auto graph = graphModel.create(graphInput);
 
                         auto graphPtr = std::make_shared<undirected::lwGraph<Vertex3D>>(std::move(graph));
-                        auto [verticesNav, indicesNav] = getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+                        auto [verticesNav, indicesNav] = visual.navColor
+                            ? getMeshFromGraph(*graphPtr, intensity, *visual.navColor, false)
+                            : getMeshFromGraph(*graphPtr, intensity, {0.26f, 0.26f, 0.30f, 0.25f});
+
+                        // Vértices do grafo como GL_POINTS: mesmos vértices, um índice por vértice.
+                        std::vector<Vertex> pointVertices;
+                        std::vector<GLuint> pointIndices;
+                        if (visual.pointSize > 0.0f) {
+                            pointVertices = getMeshFromGraph(*graphPtr, intensity, visual.pointColor, false).first;
+                            pointIndices.resize(pointVertices.size());
+                            std::iota(pointIndices.begin(), pointIndices.end(), GLuint{0});
+                        }
 
                         const QueryPair pair = generateQueryPairs(
                             noise, currentConfig.width, currentConfig.height, static_cast<int>(intensity)
@@ -369,7 +446,9 @@ void test(
                             .startId = start.id,
                             .goalId = goal.id,
                             .vertices = std::move(verticesNav),
-                            .indices = std::move(indicesNav)
+                            .indices = std::move(indicesNav),
+                            .pointVertices = std::move(pointVertices),
+                            .pointIndices = std::move(pointIndices)
                         };
                     },
                     [&, shader](NavigationResult navData) mutable {
@@ -381,12 +460,24 @@ void test(
                             std::cout << "Removendo navegação antiga." << std::endl;
                             renderer.removeMesh(navigationPtr);
                         }
+                        if (navPointsPtr) {
+                            renderer.removeMesh(navPointsPtr);
+                            navPointsPtr = nullptr;
+                        }
 
                         std::cout << "Adicionando nova navegação." << std::endl;
                         navigationPtr = std::make_shared<Mesh>(std::move(navData.vertices), std::move(navData.indices), shader, GL_LINES);
                         navigationPtr->translate(0.0f, 0.2f, 0.0f);
                         if (showNavigation) {
                             renderer.addMesh(navigationPtr);
+                        }
+
+                        if (!navData.pointVertices.empty()) {
+                            navPointsPtr = std::make_shared<Mesh>(std::move(navData.pointVertices), std::move(navData.pointIndices), shader, GL_POINTS);
+                            navPointsPtr->translate(0.0f, 0.25f, 0.0f);
+                            if (showNavigation) {
+                                renderer.addMesh(navPointsPtr);
+                            }
                         }
 
                         if (graphPtr->getOrder() == 0) {
@@ -471,8 +562,8 @@ void test(
     });
 
     input.addKeyCallback(Key::I, KeyAction::PRESS, [&camera]() {
-        camera.setPosition(glm::vec3(3.1593, 23.8903, -5.96752));
-        camera.setOrientation(glm::vec3(0.26217, -0.481512, 0.818203));
+        camera.setPosition(glm::vec3(19.0738, 19.3605, 10.0243));
+        camera.setOrientation(glm::vec3(-0.545152, -0.820262, -0.00445444));
     });
 
     float rotationStep {glm::radians(1.0f)};
@@ -522,14 +613,16 @@ void test(
 
     input.addKeyCallback(Key::Z, KeyAction::PRESS, [&]() {
         showNavigation = !showNavigation;
-        if (!navigationPtr) {
-            return;
-        }
+        for (const auto& meshPtr : {navigationPtr, navPointsPtr}) {
+            if (!meshPtr) {
+                continue;
+            }
 
-        if (showNavigation) {
-            renderer.addMesh(navigationPtr);
-        } else {
-            renderer.removeMesh(navigationPtr);
+            if (showNavigation) {
+                renderer.addMesh(meshPtr);
+            } else {
+                renderer.removeMesh(meshPtr);
+            }
         }
     });
 
@@ -555,8 +648,7 @@ void test(
     Engine::loop(config);
 	Engine::terminate();
 };
-// TEMPORÁRIO: teste visual do Greedy Best-First com heurísticas euclidiana, Manhattan e Chebyshev,
-// usado apenas para gerar as imagens do documento final.
+
 void testHeuristics(
     uint intensity,
     NoiseConfig noiseConfig,
@@ -608,8 +700,6 @@ void testHeuristics(
     Engine::init(1200, 800, "TCC - Heurísticas");
     Engine::setup3D();
 
-    // Linhas mais grossas para as imagens. Estado global do OpenGL: vale para todos os GL_LINES.
-    // Em perfil core, larguras > 1 dependem do driver; o intervalo suportado é impresso abaixo.
     GLfloat lineWidthRange[2] {1.0f, 1.0f};
     glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
     std::cout << "Largura de linha suportada: [" << lineWidthRange[0] << ", " << lineWidthRange[1] << "]" << std::endl;

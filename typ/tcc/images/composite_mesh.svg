@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   data-diagram-type="CLASS"
+   style="width:677px;height:416px;background:#FFFFFF;"
+   width="677px"
+   height="416px"
+   viewBox="0 0 677 416"
+   zoomAndPan="magnify"
+   preserveAspectRatio="none"
+   contentStyleType="text/css"
+   id="svg16"
+   sodipodi:docname="composite_mesh.svg"
+   inkscape:export-filename="composite_mesh.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview16"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.260664"
+     inkscape:cx="362.11075"
+     inkscape:cy="261.76681"
+     inkscape:window-width="1123"
+     inkscape:window-height="1028"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="lnk10" />
+<?plantuml 1.2026.9beta4?>  <defs
+     id="defs1" />
+  <g
+     font-family="sans-serif"
+     lengthAdjust="spacing"
+     id="g16">
+    <!--class MeshBase-->
+    <g
+       class="entity"
+       data-qualified-name="MeshBase"
+       id="ent0001"
+       data-source-line="16">
+      <rect
+         x="168"
+         y="7"
+         width="243.636"
+         height="80.594"
+         fill="#F1F1F1"
+         style="stroke:#181818;stroke-width:0.5;"
+         rx="2.5"
+         ry="2.5"
+         id="rect1" />
+      <ellipse
+         cx="250.093"
+         cy="23"
+         rx="11"
+         ry="11"
+         fill="#A9DCDF"
+         style="stroke:#181818;stroke-width:1;"
+         id="ellipse1" />
+      <path
+         d="M250.202,18.344 L249.046,23.422 L251.374,23.422 L250.202,18.344 Z M248.718,16.109 L251.702,16.109 L255.062,28.5 L252.608,28.5 L251.843,25.438 L248.562,25.438 L247.812,28.5 L245.374,28.5 L248.718,16.109 Z "
+         fill="#000"
+         id="path1" />
+      <text
+         x="270.593"
+         y="27.847"
+         fill="#000"
+         font-size="14"
+         textLength="70.95"
+         font-style="italic"
+         id="text1">MeshBase</text>
+      <line
+         x1="169"
+         y1="39"
+         x2="410.636"
+         y2="39"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line1" />
+      <text
+         x="174"
+         y="55.995"
+         fill="#000"
+         font-size="14"
+         textLength="148.401"
+         id="text2">#_model : glm::mat4</text>
+      <line
+         x1="169"
+         y1="63.297"
+         x2="410.636"
+         y2="63.297"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line2" />
+      <text
+         x="174"
+         y="80.292"
+         fill="#000"
+         font-size="14"
+         textLength="231.636"
+         font-style="italic"
+         id="text3">+draw(parentModel : glm::mat4)</text>
+    </g>
+    <!--class Mesh-->
+    <g
+       class="entity"
+       data-qualified-name="Mesh"
+       id="ent0002"
+       data-source-line="21">
+      <rect
+         x="7"
+         y="167.6"
+         width="243.636"
+         height="113.188"
+         fill="#F1F1F1"
+         style="stroke:#181818;stroke-width:0.5;"
+         rx="2.5"
+         ry="2.5"
+         id="rect3" />
+      <ellipse
+         cx="106.138"
+         cy="183.6"
+         rx="11"
+         ry="11"
+         fill="#ADD1B2"
+         style="stroke:#181818;stroke-width:1;"
+         id="ellipse3" />
+      <path
+         d="M109.107,189.241 Q108.529,189.538 107.888,189.678 Q107.248,189.834 106.544,189.834 Q104.044,189.834 102.716,188.194 Q101.404,186.538 101.404,183.413 Q101.404,180.288 102.716,178.631 Q104.044,176.975 106.544,176.975 Q107.248,176.975 107.888,177.131 Q108.544,177.288 109.107,177.584 L109.107,180.303 Q108.482,179.725 107.888,179.459 Q107.294,179.178 106.669,179.178 Q105.326,179.178 104.638,180.256 Q103.951,181.319 103.951,183.413 Q103.951,185.506 104.638,186.584 Q105.326,187.647 106.669,187.647 Q107.294,187.647 107.888,187.381 Q108.482,187.1 109.107,186.522 L109.107,189.241 Z "
+         fill="#000"
+         id="path3" />
+      <text
+         x="126.638"
+         y="188.447"
+         fill="#000"
+         font-size="14"
+         textLength="36.859"
+         id="text4">Mesh</text>
+      <line
+         x1="8"
+         y1="199.6"
+         x2="249.636"
+         y2="199.6"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line4" />
+      <text
+         x="13"
+         y="216.595"
+         fill="#000"
+         font-size="14"
+         textLength="81.272"
+         id="text5">-_vao : VAO</text>
+      <text
+         x="13"
+         y="232.892"
+         fill="#000"
+         font-size="14"
+         textLength="81.607"
+         id="text6">-_vbo : VBO</text>
+      <text
+         x="13"
+         y="249.189"
+         fill="#000"
+         font-size="14"
+         textLength="81.204"
+         id="text7">-_ebo : EBO</text>
+      <line
+         x1="8"
+         y1="256.491"
+         x2="249.636"
+         y2="256.491"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line7" />
+      <text
+         x="13"
+         y="273.486"
+         fill="#000"
+         font-size="14"
+         textLength="231.636"
+         id="text8">+draw(parentModel : glm::mat4)</text>
+    </g>
+    <!--class MeshTree-->
+    <g
+       class="entity"
+       data-qualified-name="MeshTree"
+       id="ent0003"
+       data-source-line="28">
+      <rect
+         x="331.04"
+         y="183.89"
+         width="331.56"
+         height="80.594"
+         fill="#F1F1F1"
+         style="stroke:#181818;stroke-width:0.5;"
+         rx="2.5"
+         ry="2.5"
+         id="rect8" />
+      <ellipse
+         cx="458.373"
+         cy="199.89"
+         rx="11"
+         ry="11"
+         fill="#ADD1B2"
+         style="stroke:#181818;stroke-width:1;"
+         id="ellipse8" />
+      <path
+         d="M461.342,205.531 Q460.764,205.828 460.123,205.968 Q459.482,206.124 458.779,206.124 Q456.279,206.124 454.951,204.484 Q453.639,202.828 453.639,199.703 Q453.639,196.578 454.951,194.921 Q456.279,193.265 458.779,193.265 Q459.482,193.265 460.123,193.421 Q460.779,193.578 461.342,193.874 L461.342,196.593 Q460.717,196.015 460.123,195.749 Q459.529,195.468 458.904,195.468 Q457.561,195.468 456.873,196.546 Q456.186,197.609 456.186,199.703 Q456.186,201.796 456.873,202.874 Q457.561,203.937 458.904,203.937 Q459.529,203.937 460.123,203.671 Q460.717,203.39 461.342,202.812 L461.342,205.531 Z "
+         fill="#000"
+         id="path8" />
+      <text
+         x="478.873"
+         y="204.737"
+         fill="#000"
+         font-size="14"
+         textLength="68.394"
+         id="text9">MeshTree</text>
+      <line
+         x1="332.04"
+         y1="215.89"
+         x2="661.6"
+         y2="215.89"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line9" />
+      <text
+         x="337.04"
+         y="232.885"
+         fill="#000"
+         font-size="14"
+         textLength="319.56"
+         id="text10">-_children : vector&lt;shared_ptr&lt;MeshBase&gt;&gt;</text>
+      <line
+         x1="332.04"
+         y1="240.187"
+         x2="661.6"
+         y2="240.187"
+         style="stroke:#181818;stroke-width:0.5;"
+         id="line10" />
+      <text
+         x="337.04"
+         y="257.182"
+         fill="#000"
+         font-size="14"
+         textLength="231.636"
+         id="text11">+draw(parentModel : glm::mat4)</text>
+    </g>
+    <!--class J-->
+    <g
+       class="entity"
+       data-qualified-name="J"
+       id="ent0004"
+       data-source-line="33">
+      <rect
+         x="491.59"
+         y="34.15"
+         width="10.45"
+         height="26.297"
+         fill="none"
+         style="stroke:none;"
+         rx="2.5"
+         ry="2.5"
+         id="rect11" />
+    </g>
+    <g
+       class="entity"
+       data-qualified-name="GMN13"
+       id="ent0014"
+       data-source-line="44">
+      <path
+         d="M371.68,360.78 L371.68,401.046 A0,0 0 0 0 371.68,401.046 L621.951,401.046 A0,0 0 0 0 621.951,401.046 L621.951,370.78 L611.951,360.78 L500.82,360.78 L496.82,264.96 L492.82,360.78 L371.68,360.78 A0,0 0 0 0 371.68,360.78"
+         style="stroke:#181818;stroke-width:0.5;"
+         fill="#FEFFDD"
+         id="path11" />
+      <path
+         d="M611.951,360.78 L611.951,370.78 L621.951,370.78 L611.951,360.78"
+         style="stroke:#181818;stroke-width:0.5;"
+         fill="#FEFFDD"
+         id="path12" />
+      <text
+         x="377.68"
+         y="377.847"
+         fill="#000"
+         font-size="13"
+         textLength="167.413"
+         id="text12">for each child in _children</text>
+      <text
+         x="385.945"
+         y="392.98"
+         fill="#000"
+         font-size="13"
+         textLength="221.006"
+         id="text13">child.draw(parentModel * _model)</text>
+    </g>
+    <!--reverse link MeshBase to Mesh-->
+    <g
+       class="link"
+       data-entity-1="ent0001"
+       data-entity-2="ent0002"
+       id="lnk5"
+       data-source-line="35"
+       data-link-type="extension">
+      <path
+         d="M209.32,105.88 C209.32,129.44 209.32,141.49 209.32,167.38"
+         style="stroke:#181818;stroke-width:1;"
+         fill="none"
+         id="MeshBase-backto-Mesh"
+         codeLine="35" />
+      <polygon
+         points="209.32,87.88,203.32,105.88,215.32,105.88,209.32,87.88"
+         fill="none"
+         style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"
+         id="polygon13" />
+    </g>
+    <!--reverse link MeshBase to MeshTree-->
+    <g
+       class="link"
+       data-entity-1="ent0001"
+       data-entity-2="ent0003"
+       id="lnk6"
+       data-source-line="36"
+       data-link-type="extension">
+      <path
+         d="M371.34,105.88 C371.34,134.54 371.34,154.8 371.34,183.49"
+         style="stroke:#181818;stroke-width:1;"
+         fill="none"
+         id="MeshBase-backto-MeshTree"
+         codeLine="36" />
+      <polygon
+         points="371.34,87.88,365.34,105.88,377.34,105.88,371.34,87.88"
+         fill="none"
+         style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"
+         id="polygon14" />
+    </g>
+    <!--link Mesh to MeshTree-->
+    <!--link MeshBase to J-->
+    <!--reverse link MeshBase to J-->
+    <g
+       class="link"
+       data-entity-1="ent0001"
+       data-entity-2="ent0004"
+       id="lnk12"
+       data-source-line="41"
+       data-link-type="dependency">
+      <path
+         d="m 417.03,43.05 79.78502,0"
+         style="stroke:#181818;stroke-width:1"
+         fill="none"
+         id="MeshBase-backto-J"
+         codeLine="41"
+         sodipodi:nodetypes="cc" />
+      <polygon
+         points="412.03,43.05,421.03,47.05,417.03,43.05,421.03,39.05,412.03,43.05"
+         fill="#181818"
+         style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"
+         id="polygon15" />
+      <text
+         x="422.74"
+         y="56.117"
+         fill="#000"
+         font-size="13"
+         textLength="58.944"
+         id="text15">_children</text>
+      <text
+         x="419.761"
+         y="39.442"
+         fill="#000"
+         font-size="13"
+         textLength="23.036"
+         id="text16">0..*</text>
+    </g>
+    <!--link J to MeshTree-->
+    <g
+       class="link"
+       data-entity-1="ent0004"
+       data-entity-2="ent0003"
+       id="lnk10"
+       data-source-line="40"
+       data-link-type="aggregation">
+      <path
+         d="m 496.815,42.55 0.005,128.89"
+         style="stroke:#181818;stroke-width:1"
+         fill="none"
+         id="J-to-MeshTree"
+         codeLine="40"
+         sodipodi:nodetypes="cc" />
+      <polygon
+         points="496.82,183.44,500.82,177.44,496.82,171.44,492.82,177.44,496.82,183.44"
+         fill="none"
+         style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"
+         id="polygon16" />
+    </g>
+<?plantuml-src bL9DImCn4BtdLmpruWTRF7YGiYnOKR1GF2XUH4escNP3DvabcLRgntytctvigVNWxkczUVFcPP8mDwwHNbfGjGpXXjcRSi7ueCWzcG-4In5sajeuv5M3G9uhsYiuqXYmWUjzjPTklY4hen7GDhm2YxP47yIUC4tESxsmTbKKy2a0XbBDPvuMJjzIJHuuceMeHiTjbRn6VwnoJuwFyK-C7gdDVbpnlOxOXL36gneFsR2p4KAM8JeeNiU7COPgA0Ec-2SmiN4bDGnWLjl1m4g-YlG5V6wxla5x-Nww7Zy-r9x5GABpJPuPJ9QIekhbvd43omI76uW9tYLuyH_xPu-u7Q4gK-lO5ELBL4m-3rKqqPE6VRuzOr7yPqGl_ZB0gDkZ4BjjvL-PfdUNfI1_q6s-L8BiDLw8HlVcpQpYWsfgF5ICrhFI4IbRD2qpWgp6AMS5z2xx_VDUTtU3RW52E6A4afZ90asxMG3J-7fGgWgI68pRQuFu9T3_jPxppQiu4-WqjFO_?>  </g>
+</svg>
