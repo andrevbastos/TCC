@@ -986,6 +986,85 @@ def astar_overhead(data: pd.DataFrame, tt: pd.DataFrame, out_csv: Path, out_md: 
                  f"{r.linhas_parcela_maior_1_dijkstra}; {r.linhas_parcela_maior_1_astar} |")
     out_md.write_text("\n".join(L) + "\n", encoding="utf-8")
 
+
+# ---------------------------------------------------------------------------------------
+# Tamanho dos grafos, construção e cobertura do Dijkstra (só descritivo, fora da ANOVA)
+# ---------------------------------------------------------------------------------------
+
+COL_V = "Nós do Grafo"
+COL_E = "Arestas do Grafo"
+COL_BUILD = "Tempo de Construção do Grafo"  # s, sem a extração da malha
+COL_MC = "tempo_extracao_mc_s"  # s, só nos grafos de vértices e dual
+
+
+def graph_size_build(data: pd.DataFrame, tw: pd.DataFrame, out_csv: Path, out_md: Path) -> None:
+    # Grafo, construção e métricas de terreno são iguais em todas as linhas do terreno:
+    # uma linha por teste × grafo × terreno (Dijkstra, Par 0).
+    base = data[(data[COL_ALG] == "Dijkstra") & (data[COL_PAIR] == 0)]
+    assert not base.duplicated(["teste", "grafo", COL_SEED]).any()
+    dij = data[data[COL_ALG] == "Dijkstra"].copy()
+    dij["cobertura"] = dij[COL_EXPANDED] / dij[COL_V]
+
+    rows = []
+    for test in TESTS:
+        for level in sorted(base.loc[base.teste == test, "nivel"].unique()):
+            dim = level if test == "scale" else 500
+            for g in GRAPHS:
+                b = base[(base.teste == test) & (base.nivel == level) & (base.grafo == g)]
+                d = dij[(dij.teste == test) & (dij.nivel == level) & (dij.grafo == g)]
+                mc = b[COL_MC].dropna()
+                rows.append({
+                    "teste": test, "nivel": level, "grafo": g, "n_terrenos": len(b),
+                    "V_media": b[COL_V].mean(), "V_min": b[COL_V].min(), "V_max": b[COL_V].max(),
+                    "E_media": b[COL_E].mean(), "E_min": b[COL_E].min(), "E_max": b[COL_E].max(),
+                    "E_por_V": (b[COL_E] / b[COL_V]).mean(),
+                    "V_por_coluna": (b[COL_V] / (dim * dim)).mean(),
+                    "construcao_mg_s": float(np.exp(np.log(b[COL_BUILD]).mean())),
+                    "extracao_mc_mg_s": float(np.exp(np.log(mc).mean())) if len(mc) else np.nan,
+                    "declividade_media": b["declividade_media"].mean(),
+                    "dij_expandidos_min": d[COL_EXPANDED].min(), "dij_expandidos_max": d[COL_EXPANDED].max(),
+                    "dij_cobertura_min": d["cobertura"].min(), "dij_cobertura_max": d["cobertura"].max(),
+                })
+    res = pd.DataFrame(rows)
+    res.to_csv(out_csv, index=False)
+
+    def i(x) -> str:  # inteiro com espaço de milhar
+        return f"{x:,.0f}".replace(",", " ")
+
+    L = ["# Tamanho dos grafos, construção e cobertura do Dijkstra\n",
+         "Gerado por `analise.py`. Só números, sem interpretação; nada aqui entra na ANOVA.\n",
+         "- Uma linha por teste × nível × representação, sobre os 50 terrenos do nível.",
+         "- |V| e |E|: média (mín.–máx.) entre terrenos; |E|/|V| e |V|/coluna: médias "
+         "(colunas = dimensão², 500² fora da escala).",
+         "- Construção (sem a extração da malha) e extração do Marching Cubes: média geométrica, em s. "
+         "A extração é a mesma malha para vértices e dual.",
+         "- Cobertura do Dijkstra: vértices expandidos / |V|, mín.–máx. entre as consultas.\n",
+         "| Teste | Nível | Representação | |V| | |E| | |E|/|V| | |V|/coluna | Construção (s) | "
+         "Extração MC (s) | Declividade média | Dijkstra expandidos (mín.–máx.) | Cobertura Dijkstra |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for _, r in res.iterrows():
+        L.append(f"| {TEST_LABEL[r.teste]} | {level_label(r.teste, r.nivel)} | {GRAPH_LABEL[r.grafo]} | "
+                 f"{i(r.V_media)} ({i(r.V_min)}–{i(r.V_max)}) | {i(r.E_media)} ({i(r.E_min)}–{i(r.E_max)}) | "
+                 f"{br(r.E_por_V, 2)} | {br(r.V_por_coluna, 2)} | {br(r.construcao_mg_s, 3)} | "
+                 f"{br(r.extracao_mc_mg_s, 3)} | {br(r.declividade_media, 3)} | "
+                 f"{i(r.dij_expandidos_min)}–{i(r.dij_expandidos_max)} | "
+                 f"{br(r.dij_cobertura_min, 4)}–{br(r.dij_cobertura_max, 4)} |")
+
+    L += ["\n## Tukey dentro do terreno: A* × Dijkstra em vértices expandidos\n",
+          "| Teste | Representação | Razão MG (IC) | p | Significativo |", "|---|---|---|---|---|"]
+    t = tw[(tw.metrica == "expandidos") & (tw.comparacao == "algoritmos por representação")
+           & (tw.grupo_1.isin(["Dijkstra", "A*"])) & (tw.grupo_2.isin(["Dijkstra", "A*"]))]
+    for _, r in t.iterrows():
+        # razão grupo_1/grupo_2; reportada como A*/Dijkstra
+        flip = r.grupo_1 == "Dijkstra"
+        ratio, lo, hi = (r.razao_mg, r.razao_mg_li, r.razao_mg_ls)
+        if flip:
+            ratio, lo, hi = 1 / ratio, 1 / hi, 1 / lo
+        L.append(f"| {TEST_LABEL[r.teste]} | {GRAPH_LABEL[r.fixo]} | {br(ratio, 3)} ({br(lo, 3)}–{br(hi, 3)}) | "
+                 f"{br_p(r.p)} | {'sim' if r.significativo else 'não'} |")
+    out_md.write_text("\n".join(L) + "\n", encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------------------
 # Resumo em Markdown (só números, sem interpretação)
 # ---------------------------------------------------------------------------------------
@@ -1163,6 +1242,7 @@ def main() -> int:
                              out / "relatorio_figuras.md")
     print(f"[figuras] {len(points)} pontos conferidos: {'OK' if figs_ok else 'DIVERGÊNCIAS'}")
     astar_overhead(data, tt, out / "a_star_overhead.csv", out / "a_star_overhead.md")
+    graph_size_build(data, tw_all, out / "tamanho_construcao.csv", out / "tamanho_construcao.md")
     (out / "relatorio_verificacoes.md").write_text("\n".join(chk.lines) + "\n", encoding="utf-8")
     print(f"\nSaídas em {out}; resumo em {args.resumo}")
     return 1 if (chk.failed or not figs_ok) else 0
