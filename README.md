@@ -1,4 +1,4 @@
-# TCC: representações navegáveis e algoritmos de busca em terrenos 3D
+# Representações e características de terrenos tridimensionais e seu impacto no desempenho de algoritmos de busca de caminhos: uma análise comparativa e estatística
 
 Código, scripts de coleta e análise do Trabalho de Conclusão de Curso de
 André Vitor Bastos de Macêdo (IFC Campus Blumenau, 2026).
