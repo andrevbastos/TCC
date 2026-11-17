@@ -179,8 +179,9 @@
   + *Metodologia experimental reprodutível:* terrenos gerados
     proceduralmente com parâmetros controlados e semente registrada, e
     análise estatística (ANOVA e testes _post hoc_).
-  + *Implementação de código aberto:* biblioteca de grafos e motor gráfico
-    IFCG, com visualização das malhas e dos caminhos.
+  + *Implementação de código aberto:* gerador, representações, algoritmos
+    instrumentados, `lwGraph<T>` e _TaskMaster_, sobre as bibliotecas Graph
+    e IFCG do autor.
 ]
 
 // ---------------------------------------------------------------- Slide 5 ---
@@ -194,11 +195,11 @@
 
   #v(14pt)
   *Objetivos específicos:*
-  + Implementar uma biblioteca de grafos e os algoritmos Dijkstra, A\*,
-    Weighted A\* e Greedy Best-First Search.
+  + Estender uma biblioteca de grafos com uma estrutura leve e implementar
+    os algoritmos Dijkstra, A\*, Weighted A\* e Greedy Best-First Search.
   + Desenvolver um gerador procedural de terrenos por ruído de Perlin,
-    parametrizado por escala, lacunaridade, persistência e comprimento de
-    onda.
+    parametrizado por lacunaridade, persistência e comprimento de onda, com
+    resolução da grade (escala) ajustável.
   + Construir quatro representações navegáveis: grade 2.5D, grade
     voxelizada, grafo de vértices e grafo dual da malha.
   + Desenvolver um ambiente 3D com execução concorrente para visualizar as
@@ -209,8 +210,8 @@
 
 // ---------------------------------------------------------------- Slide 6 ---
 #slide(
-  nota: [Estudos recentes costumam avaliar uma única representação, e a
-    análise estatística é frequentemente negligenciada.],
+  nota: [Os estudos analisados avaliam uma única representação navegável e
+    não comparam representações por análise estatística.],
 )[Trabalhos relacionados][
   #tabela(
     columns: (auto, 1fr, 1fr, 1fr),
@@ -243,7 +244,7 @@
     cab[Algoritmo], cab[Função de avaliação], cab[Caminho ótimo],
     [Dijkstra #cite(<dijkstra1959note>)], $f(n) = g(n)$, [Sim],
     [A\* #cite(<astar>)], $f(n) = g(n) + h(n)$,
-    [Sim, com heurística admissível],
+    [Sim, com heurística consistente],
     [Weighted A\* #cite(<pohl1970heuristic>)], $f(n) = g(n) + w dot h(n)$,
     [Não garantido ($w$ = 1,5)],
     [GBFS #cite(<russell_norvig>)], $f(n) = h(n)$, [Não garantido],
@@ -271,7 +272,8 @@
     a intensidade do pixel é a elevação.
   - Valores $v in [0, 1]$ são convertidos em altura pela escala $H$:
     pixel preto → altura mínima, branco → altura máxima.
-  - Cada elemento $(i, j)$ vira o vértice $(x, y, z) = (i, h(i, j), j)$.
+  - Cada elemento $(i, j)$ vira o vértice $(x, y, z) = (i, e(i, j), j)$,
+    em que $e(i, j)$ é a altura armazenada.
 
   #v(16pt)
   #align(center, image("images/pixel_to_vertex.png", width: 430pt))
@@ -293,7 +295,7 @@
         próprias #cite(<patel_terrain_noise>):
       #v(4pt)
       $ f_i = f dot l^i, quad a_i = a_0 dot p^i $
-      $ V(x, y) = sum_(i=0)^(N-1) a_i dot "ruído"(x dot f_i, y dot f_i) $
+      $ R(x, y) = sum_(i=0)^(N-1) a_i dot "ruído"(x dot f_i, y dot f_i) $
       #v(4pt)
       - $l$: lacunaridade; $p$: persistência.
       - Todos os testes usam seis oitavas.
@@ -455,7 +457,8 @@
   )))
   #v(12pt)
   #set text(size: 13pt)
-  - Seis oitavas em todos os testes; um parâmetro varia por vez.
+  - Seis oitavas em todos os testes; um parâmetro varia por vez; altura
+    máxima $H$ igual à dimensão ($H$ = 500 fora da escala).
   - 50 terrenos por nível (5 execuções × 10), com sementes derivadas de uma
     semente base: todas as representações medem os mesmos terrenos.
   - Duas consultas por terreno, nas diagonais, de canto a canto.
@@ -548,8 +551,8 @@
 
 // --------------------------------------------------------------- Slide 19 ---
 #slide(
-  nota: [Teste de escala, médias geométricas. Hipótese não isolada
-    experimentalmente.],
+  nota: [Tabela: teste de escala, médias geométricas. Faixas do texto: os
+    quatro testes. Hipótese não isolada experimentalmente.],
 )[Esforço de busca e tempo][
   #align(center, block(width: 85%, tabela(
     columns: (auto, 1fr, 1fr, 1fr),
@@ -564,8 +567,9 @@
   #v(10pt)
   #set text(size: 13pt)
   - O A\* expande de 23% a 27% menos vértices que o Dijkstra, mas não é
-    mais rápido: na grade 2.5D não diferem, e na grade voxelizada o Dijkstra
-    gasta de 79% a 82% do tempo do A\*.
+    mais rápido: na grade 2.5D (35% a 42% menos expansões) não diferem; na
+    voxelizada (cerca de 3%, não significativo) o A\* leva 1,22 a 1,26 vez
+    o tempo do Dijkstra.
   - O pico da lista aberta do A\* é cerca do dobro do Dijkstra: hipótese de
     maior custo por vértice (fila de prioridade e cálculo da heurística).
   - A ordem das representações depende do algoritmo ($eta^2_p$ entre 0,89 e
@@ -647,8 +651,8 @@
         $eta^2_p$ = 0,915.
       - O tempo da WA\* cresce 39,93 vezes na grade 2.5D e 34,49 vezes no
         grafo de vértices, mas só 2,44 vezes na voxelizada.
-      - O custo relativo da GBFS aumenta de 1,34 a 1,63 vez; o da WA\*
-        diminui levemente.
+      - O custo relativo da GBFS aumenta por um fator entre 1,34 e 1,63; o
+        da WA\* diminui levemente.
       - No Dijkstra, as expansões nas grades não respondem à lacunaridade, à
         persistência nem ao comprimento de onda.
     ],
@@ -687,12 +691,12 @@
     desempenho, mas o sentido e a magnitude do efeito dependem do algoritmo.
   - Não há uma combinação melhor em todos os critérios: a escolha depende da
     prioridade (tempo, esforço ou qualidade do caminho).
-  - A GBFS é a mais rápida, com caminhos de 18% a 28% mais longos; o A\*
+  - A GBFS é a mais rápida, com caminhos de 18% a 28% mais caros; o A\*
     expande menos que o Dijkstra sem reduzir o tempo; a WA\* é o meio-termo,
     com picos maiores da lista aberta.
-  - Objetivos cumpridos: biblioteca de grafos e quatro algoritmos, gerador
-    com quatro parâmetros, quatro representações, coleta automatizada com
-    ANOVA e Tukey, e visualizador 3D concorrente.
+  - Objetivos cumpridos: biblioteca de grafos estendida e quatro
+    algoritmos, gerador com os parâmetros testados, quatro representações,
+    coleta automatizada com ANOVA e Tukey, e visualizador 3D concorrente.
 ]
 
 // --------------------------------------------------------------- Slide 25 ---
@@ -710,7 +714,10 @@
       - Custo relativo não comparável entre representações.
       - Apenas terrenos de ruído de Perlin, um computador e sem obstáculos
         dinâmicos.
-      - Construção dos grafos e Marching Cubes fora da comparação.
+      - Consultas só de canto a canto: o Dijkstra percorre o grafo inteiro.
+      - Comparação entre representações mistura estrutura e geometria.
+      - Construção dos grafos e Marching Cubes fora da análise estatística
+        (apenas descritivos).
     ],
     [
       #text(weight: "bold", fill: verde)[Trabalhos futuros]

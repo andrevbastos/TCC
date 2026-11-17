@@ -12,13 +12,14 @@
   coorientador: "",
   instituicao: "",
   curso: "",
+  campus: "",
   local: "",
   ano: "",
   natureza_trabalho: "",
   banca: (),
-  data_aprovacao: "",
   dedicatoria: [],
   agradecimentos: [],
+  declaracao_ia: [],
   epigrafe: [],
   resumo: [],
   palavras_chave: [],
@@ -38,34 +39,39 @@
   
   set text(font: ("Arial"), size: 12pt, lang: "pt", region: "br")
 
+  // "TÍTULO: SUBTÍTULO" em maiúsculas (capa e folha de rosto do template IFC).
+  let titulo_completo = upper(titulo) + if subtitulo != "" { ": " + upper(subtitulo) }
+
   align(center)[
-    #text(weight: "bold", upper(instituicao)) \
-    #text(weight: "bold", upper(curso))
+    #image("images/logo-ifc.png", width: 2.55cm)
+    #instituicao \
+    #curso \
+    #campus
 
     #v(2fr)
-    #text(weight: "bold", upper(autor)) 
+    #text(weight: "bold", upper(autor))
     #v(2fr)
-    
-    #text(weight: "bold", size: 14pt, upper(titulo))#if subtitulo != "" [#text(weight: "bold", size: 14pt)[: #subtitulo]]
-        
+
+    #text(weight: "bold", titulo_completo)
+
     #v(3fr)
-    #text(weight: "bold", local) \
-    #text(weight: "bold", ano)
+    #local \
+    #ano
   ]
   pagebreak()
   counter(page).update(1)
 
   align(center)[
-    #text(upper(autor))
+    #text(weight: "bold", upper(autor))
     #v(1fr)
-    
-    #text(weight: "bold", upper(titulo))#if subtitulo != "" [#text(weight: "bold")[: #subtitulo]]
+
+    #text(weight: "bold", titulo_completo)
     #v(3em)
-    
+
     #align(right)[
       #pad(left: 8cm)[
-        #set text(size: 10pt)
-        #set par(leading: 0.65em, justify: true)
+        #set align(left)
+        #set par(leading: 0.43em, justify: true)
         #natureza_trabalho
         \ \
         *Orientador:* #orientador
@@ -81,39 +87,41 @@
   ]
   pagebreak()
 
+  // Folha de aprovação no formato usado pelo curso (TCC de 2025): assinada à mão pela
+  // banca após a defesa. O primeiro membro de `banca` é o orientador; os demais, membros.
   if banca != () [
+    #let assinatura(papel, membro) = align(center)[
+      #line(length: 9cm, stroke: 0.5pt)
+      #v(-0.5em)
+      #papel: #membro.nome \
+      #membro.filiacao
+    ]
     #align(center)[
-      #text(upper(autor)) \
+      #text(weight: "bold", upper(autor))
       #v(2em)
-      #text(weight: "bold", upper(titulo))#if subtitulo != "" [#text(weight: "bold")[: #subtitulo]]
+      #text(weight: "bold", titulo_completo)
       #v(2em)
     ]
-    #align(right)[
-      #pad(left: 8cm)[
-        #set text(size: 10pt)
-        #set par(leading: 0.3em, justify: true)
-        #natureza_trabalho
+    #pad(left: 8cm)[
+      #set par(leading: 0.43em, justify: true)
+      #natureza_trabalho
+      \ \
+      *Orientador:* #orientador
+      #if coorientador != "" [
+        \ *Coorientador(a):* #coorientador
       ]
     ]
-    #v(2em)
-    #if data_aprovacao != "" [
-      Aprovado em: #data_aprovacao \
-    ] else [
-      Aprovado em: #box(width: 1.2cm, repeat[\_])/#box(width: 1.2cm, repeat[\_])/#box(width: 2cm, repeat[\_]) \
+    #v(1fr)
+    #align(center)[
+      Aprovado em: #box(width: 1.2cm, repeat[\_])/#box(width: 1.2cm, repeat[\_])/#box(width: 2cm, repeat[\_]).
     ]
-    #v(1.5em)
-    #align(center)[*BANCA EXAMINADORA*]
-    #v(1.5em)
-    
-    #for membro in banca [
-      #align(center)[
-        #v(2.5em)
-        #line(length: 60%, stroke: 0.5pt) \
-        #text(weight: "bold")[#membro.nome] \
-        #set text(size: 10pt)
-        #membro.filiacao
-      ]
+    #v(1fr)
+    #assinatura("Orientador", banca.first())
+    #for membro in banca.slice(1) [
+      #v(1fr)
+      #assinatura("Membro", membro)
     ]
+    #v(1fr)
     #pagebreak()
   ]
 
@@ -130,8 +138,16 @@
   if agradecimentos != [] [
     #align(center)[#text(weight: "bold")[AGRADECIMENTOS]]
     #v(1.5em)
-    #set par(first-line-indent: 1.25cm, leading: 0.5em, justify: true)
+    #set par(first-line-indent: 1.5cm, leading: 1em, spacing: 1em, justify: true)
     #agradecimentos
+    #pagebreak()
+  ]
+
+  if declaracao_ia != [] [
+    #align(center)[#text(weight: "bold")[DECLARAÇÃO DE USO DE INTELIGÊNCIA ARTIFICIAL]]
+    #v(1.5em)
+    #set par(first-line-indent: 1.5cm, leading: 1em, spacing: 1em, justify: true)
+    #declaracao_ia
     #pagebreak()
   ]
 
@@ -152,7 +168,7 @@
     #resumo
     
     #v(2em)
-    #text(weight: "bold")[Palavras-chave:] #palavras_chave.join(". ").
+    #text(weight: "bold")[Palavras-chave:] #palavras_chave.join("; ").
     #pagebreak()
   ]
 
@@ -163,7 +179,7 @@
     #abstract
     
     #v(2em)
-    #text(weight: "bold")[Keywords:] #keywords.join(". ").
+    #text(weight: "bold")[Keywords:] #keywords.join("; ").
     #pagebreak()
   ]
 
@@ -225,22 +241,26 @@
   show outline.entry: it => {
     if it.level == 1 {
       v(1em, weak: true)
-      strong(upper(it))
+      if it.element.numbering != none { strong(upper(it)) } else { strong(it) }
     } else if it.level == 2 {
+      upper(it)
+    } else if it.level == 3 {
       strong(it)
+    } else if it.level == 4 {
+      emph(it)
     } else {
       it
     }
   }
   
-  outline(title: none, depth: 3, indent: 0.5em)
+  outline(title: none, depth: 4, indent: 0.5em)
   pagebreak()
 
-  set page(numbering: "1", number-align: top + right)
+  set page(numbering: (..n) => text(size: 10pt, str(n.pos().first())), number-align: top + right)
 
   set par(
     justify: true, 
-    first-line-indent: 1.25cm, 
+    first-line-indent: 1.5cm, 
     leading: 1em, 
     spacing: 1em
   )
@@ -257,11 +277,14 @@
     if it.level == 1 {
       pagebreak(weak: true)
       // Títulos sem indicativo numérico (referências, apêndices) são centralizados (NBR 14724).
-      if it.numbering == none { align(center, upper(it)) } else { upper(it) }
+      // O texto já vem em maiúsculas onde a norma pede (REFERÊNCIAS, APÊNDICE A – Descrição).
+      if it.numbering == none { align(center, it) } else { upper(it) }
     } else if it.level == 2 {
-      it
-    } else if it.level == 3 {
+      // Seção secundária: maiúsculas sem negrito (template IFC).
       set text(weight: "regular")
+      upper(it)
+    } else if it.level == 3 {
+      // Seção terciária: negrito, só a inicial maiúscula.
       it
     } else {
       set text(weight: "regular", style: "italic")
@@ -274,10 +297,12 @@
   show figure: it => block(breakable: false, width: 100%)[
     #set align(center)
     #set text(size: 10pt)
-    #set par(leading: 0.3em)
+    // Espaço simples (~1,15 no Word) na legenda e na fonte; o conteúdo das tabelas mantém 0.3em.
+    #set par(leading: 0.43em)
+    #show table: set par(leading: 0.3em)
     
     #if it.has("caption") [
-      #strong[#it.supplement #it.counter.display(it.numbering) -- #it.caption.body]
+      #it.supplement #it.counter.display(it.numbering) -- #it.caption.body
       #v(0.5em)
     ]
     #it.body
@@ -285,7 +310,7 @@
   ]
 
   show bibliography: set text(size: 12pt)
-  show bibliography: set par(leading: 0.3em, first-line-indent: 0pt, justify: false)
+  show bibliography: set par(leading: 0.43em, first-line-indent: 0pt, justify: false)
   show bibliography: set block(spacing: 1.5em)
   show bibliography: set align(left)
 
@@ -307,7 +332,7 @@
 #let citacao_longa(texto) = {
   pad(left: 4cm, right: 0cm)[
     #set text(size: 10pt)
-    #set par(first-line-indent: 0pt, leading: 0.3em)
+    #set par(first-line-indent: 0pt, leading: 0.43em)
     #texto
   ]
   v(1.5em)
@@ -327,8 +352,9 @@
   subtitulo: "Uma análise comparativa e estatística",
   autor: "André Vitor Bastos de Macêdo",
   orientador: "Prof. Dr. Paulo César Rodacki Gomes",
-  instituicao: "Instituto Federal Catarinense - IFC",
+  instituicao: "Instituto Federal Catarinense",
   curso: "Bacharelado em Ciência da Computação",
+  campus: "Campus Blumenau",
   local: "Blumenau",
   ano: "2026",
   natureza_trabalho: "Trabalho de Conclusão de Curso apresentado ao curso de Bacharelado em Ciência da Computação do Instituto Federal Catarinense – Campus Blumenau, como requisito parcial para a obtenção do grau de Bacharel em Ciência da Computação.",
@@ -342,11 +368,29 @@
   ],
   keywords: ("Pathfinding", "Navigable representations", "Three-dimensional terrain", "Perlin noise", "Analysis of variance"),
   
+  // O primeiro membro é o orientador.
   banca: (
-    (nome: "Prof. Dr. Paulo César Rodacki Gomes", filiacao: [Orientador \ Instituto Federal Catarinense – Campus Blumenau]),
-    (nome: "Prof. Me. Ricardo de la Rocha Ladeira", filiacao: [Instituto Federal Catarinense – Campus Blumenau]),
-    (nome: "Prof. Me. Matheus Luan Krueger", filiacao: [Instituto Federal Catarinense – Campus Blumenau]),
+    (nome: "Prof. Dr. Paulo César Rodacki Gomes", filiacao: [Instituto Federal Catarinense]),
+    (nome: "Prof. M.e Ricardo de la Rocha Ladeira", filiacao: [Instituto Federal Catarinense]),
+    (nome: "Prof. M.e Matheus Luan Krueger", filiacao: [Instituto Federal Catarinense]),
   ),
+  agradecimentos: [
+    Agradeço à minha família e aos meus amigos, que me apoiaram durante toda a minha trajetória acadêmica e contribuíram para que eu me tornasse quem sou hoje. Sem eles, este trabalho não seria possível.
+
+    Agradeço também aos professores do IFC Blumenau, que me fizeram uma pessoa mais crítica e curiosa, ensinando-me a questionar, a pesquisar e a buscar soluções para os problemas que surgem pelo caminho.
+
+    Ao meu orientador, Prof. Paulo César Rodacki Gomes, que me acompanhou com paciência e carinho, trazendo sempre novas ideias e me estimulando a pensar de forma criativa diante dos desafios que surgiram ao longo deste trabalho.
+
+    E ao meu amor, Anna Beatriz, que me incentivou a seguir em frente mesmo nos momentos mais difíceis. Obrigado por estar sempre presente e por me apoiar em todas as minhas decisões.
+  ],
+  epigrafe: [
+    Here comes better days. \
+    #set text(style: "normal")
+    @richbrian2019drivesafe
+  ],
+  declaracao_ia: [
+    O autor declara que o assistente de inteligência artificial Claude Code foi utilizado como apoio na revisão textual e ortográfica, na redação de trechos a partir de dados e indicações fornecidos pelo autor e na formatação das tabelas deste trabalho. Também foi utilizado no desenvolvimento das funções de aquisição de dados, construídas sobre a base de software implementada pelo autor, e no tratamento estatístico dos dados. Todo o conteúdo gerado foi revisado pelo autor. A concepção do estudo, a implementação do software base, a execução dos experimentos e a análise científica são de inteira responsabilidade do autor.
+  ],
 
   lista_ilustracoes: true,
   lista_tabelas: true,
@@ -1438,6 +1482,8 @@ As variáveis independentes são a representação navegável, o algoritmo de bu
     [Dependente (desempenho)], [Pico da lista aberta], [Maior número de elementos simultâneos na lista aberta],
     [Dependente (qualidade)], [Custo relativo], [Custo do caminho dividido pelo custo do Dijkstra no mesmo par de consulta],
   )
+  #v(.5em)
+  Fonte: Elaborado pelo autor.
 ] <tab_variaveis>
 
 == Níveis <niveis>
@@ -1849,31 +1895,13 @@ Assim, este trabalho contribui com uma comparação entre representações naveg
 
 Dentro das limitações apontadas nas ameaças à validade (@ameacas), trabalhos futuros podem estender a comparação a terrenos reais, a obstáculos dinâmicos e a outros pesos do algoritmo Weighted A\*, além de incluir na comparação estatística o custo de construção dos grafos, hoje apresentado apenas de forma descritiva (@tab_construcao). A escolha conjunta de representação e algoritmo, portanto, deve considerar tanto o tipo de terreno quanto a prioridade da aplicação.
 
-#pagebreak()
-
-#text(white, size: 1pt)[#heading(numbering: none)[DECLARAÇÃO DE USO DE INTELIGÊNCIA ARTIFICIAL]]
-#v(-1.5em)
-#align(center)[
-  #text(weight: "bold", size: 12pt)[DECLARAÇÃO DE USO DE INTELIGÊNCIA ARTIFICIAL]
-  #v(1.5em)
-]
-
-O autor declara que o assistente de inteligência artificial Claude Code foi utilizado como apoio na revisão textual e ortográfica, na redação de trechos a partir de dados e indicações fornecidos pelo autor e na formatação das tabelas deste trabalho. Também foi utilizado no desenvolvimento das funções de aquisição de dados, construídas sobre a base de software implementada pelo autor, e no tratamento estatístico dos dados. Todo o conteúdo gerado foi revisado pelo autor. A concepção do estudo, a implementação do software base, a execução dos experimentos e a análise científica são de inteira responsabilidade do autor.
-
-#pagebreak()
-
-#text(white, size: 1pt)[#heading(numbering: none)[REFERÊNCIAS]]
-#v(-1.5em)
-#align(center)[
-  #text(weight: "bold", size: 12pt)[REFERÊNCIAS]
-  #v(1.5em)
-]
+#heading(numbering: none)[REFERÊNCIAS]
 
 #bibliography("referencias.bib", style: "associacao-brasileira-de-normas-tecnicas.csl", title: none)
 
 #pagebreak()
 
-#heading(numbering: none)[Apêndice A -- Análise de variância] <apendice_anova>
+#heading(numbering: none)[APÊNDICE A -- Análise de variância] <apendice_anova>
 
 Este apêndice apresenta a ANOVA em modelo _split-plot_ de cada teste: escala (@tab_anova_escala), lacunaridade (@tab_anova_lac), persistência (@tab_anova_pers) e comprimento de onda (@tab_anova_comp). Nas tabelas, N é o nível do parâmetro testado, A é o algoritmo e R é a representação navegável. Nos efeitos dentro do terreno, os graus de liberdade (gl) e o valor de p trazem a correção de Greenhouse-Geisser.
 
@@ -2070,7 +2098,7 @@ Este apêndice apresenta a ANOVA em modelo _split-plot_ de cada teste: escala (@
 ] <tab_anova_comp>
 
 
-#heading(numbering: none)[Apêndice B -- Comparações de Tukey] <apendice_tukey>
+#heading(numbering: none)[APÊNDICE B -- Comparações de Tukey] <apendice_tukey>
 
 Este apêndice resume as comparações do teste de Tukey. A @tab_tukey_alg traz, para cada teste e representação, a razão entre as médias geométricas dos algoritmos de Dijkstra e A\* no tempo de busca, nos vértices expandidos e no pico da lista aberta, com o valor de p entre parênteses. No custo relativo, a razão é entre os algoritmos Weighted A\* e Greedy Best-First Search. A @tab_tukey_niveis traz a razão entre o último e o primeiro nível de cada teste, por algoritmo, com o menor e o maior valor entre as quatro representações.
 
@@ -2139,7 +2167,7 @@ Este apêndice resume as comparações do teste de Tukey. A @tab_tukey_alg traz,
   Fonte: Elaborado pelo autor.
 ] <tab_tukey_niveis>
 
-#heading(numbering: none)[Apêndice C -- Figuras complementares] <apendice_figuras>
+#heading(numbering: none)[APÊNDICE C -- Figuras complementares] <apendice_figuras>
 
 Este apêndice reúne as figuras de vértices expandidos e de custo relativo dos quatro testes, que complementam as figuras de tempo de busca da @res_tempo. Em cada figura, os pontos são médias geométricas dos terrenos, e as barras indicam o intervalo de confiança de 95%. O custo relativo é apresentado apenas para os algoritmos Weighted A\* e Greedy Best-First Search.
 
@@ -2231,7 +2259,7 @@ Este apêndice reúne as figuras de vértices expandidos e de custo relativo dos
  Fonte: Elaborado pelo autor.
 ] <fig_apx_frequency_custo_relativo> \ #v(-1.5em)
 
-#heading(numbering: none)[Apêndice D -- Avaliação do TaskMaster] <apendice_taskmaster>
+#heading(numbering: none)[APÊNDICE D -- Avaliação do TaskMaster] <apendice_taskmaster>
 
 Este apêndice resume a avaliação do _TaskMaster_ (ver @ifcg), feita em um estudo complementar a este trabalho. O estudo foi desenvolvido pelo autor na disciplina de Programação de Alto Desempenho e apresentado como pôster na MEPEC 2026, em coautoria com Paulo César Rodacki Gomes, Ricardo de la Rocha Ladeira e Jurandir Domingues Junior. O código está em repositório público#footnote[Disponível em: #link("https://github.com/andrevbastos/pad")].
 
@@ -2272,7 +2300,7 @@ No cenário isolado, a execução completa, com 400 terrenos somados os testes d
 Em contrapartida, o tempo de geração de cada terreno é maior no modo paralelo: entre 1,7 e 1,9 vez o do sequencial no cenário integrado (@tab_taskmaster) e entre 2,1 e 2,2 vezes no isolado. A causa dessa diferença não foi isolada. O processador combina núcleos de desempenho e de eficiência, e o modo paralelo distribui as tarefas entre todos eles, enquanto o sequencial usa um único núcleo de desempenho. Além disso, a avaliação não inclui a busca de caminhos e, portanto, não mede o efeito do _TaskMaster_ sobre os algoritmos comparados neste trabalho.
 
 
-#heading(numbering: none)[Apêndice E -- Tamanho e construção dos grafos] <apendice_tamanho>
+#heading(numbering: none)[APÊNDICE E -- Tamanho e construção dos grafos] <apendice_tamanho>
 
 Este apêndice apresenta, para cada teste e nível, o número de vértices |V| e de arestas |A| de cada representação, a razão entre o número de vértices e o número de colunas do mapa de altura, o tempo de construção do grafo e o tempo de extração da malha pelo Marching Cubes, além da declividade média dos terrenos. Os valores de tamanho e de declividade são médias dos 50 terrenos de cada nível, e os tempos são médias geométricas. A construção não inclui a extração da malha, que é a mesma para o grafo de vértices e o grafo dual.
 

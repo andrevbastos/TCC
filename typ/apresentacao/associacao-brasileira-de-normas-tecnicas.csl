@@ -181,7 +181,7 @@ aparecera a expess o 'et. al.'. Na regra da ABNT 2023 essa expressao deve aparec
     <text variable="URL" prefix="Disponível em: &lt;" suffix="&gt;"/>
     <date variable="accessed" prefix=". Acesso em: ">
       <date-part name="day" suffix=" "/>
-      <date-part name="month" form="short" suffix=". " text-case="lowercase"/>
+      <date-part name="month" form="short" suffix=" " text-case="lowercase"/>
       <date-part name="year"/>
     </date>
   </macro>
@@ -344,8 +344,8 @@ em caixa alta. Utiliza-se antes do nome da conferencia a expressao "In". Segundo
       <else-if match="any" type="article-journal article-magazine article-newspaper">
         <group delimiter=", ">
           <group delimiter=", ">
-            <text variable="volume" prefix=" v. "/>
-            <text variable="issue" prefix=" n. "/>
+            <text variable="volume" prefix="v. "/>
+            <text variable="issue" prefix="n. "/>
           </group>
           <text variable="page" prefix="p. "/>
         </group>
@@ -353,9 +353,9 @@ em caixa alta. Utiliza-se antes do nome da conferencia a expressao "In". Segundo
       <!--Se for capitulo de livro aparecera o volume "v." e a pagina "p."-->
       <else-if match="any" type="book chapter">
         <group delimiter=", ">
-          <group>
-            <text variable="volume" prefix=" v. "/>
-            <text variable="page" prefix=" p. "/>
+          <group delimiter=", ">
+            <text variable="volume" prefix="v. "/>
+            <text variable="page" prefix="p. "/>
           </group>
         </group>
       </else-if>
@@ -401,6 +401,7 @@ em caixa alta. Utiliza-se antes do nome da conferencia a expressao "In". Segundo
         <text suffix=", " macro="author-short"/>
         <!--Seperando os autores das datas usando virgula-->
         <text macro="issued-year"/>
+        <text variable="year-suffix"/>
         <text prefix=", " macro="citation-locator"/>
       </group>
     </layout>
@@ -557,6 +558,11 @@ em caixa alta. Utiliza-se antes do nome da conferencia a expressao "In". Segundo
             <text macro="title" suffix=". "/>
             <!--Titulo-->
             <text macro="genre" suffix=". "/>
+            <group suffix=". ">
+              <text macro="issued"/>
+              <text variable="year-suffix"/>
+            </group>
+            <!--Data-->
             <text macro="access" suffix=". "/>
             <!--URL, data do acesso-->
           </group>
